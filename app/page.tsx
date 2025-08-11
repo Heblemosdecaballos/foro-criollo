@@ -1,11 +1,13 @@
 export default function Page() {
   return (
     <main className="min-h-screen">
-      <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Foro Criollo — mantenimiento</h1>
-        <p className="mb-2">Prueba de campos:</p>
-        <input className="border p-2 w-full mb-4" placeholder="Escriba aquí..." />
-        <a className="underline" href="/login">Ir a Ingresar</a>
+      <div className="max-w-5xl mx-auto p-6 space-y-4">
+        <h1 className="text-2xl font-bold">Hablando de Caballos</h1>
+        <p>Prueba: debería poder escribir aquí abajo.</p>
+        <input className="border rounded p-2 w-full" placeholder="Escriba aquí..." />
+        <p>
+          <a className="underline" href="/login">Ir a Ingresar</a>
+        </p>
       </div>
     </main>
   );
