@@ -58,7 +58,6 @@ export default function Page() {
   return (
     <div className="min-h-screen">
       <div className="relative overflow-hidden">
-  <div className="absolute inset-0 -z-10 pointer-events-none bg-gradient-to-br from-amber-100 via-orange-100 to-red-100" />
   <div className="relative max-w-7xl mx-auto px-4 py-10">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -135,8 +134,8 @@ export default function Page() {
         </aside>
       </main>
 
-      {openDialog && (
+      {/* {openDialog && (
   <Dialog onClose={()=>setOpenDialog(false)}>
     <NewThreadDialog onCreated={()=>setOpenDialog(false)} />
   </Dialog>
-)}
+)} */}
