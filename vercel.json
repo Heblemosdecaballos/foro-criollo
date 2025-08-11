@@ -1,5 +1,5 @@
 {
   "crons": [
-    { "path": "/api/cron/digest", "schedule": "0 14 * * *", "region": "iad1" }
+    { "path": "/api/cron/digest", "schedule": "0 14 * * *" }
   ]
 }
