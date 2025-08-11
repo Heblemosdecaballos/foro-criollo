@@ -9,11 +9,18 @@ export function Dialog(
 }
 
 export function Badge(
-  { children, className = '' }: { children?: ReactNode; className?: string }
+  { category, label, children, className = '' }:
+  { category?: string; label?: string; children?: ReactNode; className?: string }
 ) {
+  const text =
+    (typeof children === 'string' && children) ||
+    label ||
+    category ||
+    '';
+
   return (
     <span className={`inline-flex items-center rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-700 ${className}`}>
-      {children}
+      {text}
     </span>
   );
 }
