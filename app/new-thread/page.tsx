@@ -27,18 +27,29 @@ export default function NewThreadPage() {
     );
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null); setLoading(true);
-    const { error } = await supabase.from('threads').insert({
-      title,
-      category,
-      created_by: user.id
-    });
-    setLoading(false);
-    if (error) return setMsg(error.message);
-    router.push('/'); // listo
+async function handleCreate(e: React.FormEvent) {
+  e.preventDefault();
+
+  // ✅ Garantizamos que user no sea null aquí
+  if (!user) {
+    setMsg('Necesitas iniciar sesión.');
+    return;
   }
+
+  setMsg(null);
+  setLoading(true);
+
+  const { error } = await supabase.from('threads').insert({
+    title,
+    category: category || null,
+    created_by: user.id, // ahora TS sabe que user no es null
+  });
+
+  setLoading(false);
+  if (error) return setMsg(error.message);
+
+  router.push('/'); // listo
+}
 
   return (
     <main className="min-h-screen max-w-md mx-auto p-6 space-y-6">
