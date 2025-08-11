@@ -22,11 +22,11 @@ export function Badge({ category, label }: { category: string; label: string }) 
   return <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${map[category] || 'bg-neutral-100'}`}><ChevronDown className="w-3 h-3" /> {label}</span>
 }
 
-export function Dialog({ children, onClose }: { children: React.ReactNode; onClose: ()=>void }) {
-  return (
-    if (!children) return null;
-
-  return (
+export function Dialog(
+  { children, onClose }: { children: React.ReactNode; onClose: () => void }
+) {
+  return null;
+}
     <motion.div className="fixed inset-0 z-50" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} transition={{ duration: 0.2 }} className="relative max-w-xl mx-auto mt-24 bg-white rounded-2xl p-5 shadow-xl">
