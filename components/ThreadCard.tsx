@@ -1,6 +1,6 @@
 'use client'
 import { MessageSquare, Users, Flame, CalendarDays, Tag } from 'lucide-react'
-import { Badge, AvatarText } from './UI'
+import { AvatarText } from './UI'
 import { CATEGORIES } from '@/lib/utils'
 
 export type Thread = {
@@ -24,7 +24,9 @@ export default function ThreadCard({ t }: { t: Thread }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge category={t.category} label={label} />
+           <span className="inline-flex items-center rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-700">
+  {label ?? t.category}
+</span>
             {t.hot && <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-800"><Flame className="w-3 h-3" /> Tendencia</span>}
             {t.open_today && <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800"><CalendarDays className="w-3 h-3" /> Hoy</span>}
           </div>
