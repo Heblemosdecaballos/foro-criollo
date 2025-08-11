@@ -135,9 +135,8 @@ export default function Page() {
         </aside>
       </main>
 
-      <Dialog onClose={()=>setOpenDialog(false)}>
-        {openDialog && <NewThreadDialog onCreated={()=>setOpenDialog(false)} />}
-      </Dialog>
-    </div>
-  )
-}
+      {openDialog && (
+  <Dialog onClose={()=>setOpenDialog(false)}>
+    <NewThreadDialog onCreated={()=>setOpenDialog(false)} />
+  </Dialog>
+)}
