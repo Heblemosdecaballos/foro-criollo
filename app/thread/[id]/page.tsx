@@ -1,310 +1,186 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-type Author = { username: string | null; avatar_url: string | null } | null;
+type Author = {
+  username: string | null;
+};
 
-type ThreadRow = {
+type Thread = {
   id: string;
   title: string;
   category: string;
   created_at: string;
-  created_by: string;
-  profiles?: Author; // join autor thread
+  author?: Author | null;
 };
 
-type PostRow = {
+type Post = {
   id: string;
-  thread_id: string;
-  parent_id: string | null;
-  content: string;
+  body: string;
   created_at: string;
-  created_by: string;
-  profiles?: Author; // join autor post
+  author?: Author | null;
 };
-
-// Para anidar comentarios
-type PostNode = PostRow & { children: PostNode[] };
-
-function buildTree(rows: PostRow[]): PostNode[] {
-  const nodes = new Map<string, PostNode>();
-  const roots: PostNode[] = [];
-  rows.forEach((r) => nodes.set(r.id, { ...r, children: [] }));
-  rows.forEach((r) => {
-    const node = nodes.get(r.id)!;
-    if (r.parent_id && nodes.has(r.parent_id)) {
-      nodes.get(r.parent_id)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-  return roots;
-}
 
 export default function ThreadPage({ params }: { params: { id: string } }) {
   const threadId = params.id;
-  const [thread, setThread] = useState<ThreadRow | null>(null);
-  const [posts, setPosts] = useState<PostRow[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [thread, setThread] = useState<Thread | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [body, setBody] = useState('');
+  const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // form para responder al hilo (post raíz)
-  const [newReply, setNewReply] = useState('');
-  const [sending, setSending] = useState(false);
+  async function load() {
+    setMsg(null);
 
-  const tree = useMemo(() => buildTree(posts), [posts]);
+    // Cargar hilo con autor embebido
+    const { data: t, error: tErr } = await supabase
+      .from('threads')
+      .select(
+        `
+        id, title, category, created_at,
+        author:created_by ( username )
+      `
+      )
+      .eq('id', threadId)
+      .single();
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setMsg(null);
-      try {
-        // 1) traer tema + autor
-        const { data: t, error: tErr } = await supabase
-          .from('threads')
-          .select(
-            'id, title, category, created_at, created_by, profiles:created_by ( username, avatar_url )'
-          )
-          .eq('id', threadId)
-          .maybeSingle();
-        if (tErr) throw tErr;
-        if (!t) throw new Error('Tema no encontrado');
-        setThread(t as any);
+    if (tErr) {
+      setMsg(tErr.message);
+    } else {
+      setThread(t as unknown as Thread);
+    }
 
-        // 2) posts con autor
-        const { data: ps, error: pErr } = await supabase
-          .from('posts')
-          .select(
-            'id, thread_id, parent_id, content, created_at, created_by, profiles:created_by ( username, avatar_url )'
-          )
-          .eq('thread_id', threadId)
-          .order('created_at', { ascending: true });
+    // Cargar posts del hilo con autor embebido
+    const { data: p, error: pErr } = await supabase
+      .from('posts')
+      .select(
+        `
+        id, body, created_at,
+        author:created_by ( username )
+      `
+      )
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true });
 
-        if (pErr) throw pErr;
-        setPosts((ps as any) ?? []);
-      } catch (e: any) {
-        setMsg(e.message ?? 'No se pudo cargar el tema');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [threadId]);
-
-  async function publishReply(parentId: string | null, content: string) {
-    try {
-      const { data: s } = await supabase.auth.getUser();
-      const user = s.user;
-      if (!user) throw new Error('Debes iniciar sesión');
-
-      const payload = {
-        thread_id: threadId,
-        parent_id: parentId,
-        content,
-        created_by: user.id,
-      };
-
-      const { error } = await supabase.from('posts').insert(payload);
-      if (error) throw error;
-
-      // recargar posts
-      const { data: ps, error: pErr } = await supabase
-        .from('posts')
-        .select(
-          'id, thread_id, parent_id, content, created_at, created_by, profiles:created_by ( username, avatar_url )'
-        )
-        .eq('thread_id', threadId)
-        .order('created_at', { ascending: true });
-      if (pErr) throw pErr;
-      setPosts((ps as any) ?? []);
-    } catch (e: any) {
-      setMsg(e.message ?? 'No se pudo publicar la respuesta');
+    if (pErr) {
+      setMsg(pErr.message);
+      setPosts([]);
+    } else {
+      setPosts((p ?? []) as unknown as Post[]);
     }
   }
 
-  async function handlePublishRoot() {
-    if (!newReply.trim()) return;
-    setSending(true);
-    await publishReply(null, newReply.trim());
-    setNewReply('');
-    setSending(false);
-  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threadId]);
 
-  if (loading) {
-    return (
-      <main className="max-w-3xl mx-auto p-6">
-        <p>Cargando…</p>
-      </main>
-    );
-  }
+  async function handlePublish() {
+    try {
+      setLoading(true);
+      setMsg(null);
 
-  if (!thread) {
-    return (
-      <main className="max-w-3xl mx-auto p-6">
-        <p>Tema no encontrado.</p>
-        <Link href="/" className="underline">
-          Volver
-        </Link>
-      </main>
-    );
-  }
+      // Debes estar logueado
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      if (!user) throw new Error('Debes iniciar sesión');
 
-  const author = thread.profiles?.username ?? 'usuario';
-  const avatar = thread.profiles?.avatar_url ?? '';
+      // Buscar el profile.id del usuario
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      if (profErr) throw profErr;
+      if (!prof) throw new Error('Perfil no encontrado. Completa tu perfil.');
 
-  return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="mb-4">
-        <Link href="/" className="underline">
-          Volver
-        </Link>
-      </div>
+      if (!body.trim()) throw new Error('Escribe tu respuesta');
 
-      {msg && <p className="text-red-600 mb-4">{msg}</p>}
+      // Insertar post con body y created_by (profiles.id)
+      const { error: insErr } = await supabase.from('posts').insert({
+        thread_id: threadId,
+        body,
+        created_by: prof.id,
+      });
+      if (insErr) throw insErr;
 
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">{thread.title}</h1>
-        <div className="mt-2 flex items-center gap-3 text-sm text-neutral-600">
-          {avatar ? (
-            <img
-              src={avatar}
-              alt={author}
-              className="h-6 w-6 rounded-full object-cover border"
-            />
-          ) : (
-            <div className="h-6 w-6 rounded-full bg-neutral-200" />
-          )}
-          <span>@{author}</span>
-          <span>•</span>
-          <span>{new Date(thread.created_at).toLocaleString()}</span>
-          <span>•</span>
-          <span className="px-2 py-0.5 text-xs rounded-full border">
-            {thread.category}
-          </span>
-        </div>
-      </header>
-
-      {/* responder al hilo (post raíz) */}
-      <section className="mb-8">
-        <label className="block text-sm font-medium mb-1">Agregar respuesta</label>
-        <textarea
-          className="w-full rounded border p-2"
-          rows={4}
-          value={newReply}
-          onChange={(e) => setNewReply(e.target.value)}
-          placeholder="Escribe tu respuesta…"
-        />
-        <div className="mt-2">
-          <button
-            onClick={handlePublishRoot}
-            disabled={sending || !newReply.trim()}
-            className="rounded bg-black text-white px-3 py-1 disabled:opacity-50"
-          >
-            {sending ? 'Publicando…' : 'Publicar respuesta'}
-          </button>
-        </div>
-      </section>
-
-      {/* listado de posts con árbol de comentarios */}
-      <section className="space-y-6">
-        {tree.map((n) => (
-          <PostItem key={n.id} node={n} onReply={publishReply} level={0} />
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function PostItem({
-  node,
-  onReply,
-  level,
-}: {
-  node: PostNode;
-  onReply: (parentId: string | null, content: string) => Promise<void>;
-  level: number;
-}) {
-  const [open, setOpen] = useState(false);
-  const [content, setContent] = useState('');
-  const [sending, setSending] = useState(false);
-
-  const author = node.profiles?.username ?? 'usuario';
-  const avatar = node.profiles?.avatar_url ?? '';
-
-  async function handleReply() {
-    if (!content.trim()) return;
-    setSending(true);
-    await onReply(node.id, content.trim());
-    setContent('');
-    setOpen(false);
-    setSending(false);
+      setBody('');
+      await load();
+    } catch (e: any) {
+      setMsg(e.message ?? 'Error publicando la respuesta');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <article
-      className="rounded border p-3"
-      style={{ marginLeft: level * 16 }}
-    >
-      <div className="flex items-center gap-3 text-sm text-neutral-600">
-        {avatar ? (
-          <img
-            src={avatar}
-            alt={author}
-            className="h-5 w-5 rounded-full object-cover border"
-          />
-        ) : (
-          <div className="h-5 w-5 rounded-full bg-neutral-200" />
-        )}
-        <span>@{author}</span>
-        <span>•</span>
-        <span>{new Date(node.created_at).toLocaleString()}</span>
+    <main className="mx-auto max-w-3xl p-6">
+      <div className="mb-6">
+        <Link className="underline" href="/">
+          Volver
+        </Link>
       </div>
 
-      <p className="mt-2 whitespace-pre-wrap">{node.content}</p>
+      {msg && (
+        <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">
+          {msg}
+        </p>
+      )}
 
-      <div className="mt-2">
-        <button
-          className="text-sm underline underline-offset-2"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? 'Cancelar' : 'Responder'}
-        </button>
-      </div>
-
-      {open && (
-        <div className="mt-2">
-          <textarea
-            className="w-full rounded border p-2"
-            rows={3}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Tu respuesta…"
-          />
-          <div className="mt-2">
-            <button
-              onClick={handleReply}
-              disabled={sending || !content.trim()}
-              className="rounded bg-black text-white px-3 py-1 disabled:opacity-50"
-            >
-              {sending ? 'Publicando…' : 'Publicar'}
-            </button>
+      {thread ? (
+        <>
+          <h1 className="mb-1 text-2xl font-semibold">{thread.title}</h1>
+          <div className="mb-6 text-sm text-neutral-500">
+            @{thread.author?.username ?? 'usuario'} •{' '}
+            {new Date(thread.created_at).toLocaleString()} •{' '}
+            <span className="rounded bg-neutral-100 px-2 py-0.5">
+              {thread.category}
+            </span>
           </div>
-        </div>
-      )}
 
-      {node.children.length > 0 && (
-        <div className="mt-3 space-y-4">
-          {node.children.map((c) => (
-            <PostItem
-              key={c.id}
-              node={c}
-              onReply={onReply}
-              level={Math.min(level + 1, 6)}
+          {/* Lista de respuestas */}
+          <div className="space-y-4">
+            {posts.map((p) => (
+              <article
+                key={p.id}
+                className="rounded border border-neutral-200 p-4"
+              >
+                <div className="mb-2 text-sm text-neutral-500">
+                  @{p.author?.username ?? 'usuario'} •{' '}
+                  {new Date(p.created_at).toLocaleString()}
+                </div>
+                <p className="whitespace-pre-wrap">{p.body}</p>
+              </article>
+            ))}
+          </div>
+
+          {/* Agregar respuesta */}
+          <section className="mt-8">
+            <h2 className="mb-2 text-lg font-medium">Agregar respuesta</h2>
+            <textarea
+              className="h-32 w-full rounded border border-neutral-300 p-3 outline-none focus:border-black"
+              placeholder="Escribe tu respuesta..."
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
             />
-          ))}
-        </div>
+            <button
+              disabled={loading}
+              onClick={handlePublish}
+              className="mt-2 rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+            >
+              {loading ? 'Publicando…' : 'Publicar respuesta'}
+            </button>
+          </section>
+        </>
+      ) : (
+        <p>Cargando tema…</p>
       )}
-    </article>
+    </main>
   );
 }
