@@ -4,52 +4,81 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-/**
- * Muestra un aviso si el usuario ha iniciado sesión pero NO tiene username en profiles.
- * Si no hay sesión, no estorba (renderiza null).
- */
+type Profile = {
+  id: string;
+  username: string | null;
+  phone: string | null;
+};
+
 export default function ProfileGuard() {
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    let alive = true;
+    let mounted = true;
 
     (async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      const user = auth?.user;
-      if (!user) return; // visitante: no pedir perfil
+      try {
+        const { data: { user }, error: userErr } = await supabase.auth.getUser();
+        if (userErr) throw userErr;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .maybeSingle();
+        // No logueado → no mostramos banner
+        if (!user) {
+          if (mounted) {
+            setNeedsProfile(false);
+            setChecking(false);
+          }
+          return;
+        }
 
-      if (error) {
-        // Silencioso: no bloquear UI por esto
-        return;
-      }
+        // Traemos perfil
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, phone')
+          .eq('id', user.id)
+          .maybeSingle<Profile>();
 
-      if (alive && (!data || !data.username)) {
-        setNeedsProfile(true);
+        if (error) throw error;
+
+        const missing =
+          !data ||
+          !data.username ||
+          (data.username ?? '').trim().length === 0 ||
+          !data.phone ||
+          (data.phone ?? '').trim().length === 0;
+
+        if (mounted) {
+          setNeedsProfile(missing);
+          setChecking(false);
+        }
+      } catch {
+        if (mounted) {
+          setNeedsProfile(false);
+          setChecking(false);
+        }
       }
     })();
 
     return () => {
-      alive = false;
+      mounted = false;
     };
   }, []);
 
-  if (!needsProfile) return null;
+  if (checking || !needsProfile) return null;
 
   return (
     <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-      <p className="mb-2">
-        Para participar, por favor completa tu perfil (elige un nombre de usuario).
-      </p>
-      <Link href="/settings" className="underline">
-        Ir a mis ajustes
-      </Link>
+      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+        <p>
+          Para participar, por favor <b>completa tu perfil</b> (elige un nombre de usuario y teléfono).
+        </p>
+        <Link
+          href="/profile"
+          className="rounded bg-amber-400 px-3 py-1 text-sm font-semibold text-amber-900 hover:bg-amber-500"
+        >
+          Completar perfil
+        </Link>
+      </div>
     </div>
   );
 }
