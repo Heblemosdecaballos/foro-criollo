@@ -18,25 +18,19 @@ export default function RegisterPage() {
     e.preventDefault();
     setMsg(null);
 
-    // Validaciones muy básicas
     if (!email || !password || !username || !phone) {
       setMsg('Completa correo, contraseña, usuario y teléfono.');
-      return;
-    }
-    if (username.length < 3) {
-      setMsg('El usuario debe tener al menos 3 caracteres.');
       return;
     }
 
     try {
       setLoading(true);
 
-      // 1) Crear cuenta con metadata (se copia al perfil por el trigger)
+      // 1) Crear cuenta con metadata (el trigger la copia a profiles)
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Si tenías confirmación por email desactivada, crea sesión de una.
           data: {
             username: username.trim(),
             phone: phone.trim(),
@@ -44,7 +38,6 @@ export default function RegisterPage() {
           },
         },
       });
-
       if (authError) throw authError;
 
       const userId = data.user?.id;
@@ -54,7 +47,6 @@ export default function RegisterPage() {
       }
 
       // 2) Actualizar el perfil explícitamente (doble seguro)
-      //    Esto hace que, aunque falle el trigger, igual queden los datos.
       const { error: upErr } = await supabase
         .from('profiles')
         .update({
@@ -65,8 +57,7 @@ export default function RegisterPage() {
         .eq('id', userId);
 
       if (upErr) {
-        // Unicidad de username/phone
-        if (upErr.code === '23505') {
+        if ((upErr as any).code === '23505') {
           setMsg('Ese usuario o teléfono ya está en uso.');
         } else {
           setMsg(upErr.message);
@@ -75,8 +66,7 @@ export default function RegisterPage() {
       }
 
       setMsg('¡Cuenta creada! Ya puedes ingresar.');
-      // Redirige a login o adonde prefieras
-      // router.push('/login');
+      // Aquí puedes redirigir: router.push('/login')
     } catch (err: any) {
       setMsg(err?.message ?? 'Error al registrar.');
     } finally {
@@ -88,74 +78,52 @@ export default function RegisterPage() {
     <div className="max-w-md mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">Crear cuenta</h1>
 
-      {msg && (
-        <div className="rounded-md border p-3 text-sm">
-          {msg}
-        </div>
-      )}
+      {msg && <div className="rounded-md border p-3 text-sm">{msg}</div>}
 
       <form onSubmit={onSubmit} className="space-y-3">
         <div>
           <label className="block text-sm mb-1">Correo</label>
-          <input
-            className="w-full rounded border px-3 py-2"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="tucorreo@dominio.com"
-            required
-          />
+          <input className="w-full rounded border px-3 py-2"
+                 type="email" value={email}
+                 onChange={(e) => setEmail(e.target.value)}
+                 placeholder="tucorreo@dominio.com" required />
         </div>
 
         <div>
           <label className="block text-sm mb-1">Contraseña</label>
-          <input
-            className="w-full rounded border px-3 py-2"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            required
-          />
+          <input className="w-full rounded border px-3 py-2"
+                 type="password" value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+                 placeholder="Mínimo 6 caracteres" required />
         </div>
 
         <div>
           <label className="block text-sm mb-1">Usuario</label>
-          <input
-            className="w-full rounded border px-3 py-2"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="p. ej. sr_canario"
-            required
-          />
+          <input className="w-full rounded border px-3 py-2"
+                 value={username}
+                 onChange={(e) => setUsername(e.target.value)}
+                 placeholder="p. ej. sr_canario" required />
         </div>
 
         <div>
           <label className="block text-sm mb-1">Teléfono</label>
-          <input
-            className="w-full rounded border px-3 py-2"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+57 3xx xxx xxxx"
-            required
-          />
+          <input className="w-full rounded border px-3 py-2"
+                 value={phone}
+                 onChange={(e) => setPhone(e.target.value)}
+                 placeholder="+57 3xx xxx xxxx" required />
         </div>
 
         <div>
           <label className="block text-sm mb-1">Nombre completo (opcional)</label>
-          <input
-            className="w-full rounded border px-3 py-2"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Tu nombre"
-          />
+          <input className="w-full rounded border px-3 py-2"
+                 value={fullName}
+                 onChange={(e) => setFullName(e.target.value)}
+                 placeholder="Tu nombre" />
         </div>
 
-        <button
-          disabled={loading}
-          className="w-full rounded bg-black text-white py-2 disabled:opacity-50"
-          type="submit"
-        >
+        <button disabled={loading}
+                className="w-full rounded bg-black text-white py-2 disabled:opacity-50"
+                type="submit">
           {loading ? 'Creando...' : 'Crear cuenta'}
         </button>
       </form>
