@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -16,7 +16,10 @@ type Post = {
   body: string;
   created_at: string;
   created_by: string | null;
+  parent_id: string | null;
 };
+
+type PostNode = Post & { children: PostNode[] };
 
 export default function ThreadPage({ params }: { params: { id: string } }) {
   const [thread, setThread] = useState<Thread | null>(null);
@@ -25,16 +28,13 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
   const [err, setErr] = useState<string | null>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [reply, setReply] = useState('');
-  const [sending, setSending] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
-  // Cargar usuario (para habilitar el formulario)
+  // Cargar usuario
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
-  // Cargar tema + respuestas
+  // Cargar tema + posts
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -48,7 +48,7 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
           .single(),
         supabase
           .from('posts')
-          .select('id, body, created_at, created_by')
+          .select('id, body, created_at, created_by, parent_id')
           .eq('thread_id', params.id)
           .order('created_at', { ascending: true })
       ]);
@@ -63,37 +63,49 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
     })();
   }, [params.id]);
 
-  async function handleReply(e: React.FormEvent) {
-    e.preventDefault();
-    setMsg(null);
+  // Construir árbol (roots = posts sin parent_id)
+  const tree = useMemo<PostNode[]>(() => {
+    const map = new Map<string, PostNode>();
+    const roots: PostNode[] = [];
 
-    if (!userId) {
-      setMsg('Necesitas iniciar sesión para responder.');
-      return;
-    }
-    const body = reply.trim();
-    if (body.length === 0) {
-      setMsg('Escribe un comentario.');
-      return;
-    }
+    posts.forEach((p) => map.set(p.id, { ...p, children: [] }));
 
-    setSending(true);
+    posts.forEach((p) => {
+      const node = map.get(p.id)!;
+      if (p.parent_id) {
+        const parent = map.get(p.parent_id);
+        if (parent) parent.children.push(node);
+        else roots.push(node); // por si acaso (parent borrado)
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  }, [posts]);
+
+  // Publicar respuesta (root o a un post)
+  async function publishReply(text: string, parentId: string | null) {
+    if (!userId) throw new Error('Necesitas iniciar sesión');
+
+    const body = text.trim();
+    if (!body) throw new Error('Escribe un comentario');
+
     const { data, error } = await supabase
       .from('posts')
       .insert({
         thread_id: params.id,
         body,
-        created_by: userId
+        created_by: userId,
+        parent_id: parentId
       })
-      .select('id, body, created_at, created_by')
+      .select('id, body, created_at, created_by, parent_id')
       .single();
 
-    setSending(false);
-    if (error) return setMsg(error.message);
+    if (error) throw error;
 
-    // Añadir al listado sin recargar
+    // Insertar en memoria sin recargar
     setPosts((prev) => [...prev, data as Post]);
-    setReply('');
   }
 
   return (
@@ -123,21 +135,23 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
               <p className="text-neutral-600 text-sm">Aún no hay respuestas.</p>
             )}
 
+            {/* Respuestas raíz */}
             <ul className="space-y-3">
-              {posts.map((p) => (
-                <li key={p.id} className="rounded border p-3">
-                  <p className="whitespace-pre-wrap">{p.body}</p>
-                  <div className="text-xs text-neutral-500 mt-2">
-                    {new Date(p.created_at).toLocaleString()}
-                  </div>
-                </li>
+              {tree.map((node) => (
+                <PostItem
+                  key={node.id}
+                  node={node}
+                  level={0}
+                  canReply={!!userId}
+                  onReply={(text) => publishReply(text, node.id)}
+                />
               ))}
             </ul>
           </section>
 
+          {/* Responder al hilo (root) */}
           <section className="pt-4 space-y-2">
             <h3 className="font-semibold">Agregar respuesta</h3>
-
             {!userId ? (
               <p>
                 <Link
@@ -149,26 +163,129 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
                 para responder.
               </p>
             ) : (
-              <form onSubmit={handleReply} className="space-y-2">
-                {msg && <p className="text-sm text-red-600">{msg}</p>}
-                <textarea
-                  className="w-full border rounded p-2 min-h-[120px]"
-                  placeholder="Escribe tu comentario…"
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                />
-                <button
-                  className="px-3 py-2 rounded border font-medium"
-                  type="submit"
-                  disabled={sending}
-                >
-                  {sending ? 'Enviando…' : 'Publicar respuesta'}
-                </button>
-              </form>
+              <ReplyForm onSubmit={(text) => publishReply(text, null)} />
             )}
           </section>
         </>
       )}
     </main>
+  );
+}
+
+/* ---------- Componentes auxiliares ---------- */
+
+function PostItem({
+  node,
+  level,
+  canReply,
+  onReply
+}: {
+  node: PostNode;
+  level: number;
+  canReply: boolean;
+  onReply: (text: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const margin = Math.min(level, 6) * 16; // limita indentación
+
+  return (
+    <li className="rounded border p-3" style={{ marginLeft: margin }}>
+      <p className="whitespace-pre-wrap">{node.body}</p>
+      <div className="text-xs text-neutral-500 mt-2">
+        {new Date(node.created_at).toLocaleString()}
+      </div>
+
+      <div className="mt-2">
+        {canReply ? (
+          <>
+            {!open ? (
+              <button
+                onClick={() => setOpen(true)}
+                className="text-sm underline"
+              >
+                Responder
+              </button>
+            ) : (
+              <div className="mt-2">
+                <ReplyForm
+                  onSubmit={async (text) => {
+                    await onReply(text);
+                    setOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-sm text-neutral-500">
+            Debes iniciar sesión para responder
+          </span>
+        )}
+      </div>
+
+      {node.children.length > 0 && (
+        <ul className="mt-3 space-y-3">
+          {node.children.map((child) => (
+            <PostItem
+              key={child.id}
+              node={child}
+              level={level + 1}
+              canReply={canReply}
+              onReply={onReplyWrapper(onReply, child.id)}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function onReplyWrapper(
+  onReply: (text: string, parentId?: string | null) => Promise<void>,
+  parentId: string
+) {
+  return (text: string) => onReply(text); // el parentId ya lo maneja quien llama
+}
+
+function ReplyForm({ onSubmit }: { onSubmit: (text: string) => Promise<void> }) {
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setMsg(null);
+        const t = text.trim();
+        if (!t) return setMsg('Escribe un comentario');
+
+        try {
+          setSending(true);
+          await onSubmit(t);
+          setText('');
+        } catch (error: any) {
+          setMsg(error.message || 'Error al publicar');
+        } finally {
+          setSending(false);
+        }
+      }}
+      className="space-y-2"
+    >
+      {msg && <p className="text-sm text-red-600">{msg}</p>}
+      <textarea
+        className="w-full border rounded p-2 min-h-[100px]"
+        placeholder="Escribe tu respuesta…"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <button
+        className="px-3 py-2 rounded border font-medium"
+        type="submit"
+        disabled={sending}
+      >
+        {sending ? 'Enviando…' : 'Publicar respuesta'}
+      </button>
+    </form>
   );
 }
