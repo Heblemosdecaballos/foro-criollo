@@ -11,12 +11,19 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+
+    // 🔴 ESTO ES LO IMPORTANTE PARA JSX/TSX
     "jsx": "preserve",
-    "incremental": true,
-    "types": ["node"],
+
+    // Alias "@/" → raíz del proyecto (para imports como "@/lib/...")
     "baseUrl": ".",
-    "paths": { "@/*": ["*"] }
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    "incremental": true
   },
+  // Asegura que TypeScript analice archivos .ts y .tsx
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }
