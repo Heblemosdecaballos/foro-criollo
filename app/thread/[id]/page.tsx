@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 type Thread = {
@@ -105,7 +105,6 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
     } finally {
       setPosting(false);
     }
-  }
 
   return (
     <main className="max-w-3xl mx-auto p-4 space-y-6">
