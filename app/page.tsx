@@ -1,4 +1,4 @@
-// app/thread/[id]/page.tsx
+// app/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,137 +6,113 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 type Author = { username: string | null };
-type Post = {
+
+type ThreadRow = {
   id: string;
-  content: string;
+  title: string;
+  category: string;
   created_at: string;
-  parent_id: string | null;
-  author: Author | null;
+  // Lo que devuelve PostgREST puede ser objeto, array u nulo según el embed
+  author: Author | Author[] | null;
 };
+
 type Thread = {
   id: string;
   title: string;
   category: string;
   created_at: string;
-  author: Author | null;
+  author: Author | null; // Lo normalizamos a un solo autor
 };
 
-export default function ThreadPage({ params }: { params: { id: string } }) {
-  const threadId = params.id;
-  const [thread, setThread] = useState<Thread | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [content, setContent] = useState('');
-  const [busy, setBusy] = useState(false);
+// Toma el primer autor si viene como array; si es objeto lo deja tal cual
+function pickAuthor(a: ThreadRow['author']): Author | null {
+  if (!a) return null;
+  return Array.isArray(a) ? a[0] ?? null : a;
+}
+
+export default function HomePage() {
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
-
-  async function load() {
-    setMsg(null);
-
-    const [{ data: th, error: e1 }, { data: po, error: e2 }] = await Promise.all([
-      supabase
-        .from('threads')
-        .select(`
-          id, title, category, created_at,
-          author:profiles!threads_created_by_profiles_fk ( username )
-        `)
-        .eq('id', threadId)
-        .single(),
-      supabase
-        .from('posts')
-        .select(`
-          id, content, created_at, parent_id,
-          author:profiles!posts_created_by_profiles_fk ( username )
-        `)
-        .eq('thread_id', threadId)
-        .order('created_at', { ascending: true }),
-    ]);
-
-    if (e1) setMsg(e1.message);
-    else setThread(th as Thread);
-
-    if (e2) setMsg((m) => m ?? e2.message);
-    else setPosts((po ?? []) as Post[]);
-  }
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   useEffect(() => {
-    load();
-  }, [threadId]);
-
-  async function submit() {
-    try {
-      setBusy(true);
+    (async () => {
       setMsg(null);
 
-      const {
-        data: { user },
-        error: uerr,
-      } = await supabase.auth.getUser();
-      if (uerr) throw uerr;
-      if (!user) throw new Error('Debes iniciar sesión');
+      // (Opcional) Chequear si el perfil está completo para mostrar el banner
+      const { data: userRes } = await supabase.auth.getUser();
+      if (userRes?.user) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('username, phone')
+          .eq('id', userRes.user.id)
+          .maybeSingle();
 
-      const { error } = await supabase.from('posts').insert({
-        thread_id: threadId,
-        content,
-        created_by: user.id,
-        parent_id: null, // o el id del comentario padre si implementas respuestas anidadas
-      });
+        setProfileIncomplete(!prof?.username || !prof?.phone);
+      }
 
-      if (error) throw error;
+      // Cargar hilos con el autor embebido
+      const { data, error } = await supabase
+        .from('threads')
+        .select(`
+          id,
+          title,
+          category,
+          created_at,
+          author:profiles!threads_created_by_profiles_fk ( username )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-      setContent('');
-      await load();
-    } catch (e: any) {
-      setMsg(e.message ?? 'No se pudo publicar.');
-    } finally {
-      setBusy(false);
-    }
-  }
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+
+      const mapped = (data as ThreadRow[]).map((r) => ({
+        id: r.id,
+        title: r.title,
+        category: r.category,
+        created_at: r.created_at,
+        author: pickAuthor(r.author),
+      }));
+
+      setThreads(mapped);
+    })();
+  }, []);
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <Link href="/" className="underline">
-        Volver
-      </Link>
-
-      {msg && <p className="mt-2 text-red-600">{msg}</p>}
-
-      {thread && (
-        <>
-          <h1 className="mt-3 text-2xl font-semibold">{thread.title}</h1>
-          <div className="mt-1 text-sm text-neutral-600">
-            {thread.author?.username ?? 'anónimo'} · {thread.category}
-          </div>
-        </>
+      {profileIncomplete && (
+        <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
+          Para participar, por favor completa tu perfil.{' '}
+          <Link href="/perfil" className="font-medium underline">
+            Completar perfil
+          </Link>
+        </div>
       )}
 
-      <section className="mt-6 space-y-4">
-        {posts.map((p) => (
-          <article key={p.id} className="rounded border p-3">
-            <div className="mb-1 text-sm text-neutral-600">
-              {p.author?.username ?? 'anónimo'}
-            </div>
-            <p>{p.content}</p>
-          </article>
-        ))}
-      </section>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Últimos temas</h1>
+        <Link href="/new-thread" className="rounded border px-2 py-1 text-sm">
+          Crear tema
+        </Link>
+      </div>
 
-      <section className="mt-6">
-        <h2 className="mb-2 font-medium">Agregar respuesta</h2>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Escribe tu respuesta…"
-          className="w-full resize-y rounded border p-3"
-          rows={4}
-        />
-        <button
-          onClick={submit}
-          disabled={busy || !content.trim()}
-          className="mt-2 rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
-          Publicar respuesta
-        </button>
-      </section>
+      {msg && <p className="mb-3 text-red-600">{msg}</p>}
+
+      <ul className="space-y-3">
+        {threads.map((t) => (
+          <li key={t.id} className="rounded border p-3">
+            <Link href={`/thread/${t.id}`} className="font-medium underline">
+              {t.title}
+            </Link>
+            <div className="mt-1 text-sm text-neutral-600">
+              {t.author?.username ?? 'anónimo'} · {t.category}
+            </div>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
