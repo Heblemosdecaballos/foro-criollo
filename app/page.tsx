@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,95 +6,76 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import ProfileGuard from '@/components/ProfileGuard';
 
-type ThreadRow = {
+type Author = {
+  username: string | null;
+  phone: string | null;
+};
+
+type Thread = {
   id: string;
   title: string;
   category: string;
   created_at: string;
-  created_by: string;
-  profiles?: { username: string | null; avatar_url: string | null } | null; // join
+  author: Author | null; // alias del join
 };
 
 export default function HomePage() {
-  const [rows, setRows] = useState<ThreadRow[]>([]);
+  const [rows, setRows] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      setMsg(null);
-      try {
-        // Trae temas + autor (username/avatar) vía relación por FK created_by
-        const { data, error } = await supabase
-          .from('threads')
-          .select(
-            'id, title, category, created_at, created_by, profiles:created_by ( username, avatar_url )'
-          )
-          .order('created_at', { ascending: false });
+      // 👇 Aquí está el "paso 4": select con join a profiles usando la FK
+      const { data, error } = await supabase
+        .from('threads')
+        .select(`
+          id, title, category, created_at,
+          author:profiles!threads_created_by_profiles_fk ( username, phone )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-        if (error) throw error;
-        setRows((data as any) ?? []);
-      } catch (e: any) {
-        setMsg(e.message ?? 'No se pudo cargar la lista de temas');
-      } finally {
-        setLoading(false);
-      }
+      if (error) setError(error.message);
+      else setRows((data ?? []) as Thread[]);
+      setLoading(false);
     })();
   }, []);
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      {/* si quieres forzar perfil completo */}
+    <main className="mx-auto max-w-3xl p-6">
+      {/* Aviso para completar perfil */}
       <ProfileGuard />
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Últimos temas</h1>
         <Link
           href="/new-thread"
-          className="px-2 py-1 text-sm rounded border hover:bg-neutral-50"
+          className="rounded border px-3 py-1 text-sm hover:bg-neutral-50"
         >
           Crear tema
         </Link>
       </div>
 
-      {msg && <p className="text-red-600 mb-4">{msg}</p>}
-      {loading ? <p>Cargando…</p> : null}
+      {loading && <p>Cargando…</p>}
+      {error && <p className="text-red-600">{error}</p>}
+
+      {!loading && !error && rows.length === 0 && (
+        <p className="text-neutral-500">Todavía no hay temas. ¡Crea el primero!</p>
+      )}
 
       <ul className="space-y-3">
-        {rows.map((t) => {
-          const u = t.profiles?.username ?? 'usuario';
-          const avatar = t.profiles?.avatar_url ?? '';
-          return (
-            <li key={t.id} className="rounded border p-3">
-              <div className="flex items-center gap-3 text-sm text-neutral-600">
-                {avatar ? (
-                  <img
-                    src={avatar}
-                    alt={u || 'avatar'}
-                    className="h-6 w-6 rounded-full object-cover border"
-                  />
-                ) : (
-                  <div className="h-6 w-6 rounded-full bg-neutral-200" />
-                )}
-                <span>@{u || 'usuario'}</span>
-                <span>•</span>
-                <span>{new Date(t.created_at).toLocaleString()}</span>
-                <span>•</span>
-                <span className="px-2 py-0.5 text-xs rounded-full border">
-                  {t.category}
-                </span>
-              </div>
-
-              <Link
-                href={`/thread/${t.id}`}
-                className="block mt-2 text-lg font-semibold underline-offset-2 hover:underline"
-              >
-                {t.title}
-              </Link>
-            </li>
-          );
-        })}
+        {rows.map((t) => (
+          <li key={t.id} className="rounded border p-3">
+            <Link href={`/thread/${t.id}`} className="font-medium hover:underline">
+              {t.title}
+            </Link>
+            <div className="mt-1 text-sm text-neutral-600">
+              {t.author?.username ? `por ${t.author.username}` : 'por anónimo'} · {t.category}
+            </div>
+          </li>
+        ))}
       </ul>
     </main>
   );
