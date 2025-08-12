@@ -1,4 +1,5 @@
-'use client';
+import { supabase } from '@/lib/supabaseClient'
+;
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
