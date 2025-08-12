@@ -1,292 +1,131 @@
-'use client'
-;
+'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 type Thread = {
   id: string;
   title: string;
-  category: string | null;
-  created_at: string;
+  category: string;
+  created_by: string;
 };
 
 type Post = {
   id: string;
-  body: string;
-  created_at: string;
-  created_by: string | null;
+  content: string;
+  created_by: string;
+  thread_id: string;
   parent_id: string | null;
+  created_at: string;
 };
 
-type PostNode = Post & { children: PostNode[] };
-
-export default function ThreadPage({ params }: { params: { id: string } }) {
+export default function ThreadPage({ params: { id } }: { params: { id: string } }) {
   const [thread, setThread] = useState<Thread | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const loadData = async () => {
+    const { data: t } = await supabase.from('threads').select('*').eq('id', id).maybeSingle();
+    setThread(t as Thread | null);
 
-  // Cargar usuario
+    const { data: p } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('thread_id', id)
+      .is('parent_id', null)
+      .order('created_at', { ascending: true });
+
+    setPosts((p as Post[]) ?? []);
+  };
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
-  // Cargar tema + posts
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setErr(null);
+  const publish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setLoading(true);
 
-      const [tRes, pRes] = await Promise.all([
-        supabase
-          .from('threads')
-          .select('id, title, category, created_at')
-          .eq('id', params.id)
-          .single(),
-        supabase
-          .from('posts')
-          .select('id, body, created_at, created_by, parent_id')
-          .eq('thread_id', params.id)
-          .order('created_at', { ascending: true })
-      ]);
-
-      if (tRes.error) setErr(tRes.error.message);
-      else setThread(tRes.data);
-
-      if (pRes.error) setErr(pRes.error.message);
-      else setPosts(pRes.data ?? []);
-
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
       setLoading(false);
-    })();
-  }, [params.id]);
+      setErrorMsg('Debes iniciar sesión para responder.');
+      return;
+    }
 
-  // Construir árbol (roots = posts sin parent_id)
-  const tree = useMemo<PostNode[]>(() => {
-    const map = new Map<string, PostNode>();
-    const roots: PostNode[] = [];
-
-    posts.forEach((p) => map.set(p.id, { ...p, children: [] }));
-
-    posts.forEach((p) => {
-      const node = map.get(p.id)!;
-      if (p.parent_id) {
-        const parent = map.get(p.parent_id);
-        if (parent) parent.children.push(node);
-        else roots.push(node); // por si acaso (parent borrado)
-      } else {
-        roots.push(node);
-      }
+    const { error } = await supabase.from('posts').insert({
+      thread_id: id,
+      content,
+      created_by: auth.user.id,
+      parent_id: null,
     });
 
-    return roots;
-  }, [posts]);
+    setLoading(false);
 
-  // Publicar respuesta (root o a un post)
-  async function publishReply(text: string, parentId: string | null) {
-    if (!userId) throw new Error('Necesitas iniciar sesión');
+    if (error) {
+      setErrorMsg(error.message);
+      return;
+    }
 
-    const body = text.trim();
-    if (!body) throw new Error('Escribe un comentario');
+    setContent('');
+    await loadData();
+  };
 
-    const { data, error } = await supabase
-      .from('posts')
-      .insert({
-        thread_id: params.id,
-        body,
-        created_by: userId,
-        parent_id: parentId
-      })
-      .select('id, body, created_at, created_by, parent_id')
-      .single();
-
-    if (error) throw error;
-
-    // Insertar en memoria sin recargar
-    setPosts((prev) => [...prev, data as Post]);
+  if (!thread) {
+    return (
+      <div className="mx-auto max-w-3xl p-6">
+        <Link className="underline" href="/">
+          Volver
+        </Link>
+        <p className="mt-6">Cargando tema…</p>
+      </div>
+    );
   }
 
   return (
-    <main className="min-h-screen max-w-3xl mx-auto p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tema</h1>
-        <Link href="/" className="underline">Volver</Link>
-      </header>
-
-      {loading && <p>Cargando…</p>}
-      {err && <p className="text-red-600 text-sm">{err}</p>}
-
-      {!loading && !err && thread && (
-        <>
-          <article className="space-y-2">
-            <h2 className="text-xl font-semibold">{thread.title}</h2>
-            <div className="text-sm text-neutral-600">
-              {thread.category ? `Categoría: ${thread.category} · ` : ''}
-              {new Date(thread.created_at).toLocaleString()}
-            </div>
-          </article>
-
-          <section className="space-y-3">
-            <h3 className="font-semibold">Respuestas</h3>
-
-            {posts.length === 0 && (
-              <p className="text-neutral-600 text-sm">Aún no hay respuestas.</p>
-            )}
-
-            {/* Respuestas raíz */}
-            <ul className="space-y-3">
-              {tree.map((node) => (
-                <PostItem
-                  key={node.id}
-                  node={node}
-                  level={0}
-                  canReply={!!userId}
-                  onReply={(text) => publishReply(text, node.id)}
-                />
-              ))}
-            </ul>
-          </section>
-
-          {/* Responder al hilo (root) */}
-          <section className="pt-4 space-y-2">
-            <h3 className="font-semibold">Agregar respuesta</h3>
-            {!userId ? (
-              <p>
-                <Link
-                  href={`/login?redirect=${encodeURIComponent(`/thread/${params.id}`)}`}
-                  className="underline"
-                >
-                  Inicia sesión
-                </Link>{' '}
-                para responder.
-              </p>
-            ) : (
-              <ReplyForm onSubmit={(text) => publishReply(text, null)} />
-            )}
-          </section>
-        </>
-      )}
-    </main>
-  );
-}
-
-/* ---------- Componentes auxiliares ---------- */
-
-function PostItem({
-  node,
-  level,
-  canReply,
-  onReply
-}: {
-  node: PostNode;
-  level: number;
-  canReply: boolean;
-  onReply: (text: string) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const margin = Math.min(level, 6) * 16; // limita indentación
-
-  return (
-    <li className="rounded border p-3" style={{ marginLeft: margin }}>
-      <p className="whitespace-pre-wrap">{node.body}</p>
-      <div className="text-xs text-neutral-500 mt-2">
-        {new Date(node.created_at).toLocaleString()}
+    <div className="mx-auto max-w-3xl p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <Link className="underline" href="/">
+          Volver
+        </Link>
+        <span className="rounded bg-neutral-100 px-2 py-1 text-xs">{thread.category}</span>
       </div>
 
-      <div className="mt-2">
-        {canReply ? (
-          <>
-            {!open ? (
-              <button
-                onClick={() => setOpen(true)}
-                className="text-sm underline"
-              >
-                Responder
-              </button>
-            ) : (
-              <div className="mt-2">
-                <ReplyForm
-                  onSubmit={async (text) => {
-                    await onReply(text);
-                    setOpen(false);
-                  }}
-                />
-              </div>
-            )}
-          </>
-        ) : (
-          <span className="text-sm text-neutral-500">
-            Debes iniciar sesión para responder
-          </span>
-        )}
-      </div>
+      <h1 className="mb-4 text-2xl font-semibold">{thread.title}</h1>
 
-      {node.children.length > 0 && (
-        <ul className="mt-3 space-y-3">
-          {node.children.map((child) => (
-            <PostItem
-              key={child.id}
-              node={child}
-              level={level + 1}
-              canReply={canReply}
-              onReply={onReplyWrapper(onReply, child.id)}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
+      <h2 className="mt-8 mb-2 text-lg font-medium">Respuestas</h2>
+      {posts.length === 0 && <p className="text-sm text-neutral-500">Aún no hay respuestas.</p>}
+      <ul className="space-y-4">
+        {posts.map((p) => (
+          <li key={p.id} className="rounded border p-3">
+            <p className="whitespace-pre-wrap">{p.content}</p>
+            <p className="mt-2 text-xs text-neutral-500">Por: {p.created_by}</p>
+          </li>
+        ))}
+      </ul>
 
-function onReplyWrapper(
-  onReply: (text: string, parentId?: string | null) => Promise<void>,
-  parentId: string
-) {
-  return (text: string) => onReply(text); // el parentId ya lo maneja quien llama
-}
-
-function ReplyForm({ onSubmit }: { onSubmit: (text: string) => Promise<void> }) {
-  const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  return (
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setMsg(null);
-        const t = text.trim();
-        if (!t) return setMsg('Escribe un comentario');
-
-        try {
-          setSending(true);
-          await onSubmit(t);
-          setText('');
-        } catch (error: any) {
-          setMsg(error.message || 'Error al publicar');
-        } finally {
-          setSending(false);
-        }
-      }}
-      className="space-y-2"
-    >
-      {msg && <p className="text-sm text-red-600">{msg}</p>}
-      <textarea
-        className="w-full border rounded p-2 min-h-[100px]"
-        placeholder="Escribe tu respuesta…"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-      />
-      <button
-        className="px-3 py-2 rounded border font-medium"
-        type="submit"
-        disabled={sending}
-      >
-        {sending ? 'Enviando…' : 'Publicar respuesta'}
-      </button>
-    </form>
+      <h3 className="mt-10 mb-2 font-medium">Agregar respuesta</h3>
+      {errorMsg && <p className="mb-3 text-sm text-red-600">{errorMsg}</p>}
+      <form onSubmit={publish}>
+        <textarea
+          className="h-28 w-full rounded border p-2"
+          placeholder="Escribe tu respuesta…"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+        <button
+          className="mt-2 rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+          type="submit"
+          disabled={loading || content.trim().length === 0}
+        >
+          {loading ? 'Publicando…' : 'Publicar respuesta'}
+        </button>
+      </form>
+    </div>
   );
 }
