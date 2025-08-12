@@ -1,4 +1,4 @@
-'use client'
+import { supabase } from '@/lib/supabaseClient'
 import { MessageSquare, Users, Flame, CalendarDays, Tag } from 'lucide-react'
 import { AvatarText } from './UI'
 import { CATEGORIES } from '@/lib/utils'
