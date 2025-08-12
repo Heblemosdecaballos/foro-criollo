@@ -1,18 +1,15 @@
 // app/login/page.tsx
-import { Suspense } from 'react';
+'use client';
 
-// (opcional pero recomendado para evitar prerender)
-// fuerza render dinámico y evita que Next intente prerender esta página
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+
+// Evita prerender y que Next intente estáticamente esta página.
 export const dynamic = 'force-dynamic';
 
-function LoginInner() {
-  'use client';
-
-  import { useEffect, useState } from 'react';
-  import { useRouter, useSearchParams } from 'next/navigation';
-  import Link from 'next/link';
-  import { supabase } from '@/lib/supabaseClient';
-
+function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const redirect = search.get('redirect') || '/';
@@ -22,7 +19,7 @@ function LoginInner() {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Si ya estoy logueado, ir directo al destino
+  // Si ya estoy logueado, entro directo al destino
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) router.replace(redirect);
@@ -39,7 +36,7 @@ function LoginInner() {
     setLoading(false);
     if (error) return setMsg(error.message);
 
-    router.replace(redirect);
+    router.replace(redirect); // volver al hilo o a la ruta indicada
   }
 
   return (
@@ -87,7 +84,7 @@ export default function LoginPage() {
         </main>
       }
     >
-      <LoginInner />
+      <LoginForm />
     </Suspense>
   );
 }
