@@ -1,0 +1,35 @@
+'use client'
+import { useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+
+export default function NewPostForm({ threadId }: { threadId: string }) {
+  const [content, setContent] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setMsg(null)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return setMsg('Debes iniciar sesión.')
+
+    const { error } = await supabase.from('posts').insert({
+      thread_id: threadId,
+      content,
+      created_by: user.id,
+    })
+
+    if (error) return setMsg(error.message)
+    setContent('')
+    setMsg('Respuesta publicada.')
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-2">
+      {msg && <p className="text-sm text-red-600">{msg}</p>}
+      <textarea className="w-full border rounded p-2" rows={4}
+        value={content} onChange={e=>setContent(e.target.value)} />
+      <button className="rounded bg-black text-white py-2 px-4">Publicar respuesta</button>
+    </form>
+  )
+}
