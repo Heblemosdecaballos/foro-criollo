@@ -35,13 +35,14 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
   async function load() {
     setMsg(null);
 
-    // Cargar hilo con autor embebido
+    // ⚠️ Desambiguamos la relación con el NOMBRE de la FK:
+    // author = profiles!threads_created_by_profiles_fkey (username)
     const { data: t, error: tErr } = await supabase
       .from('threads')
       .select(
         `
         id, title, category, created_at,
-        author:created_by ( username )
+        author:profiles!threads_created_by_profiles_fkey ( username )
       `
       )
       .eq('id', threadId)
@@ -53,13 +54,14 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
       setThread(t as unknown as Thread);
     }
 
-    // Cargar posts del hilo con autor embebido
+    // ⚠️ Igual para posts:
+    // author = profiles!posts_created_by_profiles_fkey (username)
     const { data: p, error: pErr } = await supabase
       .from('posts')
       .select(
         `
         id, body, created_at,
-        author:created_by ( username )
+        author:profiles!posts_created_by_profiles_fkey ( username )
       `
       )
       .eq('thread_id', threadId)
@@ -83,7 +85,6 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
       setLoading(true);
       setMsg(null);
 
-      // Debes estar logueado
       const {
         data: { user },
         error: userErr,
@@ -91,7 +92,7 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
       if (userErr) throw userErr;
       if (!user) throw new Error('Debes iniciar sesión');
 
-      // Buscar el profile.id del usuario
+      // Buscamos el profile.id para created_by
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
         .select('id')
@@ -102,7 +103,6 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
 
       if (!body.trim()) throw new Error('Escribe tu respuesta');
 
-      // Insertar post con body y created_by (profiles.id)
       const { error: insErr } = await supabase.from('posts').insert({
         thread_id: threadId,
         body,
@@ -144,7 +144,7 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
             </span>
           </div>
 
-          {/* Lista de respuestas */}
+          {/* Respuestas */}
           <div className="space-y-4">
             {posts.map((p) => (
               <article
