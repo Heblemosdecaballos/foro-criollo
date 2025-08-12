@@ -1,0 +1,12 @@
+// lib/supabase-browser.ts
+import { createBrowserClient } from '@supabase/ssr'
+
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+let browserClient: ReturnType<typeof createBrowserClient> | undefined
+
+export function getSupabaseBrowser() {
+  if (!browserClient) browserClient = createBrowserClient(URL, KEY)
+  return browserClient
+}
