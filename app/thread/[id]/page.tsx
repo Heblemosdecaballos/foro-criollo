@@ -1,130 +1,155 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 type Thread = {
   id: string;
   title: string;
   category: string;
-  created_by: string;
+  created_at: string;
 };
 
 type Post = {
   id: string;
   content: string;
-  created_by: string;
-  thread_id: string;
-  parent_id: string | null;
   created_at: string;
+  parent_id: string | null;
+  created_by: string;
 };
 
-export default function ThreadPage({ params: { id } }: { params: { id: string } }) {
+export default function ThreadPage({ params }: { params: { id: string } }) {
+  const { id } = params;
+
   const [thread, setThread] = useState<Thread | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  // para nueva respuesta
   const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const loadData = async () => {
-    const { data: t } = await supabase.from('threads').select('*').eq('id', id).maybeSingle();
-    setThread(t as Thread | null);
-
-    const { data: p } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('thread_id', id)
-      .is('parent_id', null)
-      .order('created_at', { ascending: true });
-
-    setPosts((p as Post[]) ?? []);
-  };
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setMsg(null);
+
+      const [tRes, pRes] = await Promise.all([
+        supabase
+          .from('threads')
+          .select('id, title, category, created_at')
+          .eq('id', id)
+          .single(),
+        supabase
+          .from('posts')
+          .select('id, content, created_at, parent_id, created_by')
+          .eq('thread_id', id)
+          .is('parent_id', null) // solo respuestas nivel 1
+          .order('created_at', { ascending: true }),
+      ]);
+
+      if (cancelled) return;
+
+      if (tRes.error) setMsg(tRes.error.message);
+      else setThread(tRes.data);
+
+      if (pRes.error) setMsg(pRes.error.message);
+      else setPosts(pRes.data ?? []);
+
+      setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  const publish = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setLoading(true);
+  async function handlePublish() {
+    try {
+      setPosting(true);
+      setMsg(null);
 
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      setLoading(false);
-      setErrorMsg('Debes iniciar sesión para responder.');
-      return;
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+
+      if (userErr) throw userErr;
+      if (!user) throw new Error('Debes iniciar sesión');
+
+      if (!content.trim()) {
+        throw new Error('Escribe algo antes de publicar.');
+      }
+
+      const { data, error } = await supabase
+        .from('posts')
+        .insert({
+          thread_id: id,
+          content,
+          parent_id: null,
+          created_by: user.id,
+        })
+        .select('id, content, created_at, parent_id, created_by')
+        .single();
+
+      if (error) throw error;
+
+      setPosts((prev) => [...prev, data]);
+      setContent('');
+    } catch (e: any) {
+      setMsg(e.message ?? 'Error publicando la respuesta.');
+    } finally {
+      setPosting(false);
     }
+  }
 
-    const { error } = await supabase.from('posts').insert({
-      thread_id: id,
-      content,
-      created_by: auth.user.id,
-      parent_id: null,
-    });
-
-    setLoading(false);
-
-    if (error) {
-      setErrorMsg(error.message);
-      return;
-    }
-
-    setContent('');
-    await loadData();
-  };
-
-  if (!thread) {
-    return (
+  return (
+    <main className="max-w-3xl mx-auto p-4 space-y-6">
       <div className="mx-auto max-w-3xl p-6">
         <Link className="underline" href="/">
           Volver
         </Link>
-        <p className="mt-6">Cargando tema…</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <Link className="underline" href="/">
-          Volver
-        </Link>
-        <span className="rounded bg-neutral-100 px-2 py-1 text-xs">{thread.category}</span>
       </div>
 
-      <h1 className="mb-4 text-2xl font-semibold">{thread.title}</h1>
+      {loading && <p className="mt-6">Cargando tema…</p>}
+      {msg && <p className="text-red-600">{msg}</p>}
 
-      <h2 className="mt-8 mb-2 text-lg font-medium">Respuestas</h2>
-      {posts.length === 0 && <p className="text-sm text-neutral-500">Aún no hay respuestas.</p>}
-      <ul className="space-y-4">
-        {posts.map((p) => (
-          <li key={p.id} className="rounded border p-3">
-            <p className="whitespace-pre-wrap">{p.content}</p>
-            <p className="mt-2 text-xs text-neutral-500">Por: {p.created_by}</p>
-          </li>
-        ))}
-      </ul>
+      {thread && (
+        <section className="space-y-2">
+          <h1 className="text-xl font-semibold">{thread.title}</h1>
+          <p className="text-sm text-neutral-500">
+            {thread.category} · {new Date(thread.created_at).toLocaleString()}
+          </p>
+        </section>
+      )}
 
-      <h3 className="mt-10 mb-2 font-medium">Agregar respuesta</h3>
-      {errorMsg && <p className="mb-3 text-sm text-red-600">{errorMsg}</p>}
-      <form onSubmit={publish}>
+      <section className="space-y-4">
+        <h2 className="font-medium">Respuestas</h2>
+
+        {posts.length === 0 && !loading && <p>No hay respuestas aún.</p>}
+
+        <ul className="space-y-3">
+          {posts.map((p) => (
+            <li key={p.id} className="border rounded p-3">
+              <p>{p.content}</p>
+              <div className="text-xs text-neutral-500 mt-1">
+                {new Date(p.created_at).toLocaleString()}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="space-y-2">
+        <h3 className="font-medium">Agregar respuesta</h3>
         <textarea
-          className="h-28 w-full rounded border p-2"
-          placeholder="Escribe tu respuesta…"
+          className="w-full border rounded p-2"
+          rows={4}
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          placeholder="Escribe tu respuesta…"
         />
-        <button
-          className="mt-2 rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-          type="submit"
-          disabled={loading || content.trim().length === 0}
-        >
-          {loading ? 'Publicando…' : 'Publicar respuesta'}
-        </button>
-      </form>
-    </div>
-  );
-}
