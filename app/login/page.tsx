@@ -1,77 +1,58 @@
-import { Suspense } from 'react'
+'use client';
 
-export default function Page() {
-  return (
-    <Suspense>
-      <LoginInner />
-    </Suspense>
-  )
-}
+import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
-'use client'
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMsg(null);
 
-function LoginInner() {
-  const router = useRouter()
-  const search = useSearchParams()
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${location.origin}/` },
+    });
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
-  const next = search.get('next') ?? '/'
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) router.replace(next)
-    })
-  }, [next, router])
-
-  const doSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setMsg(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return setMsg(error.message)
-    router.replace(next)
-  }
+    setLoading(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setSent(true);
+  };
 
   return (
-    <main className="max-w-md mx-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Ingresar</h1>
+    <div className="mx-auto max-w-md p-6">
+      <h1 className="mb-4 text-xl font-semibold">Ingresar</h1>
 
-      {msg && <p className="text-red-600">{msg}</p>}
-
-      <form onSubmit={doSignIn} className="space-y-3">
-        <input
-          className="w-full border p-2 rounded"
-          type="email"
-          placeholder="Correo"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          className="w-full border p-2 rounded"
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button className="w-full bg-black text-white py-2 rounded" type="submit">
-          Entrar
-        </button>
-      </form>
-
-      <p className="text-sm">
-        ¿No tienes cuenta?{' '}
-        <Link href="/signup" className="underline">
-          Crear cuenta
-        </Link>
-      </p>
-    </main>
-  )
+      {msg && <p className="mb-3 text-red-600">{msg}</p>}
+      {sent ? (
+        <p>Revisa tu bandeja y haz clic en el enlace que te enviamos.</p>
+      ) : (
+        <form onSubmit={send} className="space-y-3">
+          <input
+            type="email"
+            className="w-full rounded border px-3 py-2"
+            placeholder="tu@correo.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <button
+            type="submit"
+            className="w-full rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? 'Enviando…' : 'Enviar enlace mágico'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
 }
