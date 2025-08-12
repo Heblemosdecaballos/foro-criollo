@@ -1,81 +1,49 @@
+'use client'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-;
-
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function NewThreadPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState('')
+  const [category, setCategory] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
-  }, []);
+  async function onCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setMsg(null)
+    setLoading(true)
 
-  if (!user) {
-    return (
-      <main className="min-h-screen max-w-md mx-auto p-6 space-y-4">
-        <h1 className="text-2xl font-bold">Crear tema</h1>
-        <p>Necesitas iniciar sesión.</p>
-        <Link className="underline" href="/login">Ir a Ingresar</Link>
-      </main>
-    );
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setLoading(false)
+      return setMsg('Debes iniciar sesión.')
+    }
+
+    const { error } = await supabase.from('threads').insert({
+      title,
+      category,
+      created_by: user.id,
+    })
+
+    setLoading(false)
+    if (error) return setMsg(error.message)
+    setMsg('Tema creado.')
+    // window.location.href = '/'
   }
-
-async function handleCreate(e: React.FormEvent) {
-  e.preventDefault();
-
-  // ✅ Garantizamos que user no sea null aquí
-  if (!user) {
-    setMsg('Necesitas iniciar sesión.');
-    return;
-  }
-
-  setMsg(null);
-  setLoading(true);
-
-  const { error } = await supabase.from('threads').insert({
-    title,
-    category: category || null,
-    created_by: user.id, // ahora TS sabe que user no es null
-  });
-
-  setLoading(false);
-  if (error) return setMsg(error.message);
-
-  router.push('/'); // listo
-}
 
   return (
-    <main className="min-h-screen max-w-md mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Crear tema</h1>
-
+    <main className="p-6 max-w-xl mx-auto space-y-3">
+      <h1 className="text-xl font-semibold">Crear tema</h1>
       {msg && <p className="text-sm text-red-600">{msg}</p>}
-
-      <form onSubmit={handleCreate} className="space-y-3">
-        <input
-          className="w-full border rounded p-2"
-          placeholder="Título del tema"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <input
-          className="w-full border rounded p-2"
-          placeholder="Categoría (opcional)"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        />
-        <button className="w-full border rounded p-2 font-medium" disabled={loading} type="submit">
-          {loading ? 'Guardando…' : 'Publicar'}
+      <form onSubmit={onCreate} className="space-y-3">
+        <input className="w-full border rounded p-2" placeholder="Título"
+               value={title} onChange={e=>setTitle(e.target.value)} />
+        <input className="w-full border rounded p-2" placeholder="Categoría"
+               value={category} onChange={e=>setCategory(e.target.value)} />
+        <button disabled={loading} className="rounded bg-black text-white py-2 px-4">
+          {loading ? 'Guardando...' : 'Publicar'}
         </button>
       </form>
     </main>
-  );
+  )
 }
