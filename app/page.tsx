@@ -1,167 +1,202 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { useEffect, useRef, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-type Thread = {
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+type ThreadRow = {
   id: string;
   title: string;
-  category: string | null;
   created_at: string;
-  created_by: string;
+  author_id: string | null;
+  author_username: string | null;
+  posts_count: number | null;
+  last_post_by: string | null;
+  last_post_at: string | null;
+  // category está en la tabla base; la vista compacta puede no exponerla, así que no la exigimos
 };
 
-type Profile = {
-  user_id: string;
-  username: string | null;
-};
-
-const PAGE_SIZE = 10;
-
-export default function HomePage() {
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [byUser, setByUser] = useState<Record<string, string>>({});
-  const [page, setPage] = useState(0);
+export default function ThreadsPage() {
+  const [items, setItems] = useState<ThreadRow[]>([]);
+  const [cursor, setCursor] = useState<{ created_at: string; id: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  const fetchingRef = useRef(false);
 
-  // mostrar banner "completa tu perfil" si no tiene username
-  const [needsProfile, setNeedsProfile] = useState(false);
+  // filtros
+  const [q, setQ] = useState('');
+  const [category, setCategory] = useState<string | 'all'>('all');
+  const [categories, setCategories] = useState<string[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data: u } = await supabase.auth.getUser();
-        if (u?.user?.id) {
-          const { data: p } = await supabase
-            .from('profiles')
-            .select('user_id, username')
-            .eq('user_id', u.user.id)
-            .maybeSingle();
-          setNeedsProfile(!p?.username);
-        } else {
-          setNeedsProfile(false);
-        }
-      } catch {
-        setNeedsProfile(false);
-      }
-    })();
-  }, []);
+  const [title, setTitle] = useState('');
 
-  useEffect(() => {
-    // carga inicial
-    loadMore();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  async function ensureProfile() {
+    try { await supabase.rpc('ensure_profile_min'); } catch {}
+  }
 
-  async function loadMore() {
+  async function loadCategories() {
     try {
-      if (loading || !hasMore) return;
-      setLoading(true);
-      setErr(null);
+      const { data, error } = await supabase.rpc('threads_categories');
+      if (!error && Array.isArray(data)) setCategories(data as string[]);
+    } catch {}
+  }
 
-      const from = page * PAGE_SIZE;
-      const to   = from + PAGE_SIZE; // pedimos uno extra para saber si hay más
-
-      const { data, error } = await supabase
-        .from('threads')
-        .select('id, title, category, created_at, created_by')
+  async function fetchPage(useCursor: boolean) {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    setLoading(true);
+    try {
+      let qy = supabase
+        .from('v_threads_compact')
+        .select('*')
         .order('created_at', { ascending: false })
-        .range(from, to); // pedimos PAGE_SIZE+1 (porque to es inclusivo)
+        .order('id', { ascending: false })
+        .limit(20);
 
+      // filtros
+      if (q.trim()) {
+        // búsqueda por título (la vista expone title)
+        qy = qy.ilike('title', `%${q.trim()}%`);
+      }
+      if (category !== 'all') {
+        // como la vista quizá no trae category, filtramos vía RPC alternativa si lo necesita.
+        // Si v_threads_compact no tiene category, quite esta eq y mantenga solo la búsqueda por título.
+        qy = qy.eq('category', category); // funciona si su vista incluye category; si no, coméntela.
+      }
+
+      if (useCursor && cursor) {
+        qy = qy.lt('created_at', cursor.created_at)
+               .or(`created_at.eq.${cursor.created_at},id.lt.${cursor.id}`);
+      }
+
+      const { data, error } = await qy;
       if (error) throw error;
 
-      const rows = data ?? [];
-      // si recibimos más de PAGE_SIZE, hay más páginas
-      const newHasMore = rows.length > PAGE_SIZE;
-      setHasMore(newHasMore);
+      const list = (data ?? []) as ThreadRow[];
+      const next = list.length
+        ? { created_at: list[list.length - 1].created_at, id: list[list.length - 1].id }
+        : null;
 
-      const slice = newHasMore ? rows.slice(0, PAGE_SIZE) : rows;
-
-      // perfiles faltantes
-      const missingIds = slice
-        .map(t => t.created_by)
-        .filter((id, idx, arr) => arr.indexOf(id) === idx && !byUser[id]);
-
-      if (missingIds.length) {
-        const { data: profs, error: pErr } = await supabase
-          .from('profiles')
-          .select('user_id, username')
-          .in('user_id', missingIds);
-        if (!pErr && profs) {
-          const mapAdd: Record<string, string> = {};
-          profs.forEach((p: Profile) => (mapAdd[p.user_id] = p.username ?? 'usuario'));
-          setByUser(prev => ({ ...prev, ...mapAdd }));
-        }
-      }
-
-      setThreads(prev => [...prev, ...slice]);
-      setPage(prev => prev + 1);
+      setItems(prev => (useCursor ? [...prev, ...list] : list));
+      setCursor(next);
+      setInitialized(true);
     } catch (e: any) {
-      console.error(e);
-      setErr(e.message ?? 'Error cargando temas');
+      console.error('Error listando hilos:', e?.message || e);
+      alert('No se pudieron cargar los hilos. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+      fetchingRef.current = false;
+    }
+  }
+
+  async function createThread() {
+    const clean = title.trim();
+    if (!clean) return;
+    setLoading(true);
+    try {
+      // category se deja al DEFAULT válido del servidor
+      const { error } = await supabase.rpc('create_thread', { p_title: clean });
+      if (error) throw error;
+      setTitle('');
+      await fetchPage(false);
+    } catch (e: any) {
+      alert(e?.message || 'No se pudo crear el hilo.');
     } finally {
       setLoading(false);
     }
   }
 
-  const canLoad = useMemo(() => hasMore && !loading, [hasMore, loading]);
+  // resetear paginación al cambiar filtros
+  useEffect(() => {
+    fetchPage(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, category]);
+
+  useEffect(() => {
+    ensureProfile();
+    loadCategories();
+    fetchPage(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Últimos temas</h1>
-        <Link
-          href="/new-thread"
-          className="px-3 py-1 rounded border hover:bg-neutral-50"
-        >
-          Crear tema
-        </Link>
+    <main className="max-w-3xl mx-auto p-4 space-y-4">
+      <header className="space-y-1">
+        <h1 className="text-xl font-semibold">Hablemos de Caballos — Foros</h1>
+        <p className="text-sm text-neutral-600">Busca por título, filtra por categoría y publica nuevos hilos.</p>
       </header>
 
-      {needsProfile && (
-        <div className="border-amber-300 bg-amber-50 text-amber-800 border rounded p-3">
-          Para participar, por favor <Link href="/profile" className="underline">completa tu perfil</Link>.
-        </div>
-      )}
-
-      {err && <div className="text-red-600">{err}</div>}
-
-      <section className="space-y-4">
-        {threads.length === 0 && !loading && <p className="text-neutral-500">No hay temas todavía.</p>}
-
-        {threads.map(t => (
-          <article key={t.id} className="border rounded p-3">
-            <h2 className="font-medium">
-              <Link href={`/thread/${t.id}`} className="underline">{t.title}</Link>
-            </h2>
-            <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <span>@{byUser[t.created_by] ?? 'usuario'}</span>
-              <span>·</span>
-              <span>{new Date(t.created_at).toLocaleString()}</span>
-              {t.category && (
-                <>
-                  <span>·</span>
-                  <span className="px-2 py-0.5 rounded bg-neutral-100">{t.category}</span>
-                </>
-              )}
-            </div>
-          </article>
-        ))}
+      {/* Filtros */}
+      <section className="flex flex-col sm:flex-row gap-2">
+        <input
+          className="border rounded px-3 py-2 flex-1"
+          placeholder="Buscar por título…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+        />
+        <select
+          className="border rounded px-3 py-2 w-full sm:w-[220px]"
+          value={category}
+          onChange={e => setCategory(e.target.value as any)}
+        >
+          <option value="all">Todas las categorías</option>
+          {categories.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </section>
 
-      <div className="pt-2">
-        {canLoad ? (
-          <button className="px-3 py-1 rounded border" onClick={loadMore}>
-            Cargar más
-          </button>
-        ) : (
-          <p className="text-neutral-400 text-sm">
-            {loading ? 'Cargando…' : 'No hay más resultados'}
-          </p>
-        )}
+      {/* Crear hilo */}
+      <section className="flex gap-2">
+        <input
+          className="border rounded px-3 py-2 flex-1"
+          placeholder="Título del hilo…"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') createThread(); }}
+        />
+        <button
+          onClick={createThread}
+          disabled={loading || !title.trim()}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          Publicar
+        </button>
+      </section>
+
+      {/* Lista de hilos */}
+      <ul className="space-y-3">
+        {items.map(t => (
+          <li key={t.id} className="border rounded-lg p-3">
+            <a href={`/threads/${t.id}`} className="font-medium hover:underline">
+              {t.title}
+            </a>
+            <div className="text-sm text-neutral-600">
+              por @{t.author_username ?? 'usuario'} • {new Date(t.created_at).toLocaleString()}
+            </div>
+            <div className="text-xs text-neutral-500">
+              {(t.posts_count ?? 0)} respuestas
+              {t.last_post_at ? (
+                <> • Última: @{t.last_post_by ?? 'usuario'} • {new Date(t.last_post_at).toLocaleString()}</>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Paginación */}
+      <div className="mt-2 flex justify-center">
+        <button
+          onClick={() => fetchPage(true)}
+          disabled={loading || (initialized && cursor === null)}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          {loading ? 'Cargando…' : (initialized && cursor === null ? 'No hay más' : 'Cargar más')}
+        </button>
       </div>
     </main>
   );
