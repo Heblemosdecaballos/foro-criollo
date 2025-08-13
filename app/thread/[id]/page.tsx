@@ -1,365 +1,163 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
-import ReportButton from '@/components/ReportButton';
 
-type Thread = {
-  id: string;
-  title: string;
-  category: string | null;
-  created_at: string;
-  created_by: string;
-};
+// ⚠️ Variables de entorno requeridas en .env.local
+// NEXT_PUBLIC_SUPABASE_URL=...
+// NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnon);
 
-type Post = {
+type PostRow = {
   id: string;
   thread_id: string;
-  author_id: string;
-  parent_id: string | null;
-  content: string;
+  body: string;
   created_at: string;
+  author_id: string | null;
+  author_username: string | null;
 };
 
-type Profile = {
-  user_id: string;
-  username: string | null;
-};
+export default function ThreadDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [title, setTitle] = useState<string>('Hilo');
+  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [cursor, setCursor] = useState<{ created_at: string; id: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [body, setBody] = useState('');
+  const fetchingRef = useRef(false); // evita dobles cargas
 
-type PostNode = Post & { children: PostNode[] };
-
-export default function ThreadPage() {
-  const params = useParams<{ id: string }>();
-  const threadId = params.id;
-
-  const [thread, setThread] = useState<Thread | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [byUser, setByUser] = useState<Record<string, string>>({});
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  const [rootContent, setRootContent] = useState('');
-  const canSendRoot = useMemo(() => rootContent.trim().length > 0, [rootContent]);
-
-  useEffect(() => {
-    async function run() {
-      try {
-        setLoading(true);
-        setErr(null);
-
-        const { data: u, error: uErr } = await supabase.auth.getUser();
-        if (uErr) throw uErr;
-        setUserId(u.user?.id ?? null);
-
-        const { data: th, error: tErr } = await supabase
-          .from('threads')
-          .select('id, title, category, created_at, created_by')
-          .eq('id', threadId)
-          .maybeSingle();
-        if (tErr) throw tErr;
-        if (!th) { setErr('Tema no encontrado'); return; }
-        setThread(th);
-
-        const { data: ps, error: pErr } = await supabase
-          .from('posts')
-          .select('id, thread_id, author_id, parent_id, content, created_at')
-          .eq('thread_id', threadId)
-          .order('created_at', { ascending: true });
-        if (pErr) throw pErr;
-        setPosts(ps ?? []);
-
-        const ids = Array.from(new Set([th.created_by, ...(ps ?? []).map(p => p.author_id)]));
-        if (ids.length) {
-          const { data: profs } = await supabase
-            .from('profiles')
-            .select('user_id, username')
-            .in('user_id', ids);
-          const map: Record<string, string> = {};
-          (profs ?? []).forEach((p: Profile) => (map[p.user_id] = p.username ?? 'usuario'));
-          setByUser(map);
-        } else {
-          setByUser({});
-        }
-      } catch (e: any) {
-        setErr(e.message ?? 'Error cargando el tema');
-      } finally {
-        setLoading(false);
-      }
-    }
-    run();
-  }, [threadId]);
-
-  useEffect(() => {
-    if (!threadId) return;
-
-    const channel = supabase
-      .channel(`posts:${threadId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` },
-        async () => { await refetchPosts(); }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [threadId]);
-
-  async function refetchPosts() {
-    const { data: ps } = await supabase
-      .from('posts')
-      .select('id, thread_id, author_id, parent_id, content, created_at')
-      .eq('thread_id', threadId)
-      .order('created_at', { ascending: true });
-    setPosts(ps ?? []);
-  }
-
-  const tree: PostNode[] = useMemo(() => {
-    const byId: Record<string, PostNode> = {};
-    posts.forEach(p => (byId[p.id] = { ...p, children: [] }));
-    const roots: PostNode[] = [];
-    posts.forEach(p => {
-      if (p.parent_id && byId[p.parent_id]) byId[p.parent_id].children.push(byId[p.id]);
-      else roots.push(byId[p.id]);
-    });
-    return roots;
-  }, [posts]);
-
-  async function sendRoot() {
+  async function loadMeta() {
     try {
-      const text = rootContent.trim();
-      if (!text) return;
-      const { data: { user }, error: uErr } = await supabase.auth.getUser();
-      if (uErr) throw uErr;
-      if (!user) throw new Error('Debes iniciar sesión');
-
-      const { error } = await supabase.from('posts').insert({
-        thread_id: threadId,
-        author_id: user.id,
-        parent_id: null,
-        content: text,
-      });
+      const { data, error } = await supabase
+        .from('v_threads_compact')
+        .select('title')
+        .eq('id', id)
+        .single();
       if (error) throw error;
-      setRootContent('');
-    } catch (e: any) {
-      alert(e.message ?? 'No se pudo publicar');
+      setTitle((data as any)?.title ?? 'Hilo');
+    } catch (e) {
+      // silencioso: dejamos el título por defecto
+      console.warn('No se pudo cargar el título del hilo.');
     }
   }
 
-  if (loading) return <div className="p-6">Cargando tema…</div>;
-  if (err) return (
-    <div className="max-w-3xl mx-auto p-6">
-      <Link href="/" className="underline">Volver</Link>
-      <div className="mt-4 text-red-600">{err}</div>
-    </div>
-  );
-  if (!thread) return null;
+  async function loadPosts(useCursor: boolean) {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+    setLoading(true);
+    try {
+      let q = supabase
+        .from('v_posts_with_author')
+        .select('*')
+        .eq('thread_id', id)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .limit(30);
 
-  return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
-      <Link href="/" className="underline">Volver</Link>
+      if (useCursor && cursor) {
+        // keyset pagination: pedimos más antiguos que el cursor actual
+        q = q.lt('created_at', cursor.created_at)
+             .or(`created_at.eq.${cursor.created_at},id.lt.${cursor.id}`);
+      }
 
-      <header>
-        <h1 className="text-2xl font-semibold">{thread.title}</h1>
-        <div className="text-sm text-neutral-500 flex items-center gap-2">
-          <span>@{byUser[thread.created_by] ?? 'usuario'}</span>
-          <span>·</span>
-          <span>{new Date(thread.created_at).toLocaleString()}</span>
-          {thread.category && (
-            <>
-              <span>·</span>
-              <span className="px-2 py-0.5 rounded bg-neutral-100">{thread.category}</span>
-            </>
-          )}
-        </div>
-      </header>
+      const { data, error } = await q;
+      if (error) throw error;
 
-      <section className="space-y-3">
-        {tree.length === 0 ? (
-          <p className="text-neutral-500">No hay respuestas aún.</p>
-        ) : (
-          tree.map(n => (
-            <PostItem
-              key={n.id}
-              node={n}
-              byUser={byUser}
-              userId={userId}
-              depth={0}
-            />
-          ))
-        )}
-      </section>
+      const list = (data ?? []) as PostRow[];
+      const next = list.length
+        ? { created_at: list[list.length - 1].created_at, id: list[list.length - 1].id }
+        : null;
 
-      <section className="space-y-2">
-        <h2 className="font-medium">Agregar respuesta</h2>
-        <textarea
-          className="w-full border rounded p-2 min-h-[120px]"
-          value={rootContent}
-          onChange={(e) => setRootContent(e.target.value)}
-          placeholder="Escribe tu respuesta…"
-        />
-        <button
-          onClick={sendRoot}
-          disabled={!canSendRoot}
-          className="px-3 py-1 rounded border disabled:opacity-50"
-        >
-          Publicar respuesta
-        </button>
-      </section>
-    </main>
-  );
-}
-
-function PostItem({
-  node,
-  byUser,
-  userId,
-  depth,
-}: {
-  node: PostNode;
-  byUser: Record<string, string>;
-  userId: string | null;
-  depth: number;
-}) {
-  const [replying, setReplying] = useState(false);
-  const [reply, setReply] = useState('');
-  const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState(node.content);
-  const pad = Math.min(depth * 20, 60);
-
-  const canReply = !!userId;
-  const isOwner = userId === node.author_id;
+      setPosts(prev => (useCursor ? [...prev, ...list] : list));
+      setCursor(next);
+      setInitialized(true);
+    } catch (e: any) {
+      console.error('Error listando respuestas:', e?.message || e);
+      alert('No se pudieron cargar las respuestas. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
+      fetchingRef.current = false;
+    }
+  }
 
   async function sendReply() {
+    const clean = body.trim();
+    if (!clean) return;
+    setLoading(true);
     try {
-      const text = reply.trim();
-      if (!text) return;
-      const { data: { user }, error: uErr } = await supabase.auth.getUser();
-      if (uErr) throw uErr;
-      if (!user) throw new Error('Debes iniciar sesión');
-
-      const { error } = await supabase.from('posts').insert({
-        thread_id: node.thread_id,
-        author_id: user.id,
-        parent_id: node.id,
-        content: text,
-      });
+      // Publicar respuesta usando RPC seguro (usa auth.uid() en el servidor)
+      const { error } = await supabase.rpc('create_post', { p_thread_id: id, p_body: clean });
       if (error) throw error;
-
-      setReply('');
-      setReplying(false);
+      setBody('');
+      // recarga la primera página para ver la respuesta arriba
+      await loadPosts(false);
     } catch (e: any) {
-      alert(e.message ?? 'No se pudo responder');
+      console.error('Error publicando respuesta:', e?.message || e);
+      alert(e?.message || 'No se pudo publicar la respuesta.');
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function saveEdit() {
-    try {
-      const text = editText.trim();
-      if (!text) return;
-      const { error } = await supabase
-        .from('posts')
-        .update({ content: text })
-        .eq('id', node.id);
-      if (error) throw error;
-      setEditing(false);
-    } catch (e: any) {
-      alert(e.message ?? 'No se pudo editar');
-    }
-  }
-
-  async function removePost() {
-    if (!confirm('¿Borrar esta respuesta?')) return;
-    try {
-      const { error } = await supabase.from('posts').delete().eq('id', node.id);
-      if (error) throw error;
-    } catch (e: any) {
-      alert(e.message ?? 'No se pudo borrar');
-    }
-  }
+  useEffect(() => {
+    loadMeta();
+    loadPosts(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
-    <div className="border rounded p-3" style={{ marginLeft: pad }}>
-      <div className="text-sm text-neutral-500 flex items-center gap-2">
-        <span>@{byUser[node.author_id] ?? 'usuario'}</span>
-        <span>·</span>
-        <span>{new Date(node.created_at).toLocaleString()}</span>
-      </div>
+    <main className="max-w-3xl mx-auto p-4 space-y-4">
+      <header className="space-y-1">
+        <h1 className="text-xl font-semibold">{title}</h1>
+        <p className="text-sm text-neutral-600">Participa en el hilo. Las respuestas se cargan en bloques para ir ligero.</p>
+      </header>
 
-      {!editing ? (
-        <p className="mt-2 whitespace-pre-wrap">{node.content}</p>
-      ) : (
-        <div className="mt-2 space-y-2">
-          <textarea
-            className="w-full border rounded p-2 min-h-[100px]"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <button className="px-3 py-1 rounded border" onClick={saveEdit}>
-              Guardar
-            </button>
-            <button className="px-3 py-1 rounded border" onClick={() => setEditing(false)}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-2 flex gap-3 text-sm">
-        {canReply && (
-          <button className="underline" onClick={() => setReplying(v => !v)}>
-            {replying ? 'Cancelar' : 'Responder'}
-          </button>
-        )}
-
-        {isOwner ? (
-          <>
-            <button className="underline" onClick={() => setEditing(v => !v)}>
-              {editing ? 'Cancelar' : 'Editar'}
-            </button>
-            <button className="underline text-red-600" onClick={removePost}>
-              Borrar
-            </button>
-          </>
-        ) : (
-          userId && <ReportButton postId={node.id} />
-        )}
-      </div>
-
-      {replying && (
-        <div className="mt-2 space-y-2">
-          <textarea
-            className="w-full border rounded p-2 min-h-[100px]"
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            placeholder="Escribe tu respuesta a esta respuesta…"
-          />
+      {/* Formulario de respuesta */}
+      <section className="border rounded-lg p-3 space-y-2">
+        <textarea
+          className="w-full border rounded p-2 min-h-[100px]"
+          placeholder="Escribe tu respuesta…"
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply(); }}
+        />
+        <div className="flex justify-end">
           <button
-            className="px-3 py-1 rounded border disabled:opacity-50"
             onClick={sendReply}
-            disabled={!reply.trim()}
+            disabled={loading || !body.trim()}
+            className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
           >
-            Publicar
+            Responder
           </button>
         </div>
-      )}
+      </section>
 
-      {node.children.length > 0 && (
-        <div className="mt-3 space-y-3">
-          {node.children.map(child => (
-            <PostItem
-              key={child.id}
-              node={child}
-              byUser={byUser}
-              userId={userId}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Lista de respuestas */}
+      <ul className="space-y-3">
+        {posts.map(p => (
+          <li key={p.id} className="border rounded-lg p-3">
+            <div className="text-sm text-neutral-600">
+              @{p.author_username ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
+            </div>
+            <div className="mt-1 whitespace-pre-wrap">{p.body}</div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Paginación */}
+      <div className="mt-2 flex justify-center">
+        <button
+          onClick={() => loadPosts(true)}
+          disabled={loading || (initialized && cursor === null)}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          {loading ? 'Cargando…' : (initialized && cursor === null ? 'No hay más' : 'Cargar más')}
+        </button>
+      </div>
+    </main>
   );
 }
