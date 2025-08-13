@@ -1,24 +1,28 @@
+// lib/supabaseServer.ts
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 export function getSupabaseServer() {
   const cookieStore = cookies();
+  const access = cookieStore.get('sb-access-token')?.value ?? null;
+  // Nota: no necesitamos el refresh aquí; las rutas son de vida corta
+  // const refresh = cookieStore.get('sb-refresh-token')?.value ?? null;
 
-  return createServerClient(
+  const client = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 });
-        },
+      global: {
+        // Pasamos el JWT de la sesión actual para que RLS y auth funcionen
+        headers: access ? { Authorization: `Bearer ${access}` } : {},
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     }
   );
+
+  return client;
 }
