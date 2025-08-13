@@ -163,4 +163,134 @@ export default function ReportsPage() {
 
   useEffect(() => {
     checkMod();
-    // eslint-disable-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const canShow = useMemo(() => isMod === true, [isMod]);
+
+  if (isMod === null) {
+    return <main className="max-w-4xl mx-auto p-4">Verificando permisos…</main>;
+  }
+
+  if (!canShow) {
+    return (
+      <main className="max-w-4xl mx-auto p-4">
+        <h1 className="text-xl font-semibold">Reportes</h1>
+        <p className="text-sm text-red-600 mt-2">Solo moderadores pueden ver esta página.</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="max-w-4xl mx-auto p-4 space-y-4">
+      <header className="space-y-1">
+        <h1 className="text-xl font-semibold">Reportes de la comunidad</h1>
+        <p className="text-sm text-neutral-600">Revisa y actúa sobre los posts con más reportes.</p>
+      </header>
+
+      {/* Filtros */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <input
+          className="border rounded px-3 py-2"
+          placeholder="Buscar en texto o autor…"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+        />
+        <select
+          className="border rounded px-3 py-2"
+          value={hidden}
+          onChange={e => setHidden(e.target.value as any)}
+        >
+          <option value="all">Todos</option>
+          <option value="visible">Solo visibles</option>
+          <option value="hidden">Solo ocultos</option>
+        </select>
+        <input
+          type="number"
+          min={1}
+          className="border rounded px-3 py-2"
+          value={minReports}
+          onChange={e => setMinReports(Math.max(1, Number(e.target.value || 1)))}
+          placeholder="Mín. reportes"
+          title="Mínimo de reportes"
+        />
+        <div className="flex gap-2">
+          <input
+            type="date"
+            className="border rounded px-3 py-2 w-full"
+            value={from}
+            onChange={e => setFrom(e.target.value)}
+            title="Desde"
+          />
+          <input
+            type="date"
+            className="border rounded px-3 py-2 w-full"
+            value={to}
+            onChange={e => setTo(e.target.value)}
+            title="Hasta"
+          />
+        </div>
+      </section>
+
+      {/* Lista */}
+      <ul className="space-y-3">
+        {items.map(p => (
+          <li key={p.id} className="border rounded-lg p-3">
+            <div className="text-sm text-neutral-600 flex items-center justify-between gap-2">
+              <span>
+                <a href={`/threads/${p.thread_id}`} className="underline mr-2">Ir al hilo</a>
+                @{p.author_username ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
+              </span>
+              <span className="text-xs">Reportes: {p.reports_count ?? 0}</span>
+            </div>
+
+            {p.is_hidden && (
+              <div className="mt-1 text-xs text-red-600">Oculto actualmente</div>
+            )}
+
+            <div className={`mt-2 whitespace-pre-wrap ${p.is_hidden ? 'opacity-60' : ''}`}>
+              {p.body}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => toggleHide(p.id, p.is_hidden)}
+                className="px-3 py-1 border rounded"
+                title={p.is_hidden ? 'Mostrar post' : 'Ocultar post'}
+              >
+                {p.is_hidden ? 'Mostrar' : 'Ocultar'}
+              </button>
+
+              <button
+                onClick={() => pinPost(p.thread_id, p.id)}
+                className="px-3 py-1 border rounded"
+                title="Anclar en el hilo"
+              >
+                Anclar
+              </button>
+
+              <button
+                onClick={() => unpinThread(p.thread_id)}
+                className="px-3 py-1 border rounded"
+                title="Desanclar hilo"
+              >
+                Desanclar
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Paginación */}
+      <div className="mt-2 flex justify-center">
+        <button
+          onClick={() => fetchPage(true)}
+          disabled={loading || (initialized && cursor === null)}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          {loading ? 'Cargando…' : (initialized && cursor === null ? 'No hay más' : 'Cargar más')}
+        </button>
+      </div>
+    </main>
+  );
+}
