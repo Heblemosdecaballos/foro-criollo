@@ -1,142 +1,175 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
-type Author = { username: string | null };
-type Post = {
-  id: string;
-  content: string;          // ← usamos content
-  created_at: string;
-  author: Author;
-};
 type Thread = {
   id: string;
   title: string;
-  category: string;
+  category: string | null;
   created_at: string;
-  author: Author;
+  author_id: string | null;
+  author_username: string | null;
 };
 
-export default function ThreadPage({ params }: { params: { id: string } }) {
-  const id = params.id;
+type Post = {
+  id: string;
+  thread_id: string;
+  parent_id: string | null;
+  content: string;
+  created_at: string;
+  author_id: string | null;
+  author_username: string | null;
+};
+
+export default function ThreadPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const threadId = params?.id;
 
   const [thread, setThread] = useState<Thread | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Cargar tema y respuestas
+  const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
+
+  // Cargar hilo + posts desde las vistas
   useEffect(() => {
-    (async () => {
-      // Tema
-      const { data: th, error: e1 } = await supabase
-        .from('threads')
-        .select(`
-          id, title, category, created_at,
-          author:profiles!threads_created_by_fkey ( username )
-        `)
-        .eq('id', id)
-        .maybeSingle();
+    if (!threadId) return;
 
-      if (e1) { setMsg(e1.message); return; }
-      setThread(th as unknown as Thread);
+    const load = async () => {
+      setLoading(true);
+      setMsg(null);
 
-      // Respuestas
-      const { data: ps, error: e2 } = await supabase
-        .from('posts')
-        .select(`
-          id, content, created_at,
-          author:profiles!posts_created_by_fkey ( username )
-        `)
-        .eq('thread_id', id)
+      // hilo
+      const { data: th, error: thErr } = await supabase
+        .from('v_threads')
+        .select('*')
+        .eq('id', threadId)
+        .single();
+
+      if (thErr) {
+        setMsg(thErr.message);
+        setLoading(false);
+        return;
+      }
+      setThread(th);
+
+      // posts
+      const { data: ps, error: psErr } = await supabase
+        .from('v_posts')
+        .select('*')
+        .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
 
-      if (e2) { setMsg(e2.message); return; }
-      setPosts((ps as unknown as Post[]) ?? []);
-    })();
-  }, [id]);
+      if (psErr) {
+        setMsg(psErr.message);
+      } else {
+        setPosts(ps ?? []);
+      }
+      setLoading(false);
+    };
 
-  async function publish() {
-    setMsg(null);
-    if (!text.trim()) return;
+    load();
+  }, [threadId]);
 
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setMsg('Debes iniciar sesión'); setLoading(false); return; }
+  async function handlePublish() {
+    try {
+      setSending(true);
+      setMsg(null);
 
-    // INSERT: usar content (no body)
-    const { error } = await supabase.from('posts').insert({
-      thread_id: id,
-      content: text.trim(),
-      created_by: user.id,
-    });
+      const text = reply.trim();
+      if (!text) {
+        setMsg('Escribe tu respuesta.');
+        return;
+      }
 
-    if (error) {
-      setMsg(error.message);
-    } else {
-      setText('');
-      // Recargar respuestas
+      const { data: { user }, error: uErr } = await supabase.auth.getUser();
+      if (uErr) throw uErr;
+      if (!user) {
+        setMsg('Debes iniciar sesión.');
+        return;
+      }
+
+      // Inserta en posts (tabla real), usando author_id + content
+      const { error: insErr } = await supabase.from('posts').insert({
+        thread_id: threadId,
+        author_id: user.id,
+        parent_id: null,    // o el id del post al que respondes si implementas hilos anidados
+        content: text,
+      });
+
+      if (insErr) throw insErr;
+
+      setReply('');
+      // recarga las respuestas
       const { data: ps } = await supabase
-        .from('posts')
-        .select(`
-          id, content, created_at,
-          author:profiles!posts_created_by_fkey ( username )
-        `)
-        .eq('thread_id', id)
+        .from('v_posts')
+        .select('*')
+        .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
 
-      setPosts((ps as unknown as Post[]) ?? []);
+      setPosts(ps ?? []);
+    } catch (e: any) {
+      setMsg(e.message ?? 'Error al publicar');
+    } finally {
+      setSending(false);
     }
-    setLoading(false);
   }
 
-  if (!thread) return <p>Cargando tema...</p>;
-
   return (
-    <div className="mx-auto max-w-3xl">
-      <Link href="/" className="underline">Volver</Link>
+    <main className="max-w-3xl mx-auto p-6">
+      <Link href="/" className="underline mb-3 inline-block">Volver</Link>
 
-      {msg && (
-        <p className="my-3 rounded bg-rose-50 px-3 py-2 text-rose-700">{msg}</p>
+      {loading && <p>Cargando tema…</p>}
+      {msg && <p className="text-red-600 mb-3">{msg}</p>}
+
+      {thread && (
+        <header className="mb-6">
+          <div className="text-sm text-neutral-500 mb-1">
+            @{thread.author_username ?? 'usuario'} · {new Date(thread.created_at).toLocaleString()} ·{' '}
+            <span className="inline-block px-2 py-0.5 rounded bg-neutral-100">
+              {thread.category ?? 'General'}
+            </span>
+          </div>
+          <h1 className="text-2xl font-semibold">{thread.title}</h1>
+        </header>
       )}
 
-      <h1 className="mt-3 text-2xl font-semibold">{thread.title}</h1>
-      <div className="text-sm text-neutral-500">
-        @{thread.author?.username ?? 'usuario'} ·{' '}
-        {new Date(thread.created_at).toLocaleString()} · {thread.category}
-      </div>
-
-      <div className="mt-6 space-y-4">
+      <section className="space-y-4 mb-10">
         {posts.map((p) => (
-          <div key={p.id} className="rounded border p-3">
-            <div className="mb-1 text-xs text-neutral-500">
-              @{p.author?.username ?? 'usuario'} ·{' '}
-              {new Date(p.created_at).toLocaleString()}
+          <article key={p.id} className="border rounded p-3">
+            <div className="text-sm text-neutral-500 mb-1">
+              @{p.author_username ?? 'usuario'} · {new Date(p.created_at).toLocaleString()}
             </div>
-            <p>{p.content}</p>
-          </div>
+            <p className="whitespace-pre-wrap">{p.content}</p>
+          </article>
         ))}
-      </div>
+        {posts.length === 0 && !loading && <p>Aún no hay respuestas.</p>}
+      </section>
 
-      <div className="mt-6">
-        <h3 className="mb-2 font-medium">Agregar respuesta</h3>
+      <section className="space-y-2">
+        <h2 className="font-medium">Agregar respuesta</h2>
         <textarea
-          className="h-28 w-full rounded border p-2"
+          value={reply}
+          onChange={(e) => setReply(e.target.value)}
+          className="w-full min-h-[120px] p-3 border rounded"
           placeholder="Escribe tu respuesta…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
         />
-        <button
-          className="mt-2 rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-          onClick={publish}
-          disabled={loading}
-        >
-          {loading ? 'Publicando…' : 'Publicar respuesta'}
-        </button>
-      </div>
-    </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handlePublish}
+            disabled={sending}
+            className="px-3 py-2 rounded border"
+          >
+            {sending ? 'Publicando…' : 'Publicar respuesta'}
+          </button>
+        </div>
+      </section>
+    </main>
   );
 }
