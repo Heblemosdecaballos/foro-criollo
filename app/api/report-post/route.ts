@@ -6,6 +6,7 @@ export async function POST(req: Request) {
   if (!postId) return NextResponse.json({ error: 'postId requerido' }, { status: 400 });
 
   const supabase = getSupabaseServer();
+
   const { data: { user }, error: uerr } = await supabase.auth.getUser();
   if (uerr || !user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
