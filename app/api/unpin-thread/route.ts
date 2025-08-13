@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { getSupabaseServer } from '../../../lib/supabaseServer';
 
 export async function POST(req: Request) {
   const { threadId } = await req.json();
   if (!threadId) return NextResponse.json({ error: 'threadId requerido' }, { status: 400 });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies }
-  );
-
+  const supabase = getSupabaseServer();
   const { data: { user }, error: uerr } = await supabase.auth.getUser();
   if (uerr || !user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
