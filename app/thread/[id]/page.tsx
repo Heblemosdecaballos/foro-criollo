@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import ReportButton from '@/components/ReportButton';
 
 type Thread = {
   id: string;
@@ -40,36 +41,28 @@ export default function ThreadPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // respuesta de nivel raíz
   const [rootContent, setRootContent] = useState('');
   const canSendRoot = useMemo(() => rootContent.trim().length > 0, [rootContent]);
 
-  // -------- 1) Carga inicial de hilo + posts + perfiles --------
   useEffect(() => {
     async function run() {
       try {
         setLoading(true);
         setErr(null);
 
-        // usuario actual
         const { data: u, error: uErr } = await supabase.auth.getUser();
         if (uErr) throw uErr;
         setUserId(u.user?.id ?? null);
 
-        // hilo
         const { data: th, error: tErr } = await supabase
           .from('threads')
           .select('id, title, category, created_at, created_by')
           .eq('id', threadId)
           .maybeSingle();
         if (tErr) throw tErr;
-        if (!th) {
-          setErr('Tema no encontrado');
-          return;
-        }
+        if (!th) { setErr('Tema no encontrado'); return; }
         setThread(th);
 
-        // posts del hilo
         const { data: ps, error: pErr } = await supabase
           .from('posts')
           .select('id, thread_id, author_id, parent_id, content, created_at')
@@ -78,15 +71,12 @@ export default function ThreadPage() {
         if (pErr) throw pErr;
         setPosts(ps ?? []);
 
-        // perfiles (hilo + autores de posts)
         const ids = Array.from(new Set([th.created_by, ...(ps ?? []).map(p => p.author_id)]));
         if (ids.length) {
-          const { data: profs, error: profErr } = await supabase
+          const { data: profs } = await supabase
             .from('profiles')
             .select('user_id, username')
             .in('user_id', ids);
-          if (profErr) throw profErr;
-
           const map: Record<string, string> = {};
           (profs ?? []).forEach((p: Profile) => (map[p.user_id] = p.username ?? 'usuario'));
           setByUser(map);
@@ -94,7 +84,6 @@ export default function ThreadPage() {
           setByUser({});
         }
       } catch (e: any) {
-        console.error(e);
         setErr(e.message ?? 'Error cargando el tema');
       } finally {
         setLoading(false);
@@ -103,7 +92,6 @@ export default function ThreadPage() {
     run();
   }, [threadId]);
 
-  // -------- 2) Realtime: suscripción a cambios en posts del hilo --------
   useEffect(() => {
     if (!threadId) return;
 
@@ -112,30 +100,22 @@ export default function ThreadPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` },
-        // Por simplicidad, refrescamos todo ante cualquier cambio.
-        // Si quieres ultra-rendimiento, aquí podrías hacer updates in-place.
-        async () => {
-          await refetchPosts();
-        }
+        async () => { await refetchPosts(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [threadId]);
 
-  // -------- util: recarga solo los posts --------
   async function refetchPosts() {
-    const { data: ps, error } = await supabase
+    const { data: ps } = await supabase
       .from('posts')
       .select('id, thread_id, author_id, parent_id, content, created_at')
       .eq('thread_id', threadId)
       .order('created_at', { ascending: true });
-    if (!error) setPosts(ps ?? []);
+    setPosts(ps ?? []);
   }
 
-  // Árbol de respuestas
   const tree: PostNode[] = useMemo(() => {
     const byId: Record<string, PostNode> = {};
     posts.forEach(p => (byId[p.id] = { ...p, children: [] }));
@@ -163,21 +143,18 @@ export default function ThreadPage() {
       });
       if (error) throw error;
       setRootContent('');
-      // No hace falta llamar a refetch aquí; el evento Realtime lo hará.
     } catch (e: any) {
       alert(e.message ?? 'No se pudo publicar');
     }
   }
 
   if (loading) return <div className="p-6">Cargando tema…</div>;
-  if (err) {
-    return (
-      <div className="max-w-3xl mx-auto p-6">
-        <Link href="/" className="underline">Volver</Link>
-        <div className="mt-4 text-red-600">{err}</div>
-      </div>
-    );
-  }
+  if (err) return (
+    <div className="max-w-3xl mx-auto p-6">
+      <Link href="/" className="underline">Volver</Link>
+      <div className="mt-4 text-red-600">{err}</div>
+    </div>
+  );
   if (!thread) return null;
 
   return (
@@ -209,7 +186,6 @@ export default function ThreadPage() {
               node={n}
               byUser={byUser}
               userId={userId}
-              onChanged={refetchPosts}
               depth={0}
             />
           ))
@@ -236,19 +212,15 @@ export default function ThreadPage() {
   );
 }
 
-/* ---------- Item de Post con respuestas, editar/borrar ---------- */
-
 function PostItem({
   node,
   byUser,
   userId,
-  onChanged,
   depth,
 }: {
   node: PostNode;
   byUser: Record<string, string>;
   userId: string | null;
-  onChanged: () => Promise<void> | void;
   depth: number;
 }) {
   const [replying, setReplying] = useState(false);
@@ -258,8 +230,7 @@ function PostItem({
   const pad = Math.min(depth * 20, 60);
 
   const canReply = !!userId;
-  const canEdit = userId === node.author_id;
-  const canDelete = userId === node.author_id;
+  const isOwner = userId === node.author_id;
 
   async function sendReply() {
     try {
@@ -279,7 +250,6 @@ function PostItem({
 
       setReply('');
       setReplying(false);
-      // No hace falta onChanged(); el Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo responder');
     }
@@ -295,7 +265,6 @@ function PostItem({
         .eq('id', node.id);
       if (error) throw error;
       setEditing(false);
-      // Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo editar');
     }
@@ -306,7 +275,6 @@ function PostItem({
     try {
       const { error } = await supabase.from('posts').delete().eq('id', node.id);
       if (error) throw error;
-      // Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo borrar');
     }
@@ -346,15 +314,18 @@ function PostItem({
             {replying ? 'Cancelar' : 'Responder'}
           </button>
         )}
-        {canEdit && (
-          <button className="underline" onClick={() => setEditing(v => !v)}>
-            {editing ? 'Cancelar' : 'Editar'}
-          </button>
-        )}
-        {canDelete && (
-          <button className="underline text-red-600" onClick={removePost}>
-            Borrar
-          </button>
+
+        {isOwner ? (
+          <>
+            <button className="underline" onClick={() => setEditing(v => !v)}>
+              {editing ? 'Cancelar' : 'Editar'}
+            </button>
+            <button className="underline text-red-600" onClick={removePost}>
+              Borrar
+            </button>
+          </>
+        ) : (
+          userId && <ReportButton postId={node.id} />
         )}
       </div>
 
@@ -384,7 +355,6 @@ function PostItem({
               node={child}
               byUser={byUser}
               userId={userId}
-              onChanged={onChanged}
               depth={depth + 1}
             />
           ))}
