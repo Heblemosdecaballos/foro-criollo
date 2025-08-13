@@ -40,10 +40,11 @@ export default function ThreadPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // respuesta a nivel hilo
+  // respuesta de nivel raíz
   const [rootContent, setRootContent] = useState('');
   const canSendRoot = useMemo(() => rootContent.trim().length > 0, [rootContent]);
 
+  // -------- 1) Carga inicial de hilo + posts + perfiles --------
   useEffect(() => {
     async function run() {
       try {
@@ -77,7 +78,7 @@ export default function ThreadPage() {
         if (pErr) throw pErr;
         setPosts(ps ?? []);
 
-        // perfiles: hilo + autores de posts
+        // perfiles (hilo + autores de posts)
         const ids = Array.from(new Set([th.created_by, ...(ps ?? []).map(p => p.author_id)]));
         if (ids.length) {
           const { data: profs, error: profErr } = await supabase
@@ -102,7 +103,39 @@ export default function ThreadPage() {
     run();
   }, [threadId]);
 
-  // Construyo árbol de respuestas
+  // -------- 2) Realtime: suscripción a cambios en posts del hilo --------
+  useEffect(() => {
+    if (!threadId) return;
+
+    const channel = supabase
+      .channel(`posts:${threadId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` },
+        // Por simplicidad, refrescamos todo ante cualquier cambio.
+        // Si quieres ultra-rendimiento, aquí podrías hacer updates in-place.
+        async () => {
+          await refetchPosts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [threadId]);
+
+  // -------- util: recarga solo los posts --------
+  async function refetchPosts() {
+    const { data: ps, error } = await supabase
+      .from('posts')
+      .select('id, thread_id, author_id, parent_id, content, created_at')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true });
+    if (!error) setPosts(ps ?? []);
+  }
+
+  // Árbol de respuestas
   const tree: PostNode[] = useMemo(() => {
     const byId: Record<string, PostNode> = {};
     posts.forEach(p => (byId[p.id] = { ...p, children: [] }));
@@ -113,15 +146,6 @@ export default function ThreadPage() {
     });
     return roots;
   }, [posts]);
-
-  async function refetchPosts() {
-    const { data: ps, error } = await supabase
-      .from('posts')
-      .select('id, thread_id, author_id, parent_id, content, created_at')
-      .eq('thread_id', threadId)
-      .order('created_at', { ascending: true });
-    if (!error) setPosts(ps ?? []);
-  }
 
   async function sendRoot() {
     try {
@@ -139,7 +163,7 @@ export default function ThreadPage() {
       });
       if (error) throw error;
       setRootContent('');
-      await refetchPosts();
+      // No hace falta llamar a refetch aquí; el evento Realtime lo hará.
     } catch (e: any) {
       alert(e.message ?? 'No se pudo publicar');
     }
@@ -255,7 +279,7 @@ function PostItem({
 
       setReply('');
       setReplying(false);
-      await onChanged();
+      // No hace falta onChanged(); el Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo responder');
     }
@@ -271,7 +295,7 @@ function PostItem({
         .eq('id', node.id);
       if (error) throw error;
       setEditing(false);
-      await onChanged();
+      // Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo editar');
     }
@@ -282,7 +306,7 @@ function PostItem({
     try {
       const { error } = await supabase.from('posts').delete().eq('id', node.id);
       if (error) throw error;
-      await onChanged();
+      // Realtime refresca
     } catch (e: any) {
       alert(e.message ?? 'No se pudo borrar');
     }
