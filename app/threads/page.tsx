@@ -91,17 +91,19 @@ export default function ThreadsPage() {
   }
 
   useEffect(() => { ensureProfile(); fetchPage(false); }, []);
-  useEffect(() => { fetchPage(false); /* reset por búsqueda */ }, [q]);
+  useEffect(() => { fetchPage(false); }, [q]);
 
   return (
     <main className="container-page py-6 space-y-6">
-      {/* Header */}
+      {/* Encabezado */}
       <header className="space-y-1">
-        <h1 className="h1">Hablemos de Caballos — Foros</h1>
+        <h1 className="h1" style={{ fontFamily: 'Cinzel, serif' }}>
+          Hablemos de Caballos — Foros
+        </h1>
         <p className="subtle">Busca por título, crea hilos y navega con paginación.</p>
       </header>
 
-      {/* Search */}
+      {/* Búsqueda */}
       <section className="section">
         <input
           className="input"
@@ -111,7 +113,7 @@ export default function ThreadsPage() {
         />
       </section>
 
-      {/* Create thread */}
+      {/* Crear hilo */}
       <section className="flex gap-2 section">
         <input
           className="input"
@@ -130,36 +132,44 @@ export default function ThreadsPage() {
         </button>
       </section>
 
-      {/* List */}
+      {/* Lista */}
       <ul className="space-y-4">
         {items.map(t => {
           const rep = t.reports_count ?? 0;
           return (
             <li key={t.id} className="card p-4">
               <div className="flex items-start justify-between gap-3">
-                <a href={`/threads/${t.id}`} className="font-medium hover:underline">
+                <a
+                  href={`/threads/${t.id}`}
+                  className="font-medium hover:underline"
+                  style={{ fontFamily: 'Cinzel, serif' }}
+                >
                   {t.title}
                 </a>
                 <div className="flex items-center gap-2">
                   {t.has_pinned ? (
-                    <span className="text-xs px-2 py-1 rounded-full border"
-                          style={{ borderColor: 'var(--brand-border)' }}>
+                    <span
+                      className="text-xs px-2 py-1 rounded-full border"
+                      style={{ borderColor: 'var(--brand-border)', background:'#FFF8E1', color:'#7A5A2F' }}
+                    >
                       📌 Anclado
                     </span>
                   ) : null}
                   {rep > 0 ? (
-                    <span className="text-xs px-2 py-1 rounded-full border"
-                          style={{ color:'#DC2626', borderColor:'#FCA5A5', background:'#FEF2F2' }}>
+                    <span
+                      className="text-xs px-2 py-1 rounded-full border"
+                      style={{ color:'#C63934', borderColor:'#F5B3B1', background:'#FDECEC' }}
+                    >
                       ⚠︎ {rep} reportes
                     </span>
                   ) : null}
                 </div>
               </div>
 
-              <div className="text-sm subtle mt-1">
+              <div className="text-sm subtle mt-1" style={{ fontFamily: 'Montserrat, ui-sans-serif' }}>
                 por @{t.author_username ?? 'usuario'} • {new Date(t.created_at).toLocaleString()}
               </div>
-              <div className="text-xs subtle mt-0.5">
+              <div className="text-xs subtle mt-0.5" style={{ fontFamily: 'Montserrat, ui-sans-serif' }}>
                 {(t.posts_count ?? 0)} respuestas
                 {t.last_post_at ? (
                   <> • Última: @{t.last_post_by ?? 'usuario'} • {new Date(t.last_post_at).toLocaleString()}</>
@@ -170,7 +180,7 @@ export default function ThreadsPage() {
         })}
       </ul>
 
-      {/* Pagination */}
+      {/* Paginación */}
       <div className="flex justify-center pt-2">
         <button
           onClick={() => fetchPage(true)}
