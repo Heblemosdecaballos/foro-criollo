@@ -2,84 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================
-   PALETA DE MARCA (ajustada a su guía)
-   ========================= */
+/* Paleta de marca */
 :root{
-  /* Colores base */
-  --brand-bg:        #F0EDE6; /* Beige arena (corrigiendo formato) */
-  --brand-surface:   #FFFFFF;
-  --brand-border:    #E6E0D7; /* Beige más oscuro para bordes suaves */
-  --brand-shadow:    0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.03);
-
-  /* Texto */
-  --brand-foreground:#64442A; /* Marrón cuero */
-  --brand-muted:     #8F7B63; /* Marrón suavizado para textos secundarios */
-
-  /* Primario / Acción */
-  --brand-primary:   #64442A; /* Marrón cuero */
+  --brand-bg:#F0EDE6;
+  --brand-surface:#FFFFFF;
+  --brand-border:#E6E0D7;
+  --brand-shadow:0 1px 2px rgba(0,0,0,.05),0 1px 1px rgba(0,0,0,.03);
+  --brand-foreground:#64442A;
+  --brand-muted:#8F7B63;
+  --brand-primary:#64442A;
   --brand-primary-600:#563A25;
   --brand-primary-700:#46301F;
-
-  /* Acentos */
-  --brand-accent:    #FFD02D; /* Amarillo */
-  --brand-danger:    #C63934; /* Rojo */
-
-  /* Focus ring */
-  --brand-ring:      0 0 0 3px rgba(100,68,42,.18);
+  --brand-accent:#FFD02D;
+  --brand-danger:#C63934;
+  --brand-ring:0 0 0 3px rgba(100,68,42,.18);
 }
 
-/* Tipografía por defecto (si ya activó Montserrat/Cinzel en el paso 1, esto la aplica globalmente) */
-html, body { height: 100%; }
+html,body{height:100%}
 body{
-  background: var(--brand-bg);
-  color: var(--brand-foreground);
-  /* si ya usa next/font con Montserrat, esta línea puede omitirse */
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+  background:var(--brand-bg);
+  color:var(--brand-foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-/* =========================
-   UTILIDADES DE DISEÑO
-   ========================= */
-@layer components {
-  .container-page { @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8; }
+/* fuente para títulos (si quieres usar Cinzel en <h1> etc.) */
+.font-cinzel{ font-family: Cinzel, serif; }
 
-  .h1 { @apply text-2xl sm:text-3xl font-semibold tracking-tight; }
-  .subtle { color: var(--brand-muted); }
+@layer components{
+  .container-page{@apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8}
+  .h1{@apply text-2xl sm:text-3xl font-semibold tracking-tight}
+  .subtle{ color:var(--brand-muted) }
 
-  .card {
-    background: var(--brand-surface);
-    border: 1px solid var(--brand-border);
-    border-radius: 0.75rem; /* rounded-xl */
-    box-shadow: var(--brand-shadow);
+  .card{
+    background:var(--brand-surface);
+    border:1px solid var(--brand-border);
+    border-radius:.75rem;
+    box-shadow:var(--brand-shadow);
   }
 
-  /* ----- Formularios unificados (Punto 4) ----- */
-  .input {
+  .input{
     @apply w-full rounded-lg px-4 py-2.5 outline-none transition;
-    background: var(--brand-surface);
-    border: 1px solid var(--brand-border);
+    background:var(--brand-surface);
+    border:1px solid var(--brand-border);
   }
-  .input::placeholder { color: color-mix(in srgb, var(--brand-muted) 70%, #fff 30%); }
-  .input:focus { box-shadow: var(--brand-ring); border-color: var(--brand-primary-600); }
+  .input:focus{ box-shadow:var(--brand-ring); border-color:var(--brand-primary-600) }
 
-  .btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition; }
-  .btn-primary {
-    background: var(--brand-primary);
-    color: #fff;
-  }
-  .btn-primary:hover  { background: var(--brand-primary-600); }
-  .btn-primary:active { background: var(--brand-primary-700); }
-  .btn-muted {
-    background: var(--brand-accent);
-    color: var(--brand-foreground);
-    border: 1px solid color-mix(in srgb, var(--brand-accent) 70%, #000 10%);
-  }
-  .btn-danger {
-    background: var(--brand-danger);
-    color: #fff;
-  }
+  .btn{ @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition }
+  .btn-primary{ background:var(--brand-primary); color:#fff }
+  .btn-primary:hover{ background:var(--brand-primary-600) }
+  .btn-primary:active{ background:var(--brand-primary-700) }
 }
 
-/* Espaciado estándar entre secciones */
-.section { @apply my-4; }
+/* espaciado */
+.section{ @apply my-4 }
