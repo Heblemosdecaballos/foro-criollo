@@ -15,11 +15,10 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode; // ✅ tipado para evitar el error “any”
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es" className={montserrat.className}>
-      {/* Usamos las variables de color definidas en globals.css */}
       <body className="antialiased bg-[var(--brand-bg)] text-[var(--brand-foreground)]">
         {children}
       </body>
