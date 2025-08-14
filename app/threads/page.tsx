@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Cliente supabase en el navegador
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -18,7 +17,6 @@ type ThreadRow = {
   posts_count: number | null;
   last_post_by: string | null;
   last_post_at: string | null;
-  // Estas dos son opcionales: si tu vista las tiene, se mostrarán
   has_pinned?: boolean | null;
   reports_count?: number | null;
 };
@@ -33,7 +31,6 @@ export default function ThreadsPage() {
   const fetchingRef = useRef(false);
 
   async function ensureProfile() {
-    // No es crítico: si existe el RPC, bien; si no, seguimos igual.
     try { await supabase.rpc('ensure_profile_min'); } catch {}
   }
 
@@ -50,12 +47,9 @@ export default function ThreadsPage() {
         .order('id', { ascending: false })
         .limit(20);
 
-      if (q.trim()) {
-        qy = qy.ilike('title', `%${q.trim()}%`);
-      }
+      if (q.trim()) qy = qy.ilike('title', `%${q.trim()}%`);
 
       if (useCursor && cursor) {
-        // Paginación estable: (created_at, id)
         qy = qy.lt('created_at', cursor.created_at)
                .or(`created_at.eq.${cursor.created_at},id.lt.${cursor.id}`);
       }
@@ -85,7 +79,6 @@ export default function ThreadsPage() {
     if (!clean) return;
     setLoading(true);
     try {
-      // El DEFAULT de category ya está alineado, así que no enviamos categoría
       const { error } = await supabase.rpc('create_thread', { p_title: clean });
       if (error) throw error;
       setTitle('');
@@ -97,40 +90,31 @@ export default function ThreadsPage() {
     }
   }
 
-  // Cargar página inicial y asegurar perfil mínimo
-  useEffect(() => {
-    ensureProfile();
-    fetchPage(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Resetear paginación al cambiar la búsqueda
-  useEffect(() => {
-    fetchPage(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  useEffect(() => { ensureProfile(); fetchPage(false); }, []);
+  useEffect(() => { fetchPage(false); /* reset por búsqueda */ }, [q]);
 
   return (
-    <main className="max-w-3xl mx-auto p-4 space-y-4">
+    <main className="container-page py-6 space-y-6">
+      {/* Header */}
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold">Hablemos de Caballos — Foros</h1>
-        <p className="text-sm text-neutral-600">Busca por título, crea hilos y navega con paginación.</p>
+        <h1 className="h1">Hablemos de Caballos — Foros</h1>
+        <p className="subtle">Busca por título, crea hilos y navega con paginación.</p>
       </header>
 
-      {/* Búsqueda */}
-      <section className="flex gap-2">
+      {/* Search */}
+      <section className="section">
         <input
-          className="border rounded px-3 py-2 flex-1"
+          className="input"
           placeholder="Buscar por título…"
           value={q}
           onChange={e => setQ(e.target.value)}
         />
       </section>
 
-      {/* Crear hilo */}
-      <section className="flex gap-2">
+      {/* Create thread */}
+      <section className="flex gap-2 section">
         <input
-          className="border rounded px-3 py-2 flex-1"
+          className="input"
           placeholder="Título del hilo…"
           value={title}
           onChange={e => setTitle(e.target.value)}
@@ -139,41 +123,43 @@ export default function ThreadsPage() {
         <button
           onClick={createThread}
           disabled={loading || !title.trim()}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+          className="btn btn-primary disabled:opacity-50"
+          title="Publicar nuevo hilo"
         >
           Publicar
         </button>
       </section>
 
-      {/* Lista de hilos */}
-      <ul className="space-y-3">
+      {/* List */}
+      <ul className="space-y-4">
         {items.map(t => {
           const rep = t.reports_count ?? 0;
           return (
-            <li key={t.id} className="border rounded-lg p-3">
+            <li key={t.id} className="card p-4">
               <div className="flex items-start justify-between gap-3">
                 <a href={`/threads/${t.id}`} className="font-medium hover:underline">
                   {t.title}
                 </a>
-
                 <div className="flex items-center gap-2">
                   {t.has_pinned ? (
-                    <span className="text-xs px-2 py-1 rounded-full border bg-yellow-50">
+                    <span className="text-xs px-2 py-1 rounded-full border"
+                          style={{ borderColor: 'var(--brand-border)' }}>
                       📌 Anclado
                     </span>
                   ) : null}
                   {rep > 0 ? (
-                    <span className="text-xs px-2 py-1 rounded-full border border-red-300 text-red-600">
+                    <span className="text-xs px-2 py-1 rounded-full border"
+                          style={{ color:'#DC2626', borderColor:'#FCA5A5', background:'#FEF2F2' }}>
                       ⚠︎ {rep} reportes
                     </span>
                   ) : null}
                 </div>
               </div>
 
-              <div className="text-sm text-neutral-600 mt-1">
+              <div className="text-sm subtle mt-1">
                 por @{t.author_username ?? 'usuario'} • {new Date(t.created_at).toLocaleString()}
               </div>
-              <div className="text-xs text-neutral-500">
+              <div className="text-xs subtle mt-0.5">
                 {(t.posts_count ?? 0)} respuestas
                 {t.last_post_at ? (
                   <> • Última: @{t.last_post_by ?? 'usuario'} • {new Date(t.last_post_at).toLocaleString()}</>
@@ -184,12 +170,12 @@ export default function ThreadsPage() {
         })}
       </ul>
 
-      {/* Paginación */}
-      <div className="mt-2 flex justify-center">
+      {/* Pagination */}
+      <div className="flex justify-center pt-2">
         <button
           onClick={() => fetchPage(true)}
           disabled={loading || (initialized && cursor === null)}
-          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+          className="btn btn-primary disabled:opacity-50"
         >
           {loading ? 'Cargando…' : (initialized && cursor === null ? 'No hay más' : 'Cargar más')}
         </button>
