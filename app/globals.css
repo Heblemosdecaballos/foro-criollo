@@ -2,7 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Opcional: estilos base mínimos */
-html, body {
-  height: 100%;
+/* =========================
+   Variables de marca (AJUSTE AQUÍ)
+   ========================= */
+:root{
+  /* Colores base */
+  --brand-bg:        #ffffff;
+  --brand-surface:   #ffffff;
+  --brand-border:    #E5E7EB; /* gray-200 */
+  --brand-shadow:    0 1px 2px rgba(0,0,0,.06), 0 1px 1px rgba(0,0,0,.04);
+
+  /* Texto */
+  --brand-foreground:#111111; /* casi negro */
+  --brand-muted:     #6B7280;  /* gray-500 */
+
+  /* Primario/Acción */
+  --brand-primary:   #111827;  /* gray-900 (ajústelo a su color principal) */
+  --brand-primary-600:#1F2937;
+  --brand-primary-700:#111827;
+
+  /* States */
+  --brand-ring:      0 0 0 3px rgba(17,24,39,.15);
 }
+
+/* =========================
+   Tipografías
+   - Si ya tiene fuentes, colóquelas en /public/fonts/ y reemplace url(...)
+   ========================= */
+/* Ejemplo (opcional)
+@font-face{
+  font-family: "Caballos Sans";
+  src: url("/fonts/CaballosSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face{
+  font-family: "Caballos Sans";
+  src: url("/fonts/CaballosSans-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+html, body { height: 100%; }
+body{
+  background: var(--brand-bg);
+  color: var(--brand-foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* =========================
+   Componentes utilitarios
+   ========================= */
+@layer components {
+  .container-page { @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8; }
+
+  .h1 { @apply text-2xl sm:text-3xl font-semibold tracking-tight; }
+  .subtle { color: var(--brand-muted); }
+
+  .card {
+    background: var(--brand-surface);
+    border: 1px solid var(--brand-border);
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: var(--brand-shadow);
+  }
+
+  .input {
+    @apply w-full rounded-lg px-4 py-2.5 outline-none;
+    background: var(--brand-surface);
+    border: 1px solid var(--brand-border);
+  }
+  .input:focus { box-shadow: var(--brand-ring); border-color: var(--brand-primary-600); }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition;
+  }
+  .btn-primary {
+    background: var(--brand-primary);
+    color: #fff;
+  }
+  .btn-primary:hover  { background: var(--brand-primary-600); }
+  .btn-primary:active { background: var(--brand-primary-700); }
+  .btn-muted {
+    background: #F9FAFB;
+    color: var(--brand-foreground);
+    border: 1px solid var(--brand-border);
+  }
+}
+
+/* Espaciado del layout */
+.section { @apply my-4; }
