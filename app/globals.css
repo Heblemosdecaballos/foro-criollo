@@ -3,58 +3,43 @@
 @tailwind utilities;
 
 /* =========================
-   Variables de marca (AJUSTE AQUÍ)
+   PALETA DE MARCA (ajustada a su guía)
    ========================= */
 :root{
   /* Colores base */
-  --brand-bg:        #ffffff;
-  --brand-surface:   #ffffff;
-  --brand-border:    #E5E7EB; /* gray-200 */
-  --brand-shadow:    0 1px 2px rgba(0,0,0,.06), 0 1px 1px rgba(0,0,0,.04);
+  --brand-bg:        #F0EDE6; /* Beige arena (corrigiendo formato) */
+  --brand-surface:   #FFFFFF;
+  --brand-border:    #E6E0D7; /* Beige más oscuro para bordes suaves */
+  --brand-shadow:    0 1px 2px rgba(0,0,0,.05), 0 1px 1px rgba(0,0,0,.03);
 
   /* Texto */
-  --brand-foreground:#111111; /* casi negro */
-  --brand-muted:     #6B7280;  /* gray-500 */
+  --brand-foreground:#64442A; /* Marrón cuero */
+  --brand-muted:     #8F7B63; /* Marrón suavizado para textos secundarios */
 
-  /* Primario/Acción */
-  --brand-primary:   #111827;  /* gray-900 (ajústelo a su color principal) */
-  --brand-primary-600:#1F2937;
-  --brand-primary-700:#111827;
+  /* Primario / Acción */
+  --brand-primary:   #64442A; /* Marrón cuero */
+  --brand-primary-600:#563A25;
+  --brand-primary-700:#46301F;
 
-  /* States */
-  --brand-ring:      0 0 0 3px rgba(17,24,39,.15);
+  /* Acentos */
+  --brand-accent:    #FFD02D; /* Amarillo */
+  --brand-danger:    #C63934; /* Rojo */
+
+  /* Focus ring */
+  --brand-ring:      0 0 0 3px rgba(100,68,42,.18);
 }
 
-/* =========================
-   Tipografías
-   - Si ya tiene fuentes, colóquelas en /public/fonts/ y reemplace url(...)
-   ========================= */
-/* Ejemplo (opcional)
-@font-face{
-  font-family: "Caballos Sans";
-  src: url("/fonts/CaballosSans-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face{
-  font-family: "Caballos Sans";
-  src: url("/fonts/CaballosSans-Semibold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-*/
-
+/* Tipografía por defecto (si ya activó Montserrat/Cinzel en el paso 1, esto la aplica globalmente) */
 html, body { height: 100%; }
 body{
   background: var(--brand-bg);
   color: var(--brand-foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  /* si ya usa next/font con Montserrat, esta línea puede omitirse */
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
 }
 
 /* =========================
-   Componentes utilitarios
+   UTILIDADES DE DISEÑO
    ========================= */
 @layer components {
   .container-page { @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8; }
@@ -69,16 +54,16 @@ body{
     box-shadow: var(--brand-shadow);
   }
 
+  /* ----- Formularios unificados (Punto 4) ----- */
   .input {
-    @apply w-full rounded-lg px-4 py-2.5 outline-none;
+    @apply w-full rounded-lg px-4 py-2.5 outline-none transition;
     background: var(--brand-surface);
     border: 1px solid var(--brand-border);
   }
+  .input::placeholder { color: color-mix(in srgb, var(--brand-muted) 70%, #fff 30%); }
   .input:focus { box-shadow: var(--brand-ring); border-color: var(--brand-primary-600); }
 
-  .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition;
-  }
+  .btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition; }
   .btn-primary {
     background: var(--brand-primary);
     color: #fff;
@@ -86,11 +71,15 @@ body{
   .btn-primary:hover  { background: var(--brand-primary-600); }
   .btn-primary:active { background: var(--brand-primary-700); }
   .btn-muted {
-    background: #F9FAFB;
+    background: var(--brand-accent);
     color: var(--brand-foreground);
-    border: 1px solid var(--brand-border);
+    border: 1px solid color-mix(in srgb, var(--brand-accent) 70%, #000 10%);
+  }
+  .btn-danger {
+    background: var(--brand-danger);
+    color: #fff;
   }
 }
 
-/* Espaciado del layout */
+/* Espaciado estándar entre secciones */
 .section { @apply my-4; }
