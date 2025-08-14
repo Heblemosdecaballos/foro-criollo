@@ -1,4 +1,6 @@
 // app/layout.tsx (SERVER COMPONENT)
+import './globals.css';
+
 export const metadata = {
   title: 'Hablemos de Caballos',
   description: 'Foros de Hablemos de Caballos',
@@ -11,7 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className="bg-white text-black antialiased">
+        {children}
+      </body>
     </html>
   );
 }
