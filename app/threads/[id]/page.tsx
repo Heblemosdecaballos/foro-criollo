@@ -1,8 +1,7 @@
 // app/threads/[id]/page.tsx
-// Server Component con manejo de errores y timeout
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic'; // evita cache estático
+export const dynamic = 'force-dynamic';
 
 type PageProps = { params: { id: string } };
 
@@ -11,17 +10,23 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// util: tomar la columna de texto que exista
 function pickText(p: any): string {
   return p?.body ?? p?.content ?? p?.text ?? p?.message ?? '';
 }
 
-// util: timeout (rechaza si tarda demasiado)
-function withTimeout<T>(p: Promise<T>, ms = 8000): Promise<T> {
+// Timeout genérico sin conflictos de tipos
+function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms);
-    p.then(v => { clearTimeout(t); resolve(v); })
-     .catch(e => { clearTimeout(t); reject(e); });
+    promise
+      .then((v) => {
+        clearTimeout(t);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(t);
+        reject(e);
+      });
   });
 }
 
@@ -31,20 +36,20 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return screenMsg('URL inválida: falta el ID del hilo.');
   }
 
-  // 1) Cargar hilo (con timeout)
+  // 1) Hilo
   let thread: any = null;
   try {
-    const { data, error } = await withTimeout(
+    const res1: any = await withTimeout(
       supabase
         .from('threads')
         .select('id,title,created_at,author_id')
         .eq('id', threadId)
-        .maybeSingle()
+        .maybeSingle(),
+      8000
     );
-
+    const { data, error } = res1 as { data: any; error: any };
     if (error) throw error;
     if (!data) return screenMsg('No se encontró el hilo.');
-
     thread = data;
   } catch (e: any) {
     if (e?.message === 'timeout') {
@@ -53,17 +58,18 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return screenError(e?.message || 'Error cargando el hilo.');
   }
 
-  // 2) Cargar posts (con timeout)
+  // 2) Posts
   let posts: any[] = [];
   try {
-    const { data, error } = await withTimeout(
+    const res2: any = await withTimeout(
       supabase
         .from('posts')
         .select('id,author_id,created_at,body,content,text,message')
         .eq('thread_id', threadId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }),
+      8000
     );
-
+    const { data, error } = res2 as { data: any[]; error: any };
     if (error) throw error;
     posts = data ?? [];
   } catch (e: any) {
@@ -76,7 +82,7 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return layout(thread, errorCard(e?.message || 'Error cargando las respuestas.'));
   }
 
-  // 3) Render normal
+  // 3) Render
   return layout(
     thread,
     <ul className="space-y-3">
@@ -84,13 +90,13 @@ export default async function ThreadDetailPage({ params }: PageProps) {
         <li
           key={p.id}
           className="p-4 rounded-xl border"
-          style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)', boxShadow:'var(--brand-shadow)' }}
+          style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)', boxShadow: 'var(--brand-shadow)' }}
         >
           <div className="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
-            @{p.author_id?.slice(0,8) ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
+            @{p.author_id?.slice(0, 8) ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
           </div>
           <div className="whitespace-pre-wrap">
-            {pickText(p) || <span className="text-sm" style={{ color:'var(--brand-muted)' }}>(sin contenido)</span>}
+            {pickText(p) || <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>(sin contenido)</span>}
           </div>
         </li>
       ))}
@@ -98,9 +104,9 @@ export default async function ThreadDetailPage({ params }: PageProps) {
       {posts.length === 0 && (
         <li
           className="p-4 rounded-xl border"
-          style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)' }}
+          style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)' }}
         >
-          <span style={{ color:'var(--brand-muted)' }}>Aún no hay respuestas en este hilo.</span>
+          <span style={{ color: 'var(--brand-muted)' }}>Aún no hay respuestas en este hilo.</span>
         </li>
       )}
     </ul>
@@ -115,8 +121,7 @@ function screenMsg(msg: string) {
       <a href="/threads" className="text-sm underline" style={{ color: 'var(--brand-primary)' }}>
         ← Volver a hilos
       </a>
-      <div className="p-4 rounded-xl border"
-           style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)' }}>
+      <div className="p-4 rounded-xl border" style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)' }}>
         {msg}
       </div>
     </main>
@@ -136,10 +141,12 @@ function screenError(msg: string) {
 
 function errorCard(msg: string) {
   return (
-    <div className="p-4 rounded-xl border"
-         style={{ background:'#FDECEC', borderColor:'#F5B3B1', color:'#C63934' }}>
+    <div
+      className="p-4 rounded-xl border"
+      style={{ background: '#FDECEC', borderColor: '#F5B3B1', color: '#C63934' }}
+    >
       {msg}
-      <div className="text-xs mt-1" style={{ color:'#8F7B63' }}>
+      <div className="text-xs mt-1" style={{ color: '#8F7B63' }}>
         Si ves “permission denied”/RLS, confirma que el rol anónimo tiene permiso SELECT para
         <code> threads </code> y <code> posts </code> (solo columnas públicas).
       </div>
