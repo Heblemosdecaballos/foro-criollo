@@ -1,58 +1,98 @@
 'use client';
 
+import { createClient } from '@supabase/supabase-js';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const router = useRouter();
 
-  const send = async (e: React.FormEvent) => {
+  async function signInWithEmail(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setMsg(null);
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${location.origin}/` },
-    });
-
-    setLoading(false);
-    if (error) {
-      setMsg(error.message);
-      return;
+    setErr(null); setMsg(null);
+    const clean = email.trim();
+    if (!clean) { setErr('Escribe un email.'); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email: clean });
+      if (error) throw error;
+      setMsg('Te enviamos un enlace de acceso a tu correo.');
+    } catch (e: any) {
+      setErr(e?.message || 'No se pudo enviar el enlace.');
+    } finally {
+      setBusy(false);
     }
-    setSent(true);
-  };
+  }
+
+  async function signInWithGoogle() {
+    setErr(null); setMsg(null);
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/threads` }
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      setBusy(false);
+      setErr(e?.message || 'No se pudo iniciar sesión con Google.');
+    }
+  }
 
   return (
-    <div className="mx-auto max-w-md p-6">
-      <h1 className="mb-4 text-xl font-semibold">Ingresar</h1>
+    <main className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <h1 className="text-2xl font-cinzel">Iniciar sesión</h1>
 
-      {msg && <p className="mb-3 text-red-600">{msg}</p>}
-      {sent ? (
-        <p>Revisa tu bandeja y haz clic en el enlace que te enviamos.</p>
-      ) : (
-        <form onSubmit={send} className="space-y-3">
-          <input
-            type="email"
-            className="w-full rounded border px-3 py-2"
-            placeholder="tu@correo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <button
-            type="submit"
-            className="w-full rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? 'Enviando…' : 'Enviar enlace mágico'}
-          </button>
-        </form>
+      <form onSubmit={signInWithEmail} className="space-y-3">
+        <input
+          type="email"
+          placeholder="tu@email.com"
+          className="w-full p-3 rounded-xl border outline-none"
+          style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)' }}
+          value={email}
+          onChange={(e)=>setEmail(e.target.value)}
+          disabled={busy}
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full p-3 rounded-xl"
+          style={{ background:'var(--brand-primary)', color:'#fff', opacity: busy ? .7 : 1 }}
+        >
+          {busy ? 'Enviando…' : 'Enviar enlace de acceso'}
+        </button>
+      </form>
+
+      <div className="text-center" style={{ color:'var(--brand-muted)' }}>o</div>
+
+      <button
+        onClick={signInWithGoogle}
+        disabled={busy}
+        className="w-full p-3 rounded-xl"
+        style={{ background:'#fff', border:'1px solid var(--brand-border)', opacity: busy ? .7 : 1 }}
+      >
+        Continuar con Google
+      </button>
+
+      {msg && (
+        <div className="p-3 rounded-lg text-sm" style={{ background:'#F2FFE8', border:'1px solid #CBE7B6', color:'#2D6A1F' }}>
+          {msg}
+        </div>
       )}
-    </div>
+      {err && (
+        <div className="p-3 rounded-lg text-sm" style={{ background:'#FDECEC', border:'1px solid #F5B3B1', color:'#C63934' }}>
+          {err}
+        </div>
+      )}
+    </main>
   );
 }
