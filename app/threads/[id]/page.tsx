@@ -1,4 +1,5 @@
 // app/threads/[id]/page.tsx
+// Server Component sin loaders, con timeout y usando posts.content
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -10,33 +11,21 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-function pickText(p: any): string {
-  return p?.body ?? p?.content ?? p?.text ?? p?.message ?? '';
-}
-
-// Timeout genérico
+// timeout genérico
 function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms);
     promise
-      .then((v) => {
-        clearTimeout(t);
-        resolve(v);
-      })
-      .catch((e) => {
-        clearTimeout(t);
-        reject(e);
-      });
+      .then((v) => { clearTimeout(t); resolve(v); })
+      .catch((e) => { clearTimeout(t); reject(e); });
   });
 }
 
 export default async function ThreadDetailPage({ params }: PageProps) {
   const threadId = params?.id;
-  if (!threadId) {
-    return screenMsg('URL inválida: falta el ID del hilo.');
-  }
+  if (!threadId) return screenMsg('URL inválida: falta el ID del hilo.');
 
-  // 1) Hilo — construir la consulta y castear explícitamente a Promise<any>
+  // 1) Hilo
   let thread: any = null;
   try {
     const q1 =
@@ -58,13 +47,13 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return screenError(e?.message || 'Error cargando el hilo.');
   }
 
-  // 2) Posts — igual técnica
+  // 2) Posts (⚠️ SOLO columnas existentes: content, no body)
   let posts: any[] = [];
   try {
     const q2 =
       supabase
         .from('posts')
-        .select('id,author_id,created_at,body,content,text,message')
+        .select('id,thread_id,author_id,created_at,content')
         .eq('thread_id', threadId)
         .order('created_at', { ascending: true });
 
@@ -96,7 +85,7 @@ export default async function ThreadDetailPage({ params }: PageProps) {
             @{p.author_id?.slice(0, 8) ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
           </div>
           <div className="whitespace-pre-wrap">
-            {pickText(p) || <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>(sin contenido)</span>}
+            {p?.content || <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>(sin contenido)</span>}
           </div>
         </li>
       ))}
