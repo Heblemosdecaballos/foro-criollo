@@ -1,6 +1,7 @@
 // app/threads/[id]/page.tsx
 // Server Component sin loaders, con timeout y usando posts.content
 import { createClient } from '@supabase/supabase-js';
+import ReplyForm from './ReplyForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,40 +66,54 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     if (e?.message === 'timeout') {
       return layout(
         thread,
-        errorCard('El servidor tardó demasiado en responder al cargar las respuestas (timeout).')
+        <>
+          {errorCard('El servidor tardó demasiado en responder al cargar las respuestas (timeout).')}
+          <ReplyForm threadId={threadId} />
+        </>
       );
     }
-    return layout(thread, errorCard(e?.message || 'Error cargando las respuestas.'));
+    return layout(thread, <>
+      {errorCard(e?.message || 'Error cargando las respuestas.')}
+      <ReplyForm threadId={threadId} />
+    </>);
   }
 
   // 3) Render
   return layout(
     thread,
-    <ul className="space-y-3">
-      {posts.map((p) => (
-        <li
-          key={p.id}
-          className="p-4 rounded-xl border"
-          style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)', boxShadow: 'var(--brand-shadow)' }}
-        >
-          <div className="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
-            @{p.author_id?.slice(0, 8) ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
-          </div>
-          <div className="whitespace-pre-wrap">
-            {p?.content || <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>(sin contenido)</span>}
-          </div>
-        </li>
-      ))}
+    <>
+      <ul className="space-y-3">
+        {posts.map((p) => (
+          <li
+            key={p.id}
+            className="p-4 rounded-xl border"
+            style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)', boxShadow: 'var(--brand-shadow)' }}
+          >
+            <div className="text-sm mb-1" style={{ color: 'var(--brand-muted)' }}>
+              @{p.author_id?.slice(0, 8) ?? 'usuario'} • {new Date(p.created_at).toLocaleString()}
+            </div>
+            <div className="whitespace-pre-wrap">
+              {p?.content || <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>(sin contenido)</span>}
+            </div>
+          </li>
+        ))}
 
-      {posts.length === 0 && (
-        <li
-          className="p-4 rounded-xl border"
-          style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)' }}
-        >
-          <span style={{ color: 'var(--brand-muted)' }}>Aún no hay respuestas en este hilo.</span>
-        </li>
-      )}
-    </ul>
+        {posts.length === 0 && (
+          <li
+            className="p-4 rounded-xl border"
+            style={{ background: 'var(--brand-surface)', borderColor: 'var(--brand-border)' }}
+          >
+            <span style={{ color: 'var(--brand-muted)' }}>Aún no hay respuestas en este hilo.</span>
+          </li>
+        )}
+      </ul>
+
+      {/* Formulario para responder */}
+      <div className="pt-4">
+        <h2 className="text-lg font-cinzel mb-2">Responder</h2>
+        <ReplyForm threadId={thread.id} />
+      </div>
+    </>
   );
 }
 
@@ -136,8 +151,8 @@ function errorCard(msg: string) {
     >
       {msg}
       <div className="text-xs mt-1" style={{ color: '#8F7B63' }}>
-        Si ves “permission denied”/RLS, confirma que el rol anónimo tiene permiso SELECT para
-        <code> threads </code> y <code> posts </code> (solo columnas públicas).
+        Si ves “permission denied”/RLS, confirma que el rol autenticado tiene permiso INSERT en
+        <code> posts </code> y el anónimo SELECT (solo columnas públicas).
       </div>
     </div>
   );
