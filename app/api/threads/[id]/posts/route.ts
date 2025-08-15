@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { error } = await supabase.from("posts").insert({
     thread_id: params.id,
     author_id: user.id,
-    body,
+    body
   });
 
   if (error) {
