@@ -34,7 +34,7 @@ export default function ReplyEditor({ threadId }: { threadId: string }) {
       const res = await fetch(`/api/threads/${threadId}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body })
       });
       const json = await res.json();
       if (res.ok && !json.error) setBody("");
