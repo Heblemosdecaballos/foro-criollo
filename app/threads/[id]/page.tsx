@@ -1,6 +1,6 @@
 // /app/threads/[id]/page.tsx
-import ReplyEditor from "@/components/ReplyEditor";
-import { createSupabaseServer } from "@/utils/supabase/server";
+import ReplyEditor from "../../../components/ReplyEditor";
+import { createSupabaseServer } from "../../../utils/supabase/server";
 import Link from "next/link";
 
 type PageProps = { params: { id: string } };
@@ -8,7 +8,6 @@ type PageProps = { params: { id: string } };
 export default async function ThreadPage({ params }: PageProps) {
   const supabase = createSupabaseServer();
 
-  // 1) Trae el hilo
   const { data: thread, error: threadErr } = await supabase
     .from("threads")
     .select("id, title, created_at")
@@ -24,7 +23,6 @@ export default async function ThreadPage({ params }: PageProps) {
     );
   }
 
-  // 2) Trae los posts del hilo
   const { data: posts } = await supabase
     .from("posts")
     .select("id, body, author_id, created_at")
@@ -58,7 +56,6 @@ export default async function ThreadPage({ params }: PageProps) {
 
       <section className="mt-6">
         <h2 className="mb-2 text-lg font-medium">Responder</h2>
-        {/* ESTE es el editor con guard de login del Paso 1 */}
         <ReplyEditor threadId={thread.id} />
       </section>
     </main>
