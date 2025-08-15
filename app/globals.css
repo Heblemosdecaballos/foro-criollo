@@ -2,56 +2,5 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Paleta de marca */
-:root{
-  --brand-bg:#F0EDE6;
-  --brand-surface:#FFFFFF;
-  --brand-border:#E6E0D7;
-  --brand-shadow:0 1px 2px rgba(0,0,0,.05),0 1px 1px rgba(0,0,0,.03);
-  --brand-foreground:#64442A;
-  --brand-muted:#8F7B63;
-  --brand-primary:#64442A;
-  --brand-primary-600:#563A25;
-  --brand-primary-700:#46301F;
-  --brand-accent:#FFD02D;
-  --brand-danger:#C63934;
-  --brand-ring:0 0 0 3px rgba(100,68,42,.18);
-}
-
-html,body{height:100%}
-body{
-  background:var(--brand-bg);
-  color:var(--brand-foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-}
-
-/* fuente para títulos (si quieres usar Cinzel en <h1> etc.) */
-.font-cinzel{ font-family: Cinzel, serif; }
-
-@layer components{
-  .container-page{@apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8}
-  .h1{@apply text-2xl sm:text-3xl font-semibold tracking-tight}
-  .subtle{ color:var(--brand-muted) }
-
-  .card{
-    background:var(--brand-surface);
-    border:1px solid var(--brand-border);
-    border-radius:.75rem;
-    box-shadow:var(--brand-shadow);
-  }
-
-  .input{
-    @apply w-full rounded-lg px-4 py-2.5 outline-none transition;
-    background:var(--brand-surface);
-    border:1px solid var(--brand-border);
-  }
-  .input:focus{ box-shadow:var(--brand-ring); border-color:var(--brand-primary-600) }
-
-  .btn{ @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition }
-  .btn-primary{ background:var(--brand-primary); color:#fff }
-  .btn-primary:hover{ background:var(--brand-primary-600) }
-  .btn-primary:active{ background:var(--brand-primary-700) }
-}
-
-/* espaciado */
-.section{ @apply my-4 }
+/* Puedes dejar estilos globales aquí si los tienes */
+html, body { min-height: 100%; }
