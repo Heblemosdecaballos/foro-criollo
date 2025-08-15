@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import { createClient, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
 const supabase = createClient(
@@ -13,44 +13,38 @@ export default function ReplyForm({ threadId }: { threadId: string }) {
   const [content, setContent] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted) return;
+      setUser(data.user ?? null);
+    })();
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => { sub.subscription.unsubscribe(); mounted = false; };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
 
     const text = content.trim();
-    if (!text) {
-      setErr('Escribe un mensaje.');
-      return;
-    }
+    if (!text) { setErr('Escribe un mensaje.'); return; }
+    if (!user) { setErr('Debes iniciar sesión para responder.'); return; }
 
     setBusy(true);
     try {
-      // Usuario actual (requiere sesión iniciada)
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-      const userId = userData?.user?.id;
-
-      if (!userId) {
-        setErr('Debes iniciar sesión para responder.');
-        setBusy(false);
-        return;
-      }
-
-      // Insertar la respuesta
-      const { error: insertErr } = await supabase
+      const { error } = await supabase
         .from('posts')
-        .insert({
-          thread_id: threadId,
-          author_id: userId,
-          content: text,        // ⚠️ usamos la columna real 'content'
-        });
-
-      if (insertErr) throw insertErr;
+        .insert({ thread_id: threadId, author_id: user.id, content: text });
+      if (error) throw error;
 
       setContent('');
-      // volver a cargar servidor para ver la nueva respuesta
       router.refresh();
     } catch (e: any) {
       setErr(e?.message || 'Error al enviar la respuesta.');
@@ -60,45 +54,52 @@ export default function ReplyForm({ threadId }: { threadId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
-      <textarea
-        className="w-full p-3 rounded-xl border outline-none"
-        placeholder="Escribe tu respuesta…"
-        rows={4}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        style={{
-          background: 'var(--brand-surface)',
-          borderColor: 'var(--brand-border)',
-          color: 'var(--brand-foreground)',
-        }}
-        disabled={busy}
-      />
-      {err && (
+    <div className="space-y-3">
+      {!user && (
         <div
-          className="p-3 rounded-lg text-sm"
-          style={{ background: '#FDECEC', border: '1px solid #F5B3B1', color: '#C63934' }}
+          className="p-4 rounded-xl border"
+          style={{ background:'#FFF8E1', borderColor:'#F3E1A6', color:'#7A5A2F' }}
         >
-          {err}
+          <div className="font-medium mb-1">Debes iniciar sesión para publicar</div>
+          <div className="text-sm mb-2">
+            Crea una cuenta o entra para responder en el hilo.
+          </div>
+          <a
+            href="/login"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
+            style={{ background:'var(--brand-primary)', color:'#fff' }}
+          >
+            Iniciar sesión
+          </a>
         </div>
       )}
-      <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={busy}
-          className="px-4 py-2 rounded-lg"
-          style={{
-            background: 'var(--brand-primary)',
-            color: 'white',
-            opacity: busy ? 0.7 : 1,
-          }}
-        >
-          {busy ? 'Publicando…' : 'Publicar respuesta'}
-        </button>
-        <span className="text-sm" style={{ color: 'var(--brand-muted)' }}>
-          Debes estar autenticado para publicar.
-        </span>
-      </div>
-    </form>
+
+      <form onSubmit={handleSubmit} className="space-y-2">
+        <textarea
+          className="w-full p-3 rounded-xl border outline-none"
+          placeholder="Escribe tu respuesta…"
+          rows={4}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)', color:'var(--brand-foreground)' }}
+          disabled={busy || !user}
+        />
+        {err && (
+          <div className="p-3 rounded-lg text-sm" style={{ background:'#FDECEC', border:'1px solid #F5B3B1', color:'#C63934' }}>
+            {err}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={busy || !user}
+            className="px-4 py-2 rounded-lg"
+            style={{ background:'var(--brand-primary)', color:'#fff', opacity: (busy || !user) ? 0.6 : 1 }}
+          >
+            {busy ? 'Publicando…' : 'Publicar respuesta'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
