@@ -1,29 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
+    "target": "ES2022",
+    "lib": ["dom", "es2022"],
+    "jsx": "preserve",
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "isolatedModules": true,
-
-    // 🔴 ESTO ES LO IMPORTANTE PARA JSX/TSX
-    "jsx": "preserve",
-
-    // Alias "@/" → raíz del proyecto (para imports como "@/lib/...")
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    },
-
-    "incremental": true
+    }
   },
-  // Asegura que TypeScript analice archivos .ts y .tsx
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
 }
