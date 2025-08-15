@@ -1,5 +1,5 @@
-import ReplyEditor from "../../../components/ReplyEditor";
-import { createSupabaseServer } from "../../../utils/supabase/server";
+import ReplyEditor from "@/components/ReplyEditor";
+import { createSupabaseServer } from "@/utils/supabase/server";
 import Link from "next/link";
 
 type PageProps = { params: { id: string } };
