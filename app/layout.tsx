@@ -1,25 +1,18 @@
-// app/layout.tsx
-import './globals.css';
-import type { Metadata } from 'next';
-import React from 'react';
-import { Cinzel, Montserrat } from 'next/font/google';
-import NavBar from './components/NavBar';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 
-const cinzel = Cinzel({ subsets: ['latin'], weight: ['400', '700'] });
-const montserrat = Montserrat({ subsets: ['latin'], weight: ['300', '400', '500', '700'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Hablemos de Caballos',
-  description: 'Foro criollo — Hablemos de Caballos',
+  title: "Hablando de Caballos",
+  description: "Foro y comunidad del Caballo Criollo Colombiano"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={montserrat.className}>
-      <body className="antialiased bg-[var(--brand-bg)] text-[var(--brand-foreground)]">
-        <NavBar />
-        <div className="pt-4">{children}</div>
-      </body>
+    <html lang="es">
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
