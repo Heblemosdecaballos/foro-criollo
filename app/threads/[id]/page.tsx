@@ -14,7 +14,7 @@ function pickText(p: any): string {
   return p?.body ?? p?.content ?? p?.text ?? p?.message ?? '';
 }
 
-// Timeout genérico sin conflictos de tipos
+// Timeout genérico
 function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('timeout')), ms);
@@ -36,17 +36,17 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return screenMsg('URL inválida: falta el ID del hilo.');
   }
 
-  // 1) Hilo
+  // 1) Hilo — construir la consulta y castear explícitamente a Promise<any>
   let thread: any = null;
   try {
-    const res1: any = await withTimeout(
+    const q1 =
       supabase
         .from('threads')
         .select('id,title,created_at,author_id')
         .eq('id', threadId)
-        .maybeSingle(),
-      8000
-    );
+        .maybeSingle();
+
+    const res1: any = await withTimeout(q1 as unknown as Promise<any>, 8000);
     const { data, error } = res1 as { data: any; error: any };
     if (error) throw error;
     if (!data) return screenMsg('No se encontró el hilo.');
@@ -58,17 +58,17 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     return screenError(e?.message || 'Error cargando el hilo.');
   }
 
-  // 2) Posts
+  // 2) Posts — igual técnica
   let posts: any[] = [];
   try {
-    const res2: any = await withTimeout(
+    const q2 =
       supabase
         .from('posts')
         .select('id,author_id,created_at,body,content,text,message')
         .eq('thread_id', threadId)
-        .order('created_at', { ascending: true }),
-      8000
-    );
+        .order('created_at', { ascending: true });
+
+    const res2: any = await withTimeout(q2 as unknown as Promise<any>, 8000);
     const { data, error } = res2 as { data: any[]; error: any };
     if (error) throw error;
     posts = data ?? [];
