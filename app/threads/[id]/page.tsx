@@ -1,27 +1,19 @@
 // app/threads/[id]/page.tsx
-// Server Component: sin hooks, sin "use client"
+// Server Component — sin hooks ni "use client"
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic'; // evita cache estático en prod
+export const dynamic = 'force-dynamic'; // evita que Next lo haga estático
 
-type PageProps = {
-  params: { id: string };
-};
+type PageProps = { params: { id: string } };
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// columna de texto tolerante a esquemas diferentes
+// Devuelve el contenido de texto que exista en tu tabla posts
 function pickText(p: any): string {
-  return (
-    p?.body ??
-    p?.content ??
-    p?.text ??
-    p?.message ??
-    ''
-  );
+  return p?.body ?? p?.content ?? p?.text ?? p?.message ?? '';
 }
 
 export default async function ThreadDetailPage({ params }: PageProps) {
@@ -39,7 +31,7 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     );
   }
 
-  // 1) Hilo
+  // 1) Cargar hilo
   const { data: thread, error: e1 } = await supabase
     .from('threads')
     .select('id,title,created_at,author_id')
@@ -58,6 +50,7 @@ export default async function ThreadDetailPage({ params }: PageProps) {
       </main>
     );
   }
+
   if (!thread) {
     return (
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
@@ -71,7 +64,7 @@ export default async function ThreadDetailPage({ params }: PageProps) {
     );
   }
 
-  // 2) Posts
+  // 2) Cargar posts del hilo
   const { data: posts, error: e2 } = await supabase
     .from('posts')
     .select('id,author_id,created_at,body,content,text,message')
@@ -125,9 +118,12 @@ export default async function ThreadDetailPage({ params }: PageProps) {
             </div>
           </li>
         ))}
+
         {(!posts || posts.length === 0) && (
-          <li className="p-4 rounded-xl border"
-              style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)' }}>
+          <li
+            className="p-4 rounded-xl border"
+            style={{ background:'var(--brand-surface)', borderColor:'var(--brand-border)' }}
+          >
             <span style={{ color:'var(--brand-muted)' }}>Aún no hay respuestas en este hilo.</span>
           </li>
         )}
