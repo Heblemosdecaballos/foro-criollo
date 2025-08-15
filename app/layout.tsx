@@ -17,6 +17,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // ⚠️ Sin Suspense, sin loaders, sin lógica extra
   return (
     <html lang="es" className={montserrat.className}>
       <body className="antialiased bg-[var(--brand-bg)] text-[var(--brand-foreground)]">
