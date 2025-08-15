@@ -3,3 +3,4 @@
     "@supabase/supabase-js": "latest"
   }
 }
+"@supabase/ssr": "^0.5.0"
