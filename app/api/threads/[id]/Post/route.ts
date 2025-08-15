@@ -1,4 +1,4 @@
-// /app/api/threads/[id]/posts/route.ts
+// /app/api/threads/[id]/posts_tmp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServer } from "@/utils/supabase/server";
 
