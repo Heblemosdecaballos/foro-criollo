@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import AlertLoginRequired from "./AlertLoginRequired";
-import { createClient } from "../utils/supabase/client";
+import AlertLoginRequired from "@/components/AlertLoginRequired";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ReplyEditor({ threadId }: { threadId: string }) {
   const supabase = createClient();
