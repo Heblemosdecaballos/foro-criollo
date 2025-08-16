@@ -1,13 +1,8 @@
-import type { MetadataRoute } from 'next';
-
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://foro-criollo.vercel.app';
-
+// app/robots.ts
+export default function robots() {
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
   return {
-    rules: {
-      userAgent: '*',
-      allow: '/',
-    },
-    sitemap: `${baseUrl}/sitemap.xml`,
+    rules: [{ userAgent: "*", allow: "/" }],
+    sitemap: base ? `${base}/sitemap.xml` : undefined
   };
 }
