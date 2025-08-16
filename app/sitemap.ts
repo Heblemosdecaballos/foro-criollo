@@ -1,30 +1,39 @@
-import type { MetadataRoute } from 'next';
-import { getSupabaseServerAnon } from '../lib/supabaseServerAnon';
+// app/sitemap.ts
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://foro-criollo.vercel.app';
+function supa() {
+  const cookieStore = cookies();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createServerClient(url, key, {
+    cookies: {
+      get: (n) => cookieStore.get(n)?.value,
+      set: (n, v, o) => { try { cookieStore.set({ name: n, value: v, ...o }); } catch {} },
+      remove: (n, o) => { try { cookieStore.set({ name: n, value: "", ...o }); } catch {} }
+    }
+  });
+}
 
-  const supabase = getSupabaseServerAnon();
+export default async function sitemap() {
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "";
+  const supabase = supa();
 
-  const { data: threads } = await supabase
-    .from('v_threads_compact')
-    .select('id, created_at, last_post_at')
-    .order('created_at', { ascending: false })
-    .limit(500);
+  const [{ data: threads }, { data: stories }, { data: pages }] = await Promise.all([
+    supabase.from("threads").select("id,created_at").order("created_at",{ascending:false}).limit(50),
+    supabase.from("stories").select("id,created_at").eq("status","published").order("created_at",{ascending:false}).limit(50),
+    supabase.from("pages").select("slug,updated_at").eq("published",true).order("updated_at",{ascending:false}).limit(50)
+  ]);
 
-  const now = new Date();
-
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}/`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${baseUrl}/threads`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+  const staticEntries = [
+    { url: `${base}/`, lastModified: new Date() },
+    { url: `${base}/historias`, lastModified: new Date() },
+    { url: `${base}/threads`, lastModified: new Date() }
   ];
 
-  const threadRoutes: MetadataRoute.Sitemap = (threads ?? []).map((t) => ({
-    url: `${baseUrl}/threads/${t.id}`,
-    lastModified: t.last_post_at ?? t.created_at ?? now,
-    changeFrequency: 'daily',
-    priority: 0.8,
-  }));
+  const threadEntries = (threads ?? []).map(t => ({ url: `${base}/threads/${t.id}`, lastModified: t.created_at }));
+  const storyEntries  = (stories ?? []).map(s => ({ url: `${base}/historias/${s.id}`, lastModified: s.created_at }));
+  const pageEntries   = (pages ?? []).map(p => ({ url: `${base}/p/${p.slug}`, lastModified: p.updated_at }));
 
-  return [...staticRoutes, ...threadRoutes];
+  return [...staticEntries, ...threadEntries, ...storyEntries, ...pageEntries];
 }
