@@ -1,4 +1,29 @@
 // app/historias/[id]/page.tsx
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const supabase = supa();
+  const { data: story } = await supabase
+    .from("stories")
+    .select("title,body,story_media(url,kind)")
+    .eq("id", params.id)
+    .maybeSingle();
+
+  const title = story?.title ? `${story.title} · Hablando de Caballos` : "Historia · Hablando de Caballos";
+  const description = story?.body?.slice(0, 150) ?? "Historia en Hablando de Caballos";
+  const image = story?.story_media?.[0]?.url;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title, description,
+      images: image ? [{ url: image }] : undefined
+    }
+  };
+}
+
+
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import CommentForm from "./CommentForm";
