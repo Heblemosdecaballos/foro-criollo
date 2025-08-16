@@ -5,30 +5,56 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 function supa() {
-  const cookieStore = cookies();
+  const c = cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   return createServerClient(url, key, {
     cookies: {
-      get(n: string) { return cookieStore.get(n)?.value; },
-      set(n: string, v: string, o: any) { try { cookieStore.set({ name: n, value: v, ...o }); } catch {} },
-      remove(n: string, o: any) { try { cookieStore.set({ name: n, value: "", ...o }); } catch {} }
+      get: n => c.get(n)?.value,
+      set: (n, v, o) => { try { c.set({ name: n, value: v, ...o }); } catch {} },
+      remove: (n, o) => { try { c.set({ name: n, value: "", ...o }); } catch {} }
     }
   });
 }
 
 export default async function Home() {
-  const supabase = supa();
-
-  const [{ data: threads }, { data: stories }] = await Promise.all([
-    supabase.from("threads").select("id,title,created_at").order("created_at",{ascending:false}).limit(5),
-    supabase.from("stories").select("id,title,created_at,story_media(url,kind)").eq("status","published").order("created_at",{ascending:false}).limit(6)
+  const db = supa();
+  const [{ data: news }, { data: threads }, { data: stories }] = await Promise.all([
+    db.from("news").select("slug,title,excerpt,cover_url,created_at").eq("published",true).order("created_at",{ascending:false}).limit(3),
+    db.from("threads").select("id,title,created_at").order("created_at",{ascending:false}).limit(5),
+    db.from("stories").select("id,title,created_at,story_media(url,kind)").eq("status","published").order("created_at",{ascending:false}).limit(6)
   ]);
 
   return (
     <main className="mx-auto max-w-6xl p-4 space-y-8">
       <section className="rounded-xl border bg-white p-4">
         <AdSlot slot="hero" className="block w-full rounded-xl overflow-hidden" />
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Noticias</h2>
+          <Link href="/noticias" className="text-sm text-blue-600 hover:underline">Ver todas</Link>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {(news ?? []).map(n => (
+            <Link key={n.slug} href={`/noticias/${n.slug}`} className="rounded-lg border hover:shadow">
+              <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-neutral-100">
+                {n.cover_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={n.cover_url} className="h-full w-full object-cover" alt={n.title} />
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="line-clamp-1 font-medium">{n.title}</h3>
+                {n.excerpt && <p className="mt-1 line-clamp-2 text-sm text-neutral-600">{n.excerpt}</p>}
+              </div>
+            </Link>
+          ))}
+          {(news?.length ?? 0) === 0 && (
+            <div className="rounded border border-dashed p-4 text-center text-neutral-500">Sin noticias aún</div>
+          )}
+        </div>
       </section>
 
       <section className="space-y-3">
@@ -43,9 +69,6 @@ export default async function Home() {
               <div className="text-xs text-neutral-500">{new Date(t.created_at).toLocaleString()}</div>
             </Link>
           ))}
-          {(threads?.length ?? 0) === 0 && (
-            <div className="rounded border border-dashed p-4 text-center text-neutral-500">Sin hilos aún</div>
-          )}
         </div>
       </section>
 
@@ -69,11 +92,9 @@ export default async function Home() {
               </div>
             </Link>
           ))}
-          {(stories?.length ?? 0) === 0 && (
-            <div className="rounded border border-dashed p-4 text-center text-neutral-500">Sin historias aún</div>
-          )}
         </div>
       </section>
     </main>
   );
 }
+
