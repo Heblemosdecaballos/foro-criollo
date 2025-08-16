@@ -1,4 +1,30 @@
 // app/threads/[id]/page.tsx
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+
+function supaMeta() {
+  const cookieStore = cookies();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createServerClient(url, key, {
+    cookies: {
+      get: (n) => cookieStore.get(n)?.value,
+      set: (n, v, o) => { try { cookieStore.set({ name: n, value: v, ...o }); } catch {} },
+      remove: (n, o) => { try { cookieStore.set({ name: n, value: "", ...o }); } catch {} }
+    }
+  });
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const supabase = supaMeta();
+  const { data: t } = await supabase.from("threads")
+    .select("title").eq("id", params.id).maybeSingle();
+
+  const title = t?.title ? `${t.title} · Foro · Hablando de Caballos` : "Foro · Hablando de Caballos";
+  return { title, openGraph: { title } };
+}
+
 import Link from "next/link";
 import ReplyEditor from "./ReplyEditor";
 import { cookies } from "next/headers";
