@@ -2,5 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Puedes dejar estilos globales aquí si los tienes */
-html, body { min-height: 100%; }
+/* ====== Tokens simples (sin tocar tailwind.config) ====== */
+:root{
+  /* Colores de marca (puedes cambiarlos luego) */
+  --brand: 16 185 129;        /* emerald-500 */
+  --brand-600: 5 150 105;     /* emerald-600 */
+  --ink: 23 23 23;            /* neutral-900 */
+  --muted: 115 115 115;       /* neutral-500 */
+  --bg: 250 250 250;          /* neutral-50 */
+}
+
+html, body{ height:100%; }
+body{
+  @apply bg-neutral-50 text-neutral-900 antialiased;
+}
+
+/* ====== Atajos de diseño reutilizables ====== */
+.section { @apply mx-auto w-full max-w-6xl px-4; }
+.page   { @apply mx-auto w-full max-w-6xl px-4 py-6; }
+.card   { @apply rounded-2xl border bg-white shadow-sm; }
+.card-hover:hover { @apply shadow-md; transition: box-shadow .2s ease; }
+
+.btn { @apply inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium; }
+.btn-primary { @apply btn bg-emerald-600 text-white hover:bg-emerald-700; }
+.btn-ghost { @apply btn border hover:bg-neutral-50; }
+
+.badge { @apply inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700; }
+
+.prose { @apply leading-relaxed; }
