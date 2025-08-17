@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
-import AlertLoginRequired from "../../../components/AlertLoginRequired";
+import AlertLoginRequired from "../../../components/AlertLoginRequired"; // ← ¡ojo con esta ruta!
 
 function supa() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -20,6 +20,7 @@ export default function ReplyEditor({ threadId }: { threadId: string }) {
     sb.auth.getUser().then(({ data }) => setUser(data.user ?? null));
   }, [sb]);
 
+  // Si NO hay sesión, mostramos el aviso con botones
   if (!user) {
     return <AlertLoginRequired redirect={`/threads/${threadId}`} />;
   }
@@ -39,8 +40,7 @@ export default function ReplyEditor({ threadId }: { threadId: string }) {
       return;
     }
     setBody("");
-    // opcional: recargar o usar mutate SWR
-    location.reload();
+    location.reload(); // simple: recarga para ver la respuesta publicada
   }
 
   return (
