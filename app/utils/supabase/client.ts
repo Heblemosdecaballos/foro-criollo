@@ -1,20 +1,17 @@
-// utils/supabase/client.ts
 "use client";
-
 import { createBrowserClient } from "@supabase/ssr";
 
-// Cliente en el navegador (usa localStorage)
+/** Cliente de Supabase para el NAVEGADOR. */
 export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Cada vez que cambie el estado (signin/signout/refresh) avisamos al servidor
+/** Sincroniza cookies del servidor cuando cambie la sesión en el cliente. */
 let wired = false;
 if (!wired) {
   wired = true;
   supabase.auth.onAuthStateChange(async () => {
-    // esto hace que el servidor actualice las cookies de auth
     await fetch("/auth/callback", { method: "POST" });
   });
 }
