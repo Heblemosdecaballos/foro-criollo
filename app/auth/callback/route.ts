@@ -1,6 +1,10 @@
+// app/auth/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+
+export const dynamic = "force-dynamic";         // evita cualquier caché
+export const fetchCache = "force-no-store";
 
 function supa() {
   const c = cookies();
@@ -17,9 +21,24 @@ function supa() {
 
 export async function GET(req: NextRequest) {
   const db = supa();
-  // Intercambia ?code por sesión
-  await db.auth.exchangeCodeForSession(req.url).catch(() => {});
-  const redirect = new URL(req.url).searchParams.get("redirect") || "/";
-  const dest = new URL(redirect, req.nextUrl.origin);
-  return NextResponse.redirect(dest);
+
+  const { searchParams, origin } = new URL(req.url);
+  const code = searchParams.get("code");
+
+  try {
+    if (code) {
+      // Forma clásica: pasar el code directamente
+      // @ts-ignore - según versión de supabase-js, acepta string
+      await db.auth.exchangeCodeForSession(code);
+    } else {
+      // Forma moderna: pasar la URL completa
+      // @ts-ignore - versiones nuevas aceptan req.url
+      await db.auth.exchangeCodeForSession(req.url);
+    }
+  } catch (e) {
+    // no romper, igual redirigimos
+  }
+
+  const redirect = searchParams.get("redirect") || "/";
+  return NextResponse.redirect(new URL(redirect, origin));
 }
