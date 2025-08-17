@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export const dynamic = "force-dynamic";         // evita cualquier caché
+export const dynamic = "force-dynamic";   // evita caché
 export const fetchCache = "force-no-store";
 
 function supa() {
@@ -21,24 +21,23 @@ function supa() {
 
 export async function GET(req: NextRequest) {
   const db = supa();
-
-  const { searchParams, origin } = new URL(req.url);
-  const code = searchParams.get("code");
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
 
   try {
     if (code) {
-      // Forma clásica: pasar el code directamente
-      // @ts-ignore - según versión de supabase-js, acepta string
+      // formatos antiguos
+      // @ts-ignore
       await db.auth.exchangeCodeForSession(code);
     } else {
-      // Forma moderna: pasar la URL completa
-      // @ts-ignore - versiones nuevas aceptan req.url
+      // formatos nuevos (URL completa)
+      // @ts-ignore
       await db.auth.exchangeCodeForSession(req.url);
     }
-  } catch (e) {
-    // no romper, igual redirigimos
+  } catch (_) {
+    // no interrumpir el flujo
   }
 
-  const redirect = searchParams.get("redirect") || "/";
-  return NextResponse.redirect(new URL(redirect, origin));
+  const redirect = url.searchParams.get("redirect") || "/";
+  return NextResponse.redirect(new URL(redirect, url.origin));
 }
