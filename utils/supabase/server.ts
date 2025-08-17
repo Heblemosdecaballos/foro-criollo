@@ -1,15 +1,29 @@
-"use client";
-import { createBrowserClient } from "@supabase/ssr";
+// utils/supabase/server.ts
+import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+/** Cliente de Supabase para SSR/Route Handlers que lee y ESCRIBE cookies */
+export function supabaseServer() {
+  const cookieStore = cookies();
 
-let wired = false;
-if (!wired) {
-  wired = true;
-  supabase.auth.onAuthStateChange(async () => {
-    await fetch("/auth/callback", { method: "POST" });
-  });
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+        },
+      },
+    }
+  );
 }
+
+// Export default también, por si en algún archivo se usa import default
+export default supabaseServer;
