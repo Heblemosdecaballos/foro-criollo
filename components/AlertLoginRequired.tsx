@@ -11,8 +11,7 @@ export default function AlertLoginRequired({ redirect }: { redirect?: string }) 
     <div className="mb-3 rounded border border-amber-300 bg-amber-50 p-3 text-amber-900">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm">
-          <strong>Necesitas iniciar sesión</strong> para publicar. Tu texto se
-          conservará al iniciar sesión.
+          <strong>Necesitas iniciar sesión</strong> para publicar. Tu contenido se conservará al iniciar sesión.
         </div>
         <div className="flex gap-2">
           <Link
