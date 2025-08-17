@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // app/historias/nueva/page.tsx
 import { redirect } from "next/navigation";
 import { supabaseServer } from "../../../utils/supabase/server";
