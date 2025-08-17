@@ -1,11 +1,8 @@
-import { supabaseServer } from "../../../utils/supabase/server";
-
-
 // app/historias/nueva/page.tsx
 import { redirect } from "next/navigation";
-import { supabaseServer } from "@/utils/supabase/server";
+import { supabaseServer } from "@/utils/supabase/server"; // ⬅️ ÚNICA importación
 
-// Fuerza render en servidor en cada request (lee/escribe cookies siempre)
+// Fuerza SSR en cada request (lee/escribe cookies siempre)
 export const dynamic = "force-dynamic";
 
 export default async function NuevaHistoriaPage() {
@@ -14,7 +11,6 @@ export default async function NuevaHistoriaPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Si no hay sesión, redirige a /auth y vuelve a esta página al terminar
   if (!user) {
     redirect("/auth?redirect=/historias/nueva");
   }
