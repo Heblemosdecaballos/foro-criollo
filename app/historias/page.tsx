@@ -1,48 +1,121 @@
-// app/historias/page.tsx
-import Link from "next/link";
-import Card from "../../components/ui/Card";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import StoryCard, { Story } from "../../components/stories/StoryCard";
+import Pagination from "../../components/ui/Pagination";
+import Link from "next/link";
 
-function supa() {
-  const c = cookies(); const u = process.env.NEXT_PUBLIC_SUPABASE_URL!; const k = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createServerClient(u, k, { cookies:{ get:n=>c.get(n)?.value, set:(n,v,o)=>{try{c.set({name:n,value:v,...o})}catch{}}, remove:(n,o)=>{try{c.set({name:n,value:"",...o})}catch{}} }});
+const PAGE_SIZE = 12;
+
+function mapRow(row: any): Story {
+  // mapeo flexible por si tus campos están en español
+  return {
+    id: row.id,
+    title: row.title ?? row.titulo ?? null,
+    text: row.text ?? row.contenido ?? null,
+    media: row.media ?? row.medios ?? null,
+    created_at: row.created_at ?? row.fecha ?? null,
+    author: row.author ?? row.perfil ?? {
+      name: row.author_name ?? row.autor_nombre ?? null,
+      avatar_url: row.author_avatar ?? row.autor_avatar ?? null,
+    },
+  };
 }
 
-export default async function HistoriasPage() {
-  const db = supa();
-  const { data: stories } = await db
+async function fetchStories(page: number, q?: string) {
+  const c = cookies();
+  const supa = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (n) => c.get(n)?.value,
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
+
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // 1) intenta 'stories'
+  let query = supa
     .from("stories")
-    .select("id,title,created_at,story_media(url,kind)")
-    .eq("status","published")
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(24);
+    .range(from, to);
+
+  if (q) {
+    query = query.or(`title.ilike.%${q}%,text.ilike.%${q}%`);
+  }
+
+  let { data, count, error } = await query;
+
+  // 2) fallback a 'historias' si 'stories' falla (tabla diferente)
+  if (error) {
+    let q2 = supa
+      .from("historias")
+      .select("*", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (q) q2 = q2.or(`titulo.ilike.%${q}%,contenido.ilike.%${q}%`);
+    const r2 = await q2;
+    data = r2.data as any[];
+    count = r2.count ?? 0;
+  }
+
+  const stories: Story[] = (data ?? []).map(mapRow);
+  const pageCount = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+  return { stories, pageCount };
+}
+
+export default async function HistoriasPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; q?: string };
+}) {
+  const page = Math.max(1, Number(searchParams.page ?? "1"));
+  const q = (searchParams.q ?? "").trim() || undefined;
+
+  const { stories, pageCount } = await fetchStories(page, q);
 
   return (
-    <main className="page space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Historias</h1>
-        <Link href="/historias/nueva" className="btn-primary">+ Nueva historia</Link>
+    <main className="container-page py-8">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h1>Historias</h1>
+        <div className="flex items-center gap-2">
+          <form action="/historias" className="flex items-center gap-2">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Buscar historias…"
+              className="rounded-xl border px-3 py-2"
+            />
+            <input type="hidden" name="page" value="1" />
+            <button className="btn-outline">Buscar</button>
+          </form>
+          <Link href="/historias/nueva" className="btn-accent">+ Publicar</Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {(stories ?? []).map((s: any) => (
-          <Link key={s.id} href={`/historias/${s.id}`}>
-            <Card className="card-hover overflow-hidden">
-              <div className="aspect-video w-full bg-neutral-100">
-                {s.story_media?.[0]?.url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.story_media[0].url} alt={s.title ?? "Historia"} className="h-full w-full object-cover" />
-                )}
-              </div>
-              <div className="p-3">
-                <h3 className="line-clamp-1 font-medium">{s.title ?? "Sin título"}</h3>
-                <p className="mt-1 text-xs text-neutral-500">{new Date(s.created_at).toLocaleString()}</p>
-              </div>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {stories.length === 0 ? (
+        <div className="card p-8 text-center text-black/70 dark:text-white/70">
+          No hay historias todavía.
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {stories.map((s) => (
+            <StoryCard key={s.id} story={s} />
+          ))}
+        </div>
+      )}
+
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        basePath="/historias"
+        q={q}
+      />
     </main>
   );
 }
