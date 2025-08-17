@@ -25,12 +25,12 @@ export default function SiteHeader() {
   const redirect = encodeURIComponent(pathname || "/");
 
   return (
-    <header className="sticky top-0 z-40 border-b border-black/5 bg-[rgb(var(--surface))]/90 backdrop-blur">
-      <div className="container-page flex items-center justify-between gap-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
+    <header className="sticky top-0 z-40 border-b border-black/10 bg-[rgb(var(--surface))]/80 backdrop-blur">
+      <div className="container-page flex items-center justify-between gap-3 py-3">
+        <Link href="/" className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="HC" className="h-8 w-8 rounded-md" />
-          <span className="text-lg font-semibold">Hablando de Caballos</span>
+          <span className="text-lg font-heading">Hablando de Caballos</span>
         </Link>
 
         <nav className="flex items-center gap-2 text-sm">
@@ -38,7 +38,7 @@ export default function SiteHeader() {
           <Link href="/historias" className="btn-outline">Historias</Link>
           <Link href="/threads" className="btn-outline">Foro</Link>
 
-          <Link href="/historias/nueva" className="btn-brand hidden sm:inline-flex">+ Publicar</Link>
+          <Link href="/historias/nueva" className="btn-accent hidden sm:inline-flex">+ Publicar</Link>
           <ThemeToggle />
 
           {user ? (
