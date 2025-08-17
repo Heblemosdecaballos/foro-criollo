@@ -1,8 +1,7 @@
 // app/historias/nueva/page.tsx
 import { redirect } from "next/navigation";
-import { supabaseServer } from "@/utils/supabase/server"; // ⬅️ ÚNICA importación
+import { supabaseServer } from "../../../utils/supabase/server"; // ⬅️ RUTA RELATIVA
 
-// Fuerza SSR en cada request (lee/escribe cookies siempre)
 export const dynamic = "force-dynamic";
 
 export default async function NuevaHistoriaPage() {
@@ -15,7 +14,6 @@ export default async function NuevaHistoriaPage() {
     redirect("/auth?redirect=/historias/nueva");
   }
 
-  // 🔽 Reemplaza este placeholder por tu formulario real
   return (
     <main className="container-page py-8">
       <h1>Nueva historia</h1>
@@ -28,25 +26,16 @@ export default async function NuevaHistoriaPage() {
 
         <div className="grid gap-3">
           <label className="text-sm font-medium">Título (opcional)</label>
-          <input
-            className="rounded-xl border px-3 py-2"
-            placeholder="Escribe un título…"
-          />
+          <input className="rounded-xl border px-3 py-2" placeholder="Escribe un título…" />
         </div>
 
         <div className="grid gap-3">
           <label className="text-sm font-medium">Texto (opcional)</label>
-          <textarea
-            rows={6}
-            className="rounded-xl border px-3 py-2"
-            placeholder="Escribe tu historia…"
-          />
+          <textarea rows={6} className="rounded-xl border px-3 py-2" placeholder="Escribe tu historia…" />
         </div>
 
         <div className="grid gap-3">
-          <label className="text-sm font-medium">
-            Sube imágenes o videos (placeholder)
-          </label>
+          <label className="text-sm font-medium">Sube imágenes o videos (placeholder)</label>
           <div className="rounded-xl border px-4 py-10 text-center opacity-60">
             Aquí va tu componente de subida.
           </div>
