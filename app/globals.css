@@ -2,49 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ====== Tema (edítalo a tu gusto) ====== */
+/* =======================
+   Paleta de marca (RGB)
+   ======================= */
 :root{
-  /* Verde de marca */
-  --brand: 16 122 100;                /* #107A64 */
-  --brand-foreground: 255 255 255;
-  /* Superficies claras */
-  --surface: 255 255 255;
-  --on-surface: 23 23 23;
+  /* Paleta guía */
+  --brand: 100 68 42;     /* #64442A - Marrón Cuero */
+  --brand-2: 97 111 76;   /* #616F4C - Verde Pino   */
+  --accent: 199 154 42;   /* #C79A2A - Mostaza      */
+  --beige: 217 197 155;   /* #D9C59B - Beige Arena  */
+
+  /* Superficie y texto */
+  --surface: 248 246 239;        /* beige muy claro de base */
+  --on-surface: 25 25 25;        /* texto */
 }
 
 .dark{
-  /* Dark mode (mismo tono, más profundo) */
-  --brand: 18 148 121;                /* #129479 */
-  --brand-foreground: 255 255 255;
-  --surface: 20 20 20;
+  /* Mantén la identidad en modo oscuro */
+  --brand: 100 68 42;     /* mismo marrón para coherencia */
+  --brand-2: 97 111 76;
+  --accent: 210 165 54;   /* un punto más claro para contraste */
+  --beige: 50 48 43;      /* beige tostado para bloques */
+  --surface: 22 22 22;    /* fondo base oscuro */
   --on-surface: 235 235 235;
 }
 
 /* Base */
-html,body{
-  @apply bg-[rgb(var(--surface))] text-[rgb(var(--on-surface))];
+html, body{
+  @apply bg-[rgb(var(--surface))] text-[rgb(var(--on-surface))] font-body;
 }
 
-.container-page{
-  @apply mx-auto max-w-6xl px-4;
+/* Contenedor */
+.container-page{ @apply mx-auto max-w-6xl px-4; }
+
+/* Cards y botones */
+.card{ @apply rounded-2xl border border-black/5 bg-white/90 dark:bg-neutral-900/90 shadow-soft; }
+
+.btn-brand{ @apply inline-flex items-center justify-center rounded-xl bg-brand text-white px-4 py-2 font-medium hover:opacity-90; }
+.btn-outline{ @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5; }
+.btn-accent{ @apply inline-flex items-center justify-center rounded-xl bg-accent text-black px-4 py-2 font-medium hover:opacity-90; }
+
+/* Tipografías: headings con Cinzel */
+@layer base{
+  h1{ @apply font-heading text-4xl md:text-5xl font-semibold tracking-tight; }
+  h2{ @apply font-heading text-3xl font-semibold tracking-tight; }
+  h3{ @apply font-heading text-2xl font-semibold tracking-tight; }
 }
 
-/* Cards */
-.card{
-  @apply rounded-2xl border border-black/5 bg-white dark:bg-neutral-900 shadow-soft;
-}
-
-/* Botones de marca rápidos */
-.btn-brand{
-  @apply inline-flex items-center justify-center rounded-xl bg-brand text-brandfg px-4 py-2 font-medium hover:opacity-90;
-}
-.btn-outline{
-  @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5;
-}
-
-/* Tipografía base un poco más linda */
-@layer base {
-  h1{ @apply text-3xl font-semibold tracking-tight; }
-  h2{ @apply text-2xl font-semibold tracking-tight; }
-  h3{ @apply text-xl font-semibold tracking-tight; }
-}
+/* Utilidades de bloques "papel" */
+.paper { @apply bg-beige/20 dark:bg-beige/20 rounded-2xl; }
