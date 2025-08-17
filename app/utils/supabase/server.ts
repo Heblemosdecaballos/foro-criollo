@@ -1,7 +1,9 @@
-// utils/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
+/** Cliente de Supabase para el SERVIDOR (SSR/Route Handlers).
+ *  Lee y ESCRIBE cookies para que la sesión no se pierda.
+ */
 export function supabaseServer() {
   const cookieStore = cookies();
 
@@ -14,7 +16,6 @@ export function supabaseServer() {
           return cookieStore.get(name)?.value;
         },
         set(name, value, options) {
-          // importante: escribir cookies en la respuesta del servidor
           cookieStore.set({ name, value, ...options });
         },
         remove(name, options) {
