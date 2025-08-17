@@ -1,15 +1,16 @@
-// components/SiteHeader.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import ThemeToggle from "./ThemeToggle";
 
 function supa() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createBrowserClient(url, key);
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }
 
 export default function SiteHeader() {
@@ -24,42 +25,28 @@ export default function SiteHeader() {
   const redirect = encodeURIComponent(pathname || "/");
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+    <header className="sticky top-0 z-40 border-b border-black/5 bg-[rgb(var(--surface))]/90 backdrop-blur">
+      <div className="container-page flex items-center justify-between gap-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Hablando de Caballos" className="h-8 w-8 rounded-md" />
-          <span className="text-lg font-semibold tracking-tight">Hablando de Caballos</span>
+          <img src="/logo.svg" alt="HC" className="h-8 w-8 rounded-md" />
+          <span className="text-lg font-semibold">Hablando de Caballos</span>
         </Link>
 
-        <nav className="flex items-center gap-3 text-sm">
-          <Link href="/noticias" className="hover:underline">Noticias</Link>
-          <Link href="/historias" className="hover:underline">Historias</Link>
-          <Link href="/threads" className="hover:underline">Foro</Link>
+        <nav className="flex items-center gap-2 text-sm">
+          <Link href="/noticias" className="btn-outline">Noticias</Link>
+          <Link href="/historias" className="btn-outline">Historias</Link>
+          <Link href="/threads" className="btn-outline">Foro</Link>
 
-          {/* CTA publicar siempre lleva a /historias/nueva */}
-          <Link
-            href="/historias/nueva"
-            className="hidden sm:inline-flex rounded-md px-3 py-1.5 text-white"
-            style={{ backgroundColor: "rgb(var(--brand))" }}
-          >
-            + Publicar
-          </Link>
+          <Link href="/historias/nueva" className="btn-brand hidden sm:inline-flex">+ Publicar</Link>
+          <ThemeToggle />
 
-          {/* Login / Logout */}
           {user ? (
-            <Link
-              href="/logout"
-              className="rounded-md border px-3 py-1.5 hover:bg-neutral-50"
-              title={user.email || "Cerrar sesión"}
-            >
+            <Link href="/logout" className="btn-outline" title={user.email || "Cerrar sesión"}>
               Salir
             </Link>
           ) : (
-            <Link
-              href={`/auth?redirect=${redirect}`}
-              className="rounded-md border px-3 py-1.5 hover:bg-neutral-50"
-            >
+            <Link href={`/auth?redirect=${redirect}`} className="btn-outline">
               Iniciar sesión
             </Link>
           )}
