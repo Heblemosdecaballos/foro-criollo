@@ -1,4 +1,3 @@
-// app/auth/callback/finish/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -8,15 +7,17 @@ export const fetchCache = "force-no-store";
 
 function supa() {
   const c = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createServerClient(url, key, {
-    cookies: {
-      get: (n) => c.get(n)?.value,
-      set: (n, v, o) => { try { c.set({ name: n, value: v, ...o }); } catch {} },
-      remove: (n, o) => { try { c.set({ name: n, value: "", ...o }); } catch {} },
-    },
-  });
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (n) => c.get(n)?.value,
+        set: (n, v, o) => { try { c.set({ name: n, value: v, ...o }); } catch {} },
+        remove: (n, o) => { try { c.set({ name: n, value: "", ...o }); } catch {} },
+      },
+    }
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -35,18 +36,16 @@ export async function GET(req: NextRequest) {
     if (access_token && refresh_token) {
       await db.auth.setSession({ access_token, refresh_token });
     } else if (code) {
-      // @ts-ignore (acepta string o URL completa según versión)
+      // @ts-ignore: distintas versiones aceptan string
       await db.auth.exchangeCodeForSession(code);
     } else if (token_hash && type && email) {
       await db.auth.verifyOtp({ token_hash, type, email });
     } else {
-      // último intento: pasar la URL completa (algunas versiones lo soportan)
+      // Intento final (URL completa)
       // @ts-ignore
       await db.auth.exchangeCodeForSession(req.url);
     }
-  } catch (_) {
-    // no romper el flujo
-  }
+  } catch {}
 
   return NextResponse.redirect(new URL(redirect, url.origin));
 }
