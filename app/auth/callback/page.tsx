@@ -6,7 +6,6 @@ export default function AuthCallbackPage() {
     const current = new URL(window.location.href);
     const qp = new URLSearchParams(current.search);
 
-    // Si Supabase envía tokens en el hash (#access_token / #refresh_token), muévelos a query
     if (window.location.hash) {
       const h = new URLSearchParams(window.location.hash.slice(1));
       const at = h.get("access_token");
@@ -20,9 +19,8 @@ export default function AuthCallbackPage() {
       if (email) qp.set("email", email);
     }
 
-    // Redirige al paso “finish” con TODO lo que tengamos
     window.location.replace(`/auth/callback/finish?${qp.toString()}`);
   }, []);
 
-  return <main className="page p-6">Procesando inicio de sesión…</main>;
+  return <main className="p-6">Procesando inicio de sesión…</main>;
 }
