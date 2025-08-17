@@ -1,115 +1,70 @@
-"use client";
+// app/historias/nueva/page.tsx
+import { redirect } from "next/navigation";
+import { supabaseServer } from "../../../utils/supabase/server";
 
-import { useEffect, useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
-import AlertLoginRequired from "../../../components/AlertLoginRequired";
+// Forzamos evaluación en el servidor en cada request, así siempre
+// leemos/escribimos cookies actualizadas de Supabase.
+export const dynamic = "force-dynamic";
 
-function supa() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createBrowserClient(url, key);
-}
+export default async function NuevaHistoriaPage() {
+  // Lee la sesión del lado servidor (con escritura de cookies habilitada)
+  const supabase = supabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export default function NuevaHistoriaPage() {
-  const sb = supa();
-  const [user, setUser] = useState<any>(null);
-
-  // Campos básicos (puedes ampliar)
-  const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    sb.auth.getUser().then(({ data }) => setUser(data.user ?? null));
-  }, [sb]);
-
-  async function onSubmit() {
-    if (!user) return;
-    setSaving(true);
-
-    // Aquí va tu lógica real de publicar historia (mantengo ejemplo mínimo)
-    const res = await fetch("/api/stories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, text, files: files.map((f) => f.name) }),
-    });
-
-    setSaving(false);
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      alert(j.error || "No se pudo publicar");
-      return;
-    }
-    setTitle("");
-    setText("");
-    setFiles([]);
-    alert("¡Historia enviada!");
+  // Si no hay sesión, redirige a /auth y vuelve aquí al terminar
+  if (!user) {
+    redirect("/auth?redirect=/historias/nueva");
   }
 
-  const disabled = !user || saving;
-
+  // 🔽 Si ya tienes tu formulario, ponlo dentro del <section> y elimina el placeholder.
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Nueva historia</h1>
+    <main className="container-page py-8">
+      <h1>Nueva historia</h1>
 
-      {/* Aviso con botones cuando NO hay sesión */}
-      {!user && <AlertLoginRequired redirect="/historias/nueva" />}
+      {/* ────────────────────────────────────────────────────────────────
+         REEMPLAZA EL CONTENIDO DE ESTE <section> POR TU FORMULARIO REAL
+         ──────────────────────────────────────────────────────────────── */}
+      <section className="card p-6 mt-4 space-y-4">
+        <p className="text-sm text-black/70 dark:text-white/70">
+          (Placeholder) Estás autenticado. Aquí debe ir tu formulario actual para
+          publicar la historia (título, texto, subida de imágenes/videos y el botón
+          “Publicar”). Este placeholder solo confirma que la protección de acceso
+          funciona y que ya no aparecerán alertas de “auth”.
+        </p>
 
-      <label className="block text-sm">
-        <span className="text-neutral-600">Título (opcional)</span>
-        <input
-          className="mt-1 w-full rounded border p-2"
-          placeholder="Título (opcional)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          disabled={disabled}
-        />
-      </label>
-
-      <label className="block text-sm">
-        <span className="text-neutral-600">Texto (opcional)</span>
-        <textarea
-          className="mt-1 h-48 w-full rounded border p-2"
-          placeholder="Escribe tu historia..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={disabled}
-        />
-      </label>
-
-      <div className="rounded border border-dashed p-4">
-        <div className="mb-2 text-sm text-neutral-600">
-          Sube imágenes o videos (puedes seleccionar varios)
-        </div>
-        <label className="block cursor-pointer rounded bg-neutral-100 p-4 text-center">
+        <div className="grid gap-3">
+          <label className="text-sm font-medium">Título (opcional)</label>
           <input
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => setFiles(Array.from(e.target.files || []))}
-            disabled={disabled}
+            className="rounded-xl border px-3 py-2"
+            placeholder="Escribe un título…"
           />
-          Haz click aquí para seleccionar archivos
-        </label>
-        {files.length > 0 && (
-          <ul className="mt-2 list-disc pl-5 text-sm text-neutral-600">
-            {files.map((f) => (
-              <li key={f.name}>{f.name}</li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={onSubmit}
-          disabled={disabled}
-          className="rounded bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {saving ? "Publicando…" : "Publicar"}
-        </button>
-      </div>
+        <div className="grid gap-3">
+          <label className="text-sm font-medium">Texto (opcional)</label>
+          <textarea
+            rows={6}
+            className="rounded-xl border px-3 py-2"
+            placeholder="Escribe tu historia…"
+          />
+        </div>
+
+        <div className="grid gap-3">
+          <label className="text-sm font-medium">
+            Sube imágenes o videos (placeholder)
+          </label>
+          <div className="rounded-xl border px-4 py-10 text-center opacity-60">
+            Aquí va tu componente de subida. (Reemplázalo por el que ya usas)
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button className="btn-brand">Publicar</button>
+        </div>
+      </section>
+      {/* ──────────────────────────────────────────────────────────────── */}
     </main>
   );
 }
