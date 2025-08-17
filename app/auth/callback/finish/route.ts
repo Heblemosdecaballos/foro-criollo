@@ -36,12 +36,11 @@ export async function GET(req: NextRequest) {
     if (access_token && refresh_token) {
       await db.auth.setSession({ access_token, refresh_token });
     } else if (code) {
-      // @ts-ignore: distintas versiones aceptan string
+      // @ts-ignore
       await db.auth.exchangeCodeForSession(code);
     } else if (token_hash && type && email) {
       await db.auth.verifyOtp({ token_hash, type, email });
     } else {
-      // Intento final (URL completa)
       // @ts-ignore
       await db.auth.exchangeCodeForSession(req.url);
     }
