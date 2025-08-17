@@ -1,44 +1,47 @@
+// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Sólo protegemos /historias/nueva
-  if (!req.nextUrl.pathname.startsWith("/historias/nueva")) {
+  const { pathname } = req.nextUrl;
+
+  // Ignorar assets/estáticos
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|txt|xml|json)$/)
+  ) {
     return NextResponse.next();
   }
 
   const res = NextResponse.next();
 
+  // Supabase SSR que LEE y ESCRIBE cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) => {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove: (name, options) => {
-          res.cookies.set({ name, value: "", ...options });
-        },
+        set: (name, value, options) => res.cookies.set({ name, value, ...options }),
+        remove: (name, options) => res.cookies.set({ name, value: "", ...options, maxAge: 0 }),
       },
     }
   );
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Si no hay sesión -> redirige a /auth?redirect=/historias/nueva
-  if (!user) {
+  // Rutas que requieren sesión:
+  const protectedPrefixes = ["/historias/nueva", "/threads/nuevo", "/admin"];
+  if (protectedPrefixes.some((p) => pathname.startsWith(p)) && !user) {
     const url = req.nextUrl.clone();
     url.pathname = "/auth";
-    url.searchParams.set("redirect", "/historias/nueva");
+    url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
   return res;
 }
 
-// Aplica sólo a esta ruta
 export const config = {
-  matcher: ["/historias/nueva"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
