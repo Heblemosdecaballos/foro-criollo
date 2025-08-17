@@ -1,115 +1,79 @@
-// app/historias/[id]/page.tsx
-import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import Image from "next/image";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const supabase = supa();
-  const { data: story } = await supabase
-    .from("stories")
-    .select("title,body,story_media(url,kind)")
-    .eq("id", params.id)
-    .maybeSingle();
-
-  const title = story?.title ? `${story.title} · Hablando de Caballos` : "Historia · Hablando de Caballos";
-  const description = story?.body?.slice(0, 150) ?? "Historia en Hablando de Caballos";
-  const image = story?.story_media?.[0]?.url;
-
+function mapRow(row: any) {
   return {
-    title,
-    description,
-    openGraph: {
-      title, description,
-      images: image ? [{ url: image }] : undefined
-    }
+    id: row.id,
+    title: row.title ?? row.titulo ?? "Historia",
+    text: row.text ?? row.contenido ?? "",
+    media: row.media ?? row.medios ?? [],
+    created_at: row.created_at ?? row.fecha ?? null,
   };
 }
 
-
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import CommentForm from "./CommentForm";
-
-function supa() {
-  const cookieStore = cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createServerClient(url, key, {
-    cookies: {
-      get(n: string) { return cookieStore.get(n)?.value; },
-      set(n: string, v: string, o: any) { try { cookieStore.set({ name: n, value: v, ...o }); } catch {} },
-      remove(n: string, o: any) { try { cookieStore.set({ name: n, value: "", ...o }); } catch {} }
+export default async function StoryPage({ params }: { params: { id: string } }) {
+  const c = cookies();
+  const supa = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (n) => c.get(n)?.value,
+        set: () => {},
+        remove: () => {},
+      },
     }
-  });
-}
-
-function MediaViewer({ items }: { items: Array<{ url:string, kind:"image"|"video" }> }) {
-  return (
-    <div className="space-y-3">
-      {items.map((m, i) => (
-        <div key={i} className="overflow-hidden rounded border">
-          {m.kind === "image" ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={m.url} alt={`media-${i}`} className="w-full object-contain" />
-          ) : (
-            <video className="w-full" src={m.url} controls />
-          )}
-        </div>
-      ))}
-    </div>
   );
-}
 
-export default async function StoryDetail({ params }: { params: { id: string } }) {
-  const supabase = supa();
-
-  const { data: story } = await supabase
+  let { data, error } = await supa
     .from("stories")
-    .select("id,title,body,created_at,like_count,comment_count,story_media(url,kind)")
+    .select("*")
     .eq("id", params.id)
-    .single();
+    .maybeSingle();
 
-  if (!story) {
-    return <main className="mx-auto max-w-4xl p-4">Historia no encontrada.</main>;
+  if (error || !data) {
+    const r2 = await supa
+      .from("historias")
+      .select("*")
+      .eq("id", params.id)
+      .maybeSingle();
+    data = r2.data as any;
   }
 
-  const { data: comments } = await supabase
-    .from("story_comments")
-    .select("id,body,author_id,parent_id,created_at")
-    .eq("story_id", story.id)
-    .order("created_at", { ascending: true });
+  const story = mapRow(data ?? {});
+  const media: any[] = Array.isArray(story.media) ? story.media : [];
 
   return (
-    <main className="mx-auto max-w-3xl p-4 space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold">{story.title ?? "Historia"}</h1>
-        <p className="text-xs text-neutral-500">Publicado el {new Date(story.created_at).toLocaleString()}</p>
-      </header>
-
-      {Array.isArray(story.story_media) && story.story_media.length > 0 && (
-        <MediaViewer items={story.story_media} />
-      )}
-
-      {story.body && (
-        <article className="whitespace-pre-wrap rounded border p-3">{story.body}</article>
-      )}
-
-      <section>
-        <h2 className="mb-2 text-lg font-medium">Comentarios</h2>
-        {/* Formulario cliente */}
-        <CommentForm storyId={story.id} />
-        <div className="mt-4 space-y-3">
-          {(comments ?? []).map((c) => (
-            <div key={c.id} className="rounded border p-2">
-              <div className="text-xs text-neutral-500">{new Date(c.created_at).toLocaleString()}</div>
-              <div className="whitespace-pre-wrap">{c.body}</div>
-            </div>
-          ))}
-          {(comments?.length ?? 0) === 0 && (
-            <div className="rounded border border-dashed p-4 text-center text-neutral-500">
-              Sé el primero en comentar
-            </div>
-          )}
+    <main className="container-page py-8 space-y-6">
+      <h1>{story.title}</h1>
+      {media.length ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {media.map((m: any, i: number) => {
+            const url = typeof m === "string" ? m : m?.url || m?.src;
+            const kind = typeof m === "string" ? "" : m?.kind || m?.type || "";
+            if (!url) return null;
+            const isVideo = /(\.mp4|\.mov|\.webm)$/i.test(url) || /video/i.test(kind);
+            return (
+              <div key={i} className="card overflow-hidden">
+                {isVideo ? (
+                  <video controls className="w-full">
+                    <source src={url} />
+                  </video>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={url} alt={`media-${i}`} className="w-full object-cover" />
+                )}
+              </div>
+            );
+          })}
         </div>
-      </section>
+      ) : null}
+      {story.text ? (
+        <article className="prose dark:prose-invert max-w-none">
+          <p style={{ whiteSpace: "pre-wrap" }}>{story.text}</p>
+        </article>
+      ) : null}
     </main>
   );
 }
