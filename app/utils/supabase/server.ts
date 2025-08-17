@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
+/** Cliente de Supabase para SSR/Route Handlers que lee y ESCRIBE cookies */
 export function supabaseServer() {
   const cookieStore = cookies();
 
