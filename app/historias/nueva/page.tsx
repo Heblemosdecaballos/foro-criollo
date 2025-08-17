@@ -1,3 +1,6 @@
+import { supabaseServer } from "../../../utils/supabase/server";
+
+
 // app/historias/nueva/page.tsx
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/utils/supabase/server";
