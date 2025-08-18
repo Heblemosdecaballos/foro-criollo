@@ -1,20 +1,17 @@
-// app/auth/callback/route.ts
 import { NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const code = searchParams.get('code');
-  const next = searchParams.get('next') || '/';
+  const url = new URL(req.url);
+  const code = url.searchParams.get('code');
+  const next = url.searchParams.get('next') || '/';
 
   const supabase = createRouteHandlerClient({ cookies });
 
   if (code) {
-    // Intercambia el code por sesión y deja la cookie en TU dominio
-    await supabase.auth.exchangeCodeForSession(code);
+    await supabase.auth.exchangeCodeForSession(code); // <- fija cookie sb-... en TU dominio
   }
 
-  // redirige a donde el usuario quería ir (ej. /historias/nueva)
-  return NextResponse.redirect(new URL(next, req.url).toString(), 302);
+  return NextResponse.redirect(new URL(next, url.origin), { status: 302 });
 }
