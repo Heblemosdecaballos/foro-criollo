@@ -1,47 +1,31 @@
 // middleware.ts
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+export function middleware(req: NextRequest) {
+  const host = req.headers.get('host') ?? ''
 
-  // Ignorar assets/estáticos
-  if (
-    pathname.startsWith("/_next/") ||
-    pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|txt|xml|json)$/)
-  ) {
-    return NextResponse.next();
+  // 1) forzar quitar www.
+  if (host.startsWith('www.')) {
+    return NextResponse.redirect(
+      new URL(req.nextUrl.pathname + req.nextUrl.search, `https://${host.slice(4)}`),
+      308
+    )
   }
 
-  const res = NextResponse.next();
-
-  // Supabase SSR que LEE y ESCRIBE cookies
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => req.cookies.get(name)?.value,
-        set: (name, value, options) => res.cookies.set({ name, value, ...options }),
-        remove: (name, options) => res.cookies.set({ name, value: "", ...options, maxAge: 0 }),
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Rutas que requieren sesión:
-  const protectedPrefixes = ["/historias/nueva", "/threads/nuevo", "/admin"];
-  if (protectedPrefixes.some((p) => pathname.startsWith(p)) && !user) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/auth";
-    url.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(url);
+  // 2) forzar salir de *.vercel.app al apex (evita cookies en vercel.app)
+  if (host.endsWith('.vercel.app')) {
+    return NextResponse.redirect(
+      new URL(req.nextUrl.pathname + req.nextUrl.search, 'https://hablandodecaballos.com'),
+      308
+    )
   }
 
-  return res;
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
-};
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|icons|apple-touch-icon.png).*)',
+  ],
+}
