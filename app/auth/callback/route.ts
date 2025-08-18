@@ -16,19 +16,19 @@ export async function GET(req: Request) {
   }
 
   const supabase = createRouteHandlerClient({ cookies });
-  await supabase.auth.exchangeCodeForSession(code); // fija sb-... en tu dominio
+  // Fija sb-... en tu dominio (httpOnly)
+  await supabase.auth.exchangeCodeForSession(code);
 
   return NextResponse.redirect(new URL(next, url.origin), { status: 302 });
 }
 
 export async function POST(req: Request) {
-  // Recibe eventos del listener del cliente para mantener/limpiar cookies httpOnly
+  // Mantiene/limpia cookies cuando cambie el estado de auth
   const supabase = createRouteHandlerClient({ cookies });
   const { event } = await req.json();
 
   if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-    await supabase.auth.signOut({ scope: 'local' }); // borra las sb-...
+    await supabase.auth.signOut({ scope: 'local' }); // borra sb-...
   }
-  // No limpiamos en INITIAL_SESSION; evitamos “borrados fantasma”
   return new Response(null, { status: 204 });
 }
