@@ -7,6 +7,7 @@ export default function SupabaseListener() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event) => {
+        // Solo posteamos eventos relevantes (evita borrar cookies "al segundo")
         if (
           event === 'SIGNED_IN' ||
           event === 'TOKEN_REFRESHED' ||
