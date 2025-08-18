@@ -1,35 +1,20 @@
 // app/auth/callback/route.ts
 import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get('code');
-  const next = url.searchParams.get('next') ?? '/';
+  const { searchParams } = new URL(req.url);
+  const code = searchParams.get('code');
+  const next = searchParams.get('next') || '/';
 
-  const cookieStore = cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) =>
-          cookieStore.set({ name, value, ...options }),
-        remove: (name, options) =>
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 }),
-      },
-    }
-  );
+  const supabase = createRouteHandlerClient({ cookies });
 
   if (code) {
-    // Intercambia el "code" por la sesión y escribe la cookie httpOnly en TU dominio
+    // Intercambia el code por sesión y deja la cookie en TU dominio
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(`${url.origin}${next}`);
+  // redirige a donde el usuario quería ir (ej. /historias/nueva)
+  return NextResponse.redirect(new URL(next, req.url).toString(), 302);
 }
