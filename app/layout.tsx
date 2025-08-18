@@ -1,24 +1,12 @@
-import type { Metadata } from 'next';
-import SupabaseListener from '@/components/SupabaseListener';
-import './globals.css'; // si usas Tailwind u hojas globales
+// app/layout.tsx
+import './globals.css'
 
-export const metadata: Metadata = {
-  title: 'Hablando de Caballos',
-  description: 'Comunidad del Caballo Criollo',
-};
+export const runtime = 'nodejs'
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>
-        {/* Mantiene sincronizadas las cookies httpOnly de Supabase */}
-        <SupabaseListener />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
-  );
+  )
 }
