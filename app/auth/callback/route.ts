@@ -1,53 +1,25 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/ssr';
-import type { Session } from '@supabase/supabase-js';
+// app/auth/callback/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { supabaseServer } from '@/utils/supabase/server'
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic' // evitamos cache/edge
 
-// Llega desde Google (o el proveedor): fija las cookies httpOnly con el "code".
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get('code');
-  const next = url.searchParams.get('next') ?? '/';
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url)
+  const code = url.searchParams.get('code')
 
-  if (!code) return NextResponse.redirect(new URL(next, url.origin));
+  const supabase = supabaseServer()
 
-  const supabase = createRouteHandlerClient({ cookies });
-  await supabase.auth.exchangeCodeForSession(code);
-
-  return NextResponse.redirect(new URL(next, url.origin), { status: 302 });
-}
-
-// Llega desde el listener del cliente: regraba/actualiza cookies en eventos seguros.
-export async function POST(req: Request) {
-  const { event, session } = (await req.json()) as {
-    event:
-      | 'INITIAL_SESSION'
-      | 'SIGNED_IN'
-      | 'SIGNED_OUT'
-      | 'PASSWORD_RECOVERY'
-      | 'TOKEN_REFRESHED'
-      | 'USER_UPDATED';
-    session: Session | null;
-  };
-
-  const supabase = createRouteHandlerClient({ cookies });
-
-  // Solo reescribimos cookies cuando hay sesión válida
-  if (
-    (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') &&
-    session
-  ) {
-    // setSession regraba las cookies httpOnly con el access/refresh vigentes
-    await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
+  if (code) {
+    // crea la sesión y escribe los cookies sb-*
+    await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // NO llamamos a supabase.auth.signOut() aquí.
-  // El borrado de cookies solo debe ocurrir en /logout.
-  return new Response(null, { status: 204 });
+  // a dónde lo mandamos después de loguear
+  const next = url.searchParams.get('next') ?? '/historias/nueva'
+  // forza destino en el APEX
+  const dest = new URL(next, 'https://hablandodecaballos.com')
+
+  return NextResponse.redirect(dest, { status: 302 })
 }
