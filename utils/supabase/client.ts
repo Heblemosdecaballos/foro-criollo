@@ -3,7 +3,6 @@ import { createBrowserClient } from '@supabase/ssr'
 
 /**
  * Cliente de Supabase para el navegador (CSR).
- * Lee las claves públicas desde variables NEXT_PUBLIC_*.
  */
 export function createSupabaseBrowserClient() {
   return createBrowserClient(
@@ -12,8 +11,7 @@ export function createSupabaseBrowserClient() {
   )
 }
 
-/* ---------- Compatibilidad de imports (no rompas nada existente) ---------- */
-// Puedes importar cualquiera de estos nombres desde "@/utils/supabase/client"
+/* ---------- Compatibilidad de imports ---------- */
 export const createClient = createSupabaseBrowserClient
 export const createSupabaseBrowser = createSupabaseBrowserClient
 export default createSupabaseBrowserClient
