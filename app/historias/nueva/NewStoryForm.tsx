@@ -15,13 +15,11 @@ export default function NewStoryForm() {
         setError(null)
         startTransition(async () => {
           const res = await createStoryAction(fd)
-          if ('ok' in res && res.ok) {
-            // Si tienes página de detalle por ID, puedes usar:
-            // router.push(`/historias/${res.id}`)
-            // Para ir a la lista y evitar 404 si no existe detalle:
+          if (res.ok) {
+            // Si tienes página de detalle por ID, puedes usar: router.push(`/historias/${res.id}`)
             router.push('/historias')
           } else {
-            setError(res.error ?? 'No se pudo guardar')
+            setError(res.error || 'No se pudo guardar')
           }
         })
       }}
