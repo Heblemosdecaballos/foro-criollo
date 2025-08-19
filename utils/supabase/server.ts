@@ -14,7 +14,6 @@ export function createSupabaseServerClient() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options?: any) {
-          // next/headers acepta el objeto combinado
           cookieStore.set({ name, value, ...options })
         },
         remove(name: string, options?: any) {
@@ -24,3 +23,12 @@ export function createSupabaseServerClient() {
     }
   )
 }
+
+/* ---------- Capa de compatibilidad ---------- */
+// Si en tu código antiguo tienes:
+// import { supabaseServer } from '@/utils/supabase/server'
+// import { createRouteHandlerClient } from '@supabase/ssr' (o similar)
+//
+// Esto lo mantiene vivo sin tocar nada.
+export const supabaseServer = createSupabaseServerClient
+export const createRouteHandlerClient = createSupabaseServerClient
