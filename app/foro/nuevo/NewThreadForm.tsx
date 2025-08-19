@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createThreadAction } from './actions'
+import { createThreadAction } from '@/app/foro/nuevo/actions' // <-- import explícito
 
 export default function NewThreadForm() {
   const router = useRouter()
