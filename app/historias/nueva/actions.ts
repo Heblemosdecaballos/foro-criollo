@@ -3,79 +3,16 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-type InsertResult = { ok?: true; slug?: string; id?: string; error?: string }
+type Result =
+  | { ok: true; id: string }
+  | { error: string }
 
-async function tryInsertVariants(
-  table: string,
-  base: Record<string, any>,
-  content: string
-): Promise<InsertResult> {
+export async function createStoryAction(formData: FormData): Promise<Result> {
   const supabase = createSupabaseServerClient()
 
-  // 1) content
-  {
-    const { data, error } = await supabase.from(table)
-      .insert({ ...base, content })
-      .select('id, slug')
-      .single()
-    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
-    // Solo seguimos probando si el error sugiere columna inexistente
-    if (!String(error?.message || '').toLowerCase().includes('content')) {
-      return { error: error?.message || 'insert-failed' }
-    }
-  }
-
-  // 2) body
-  {
-    const { data, error } = await supabase.from(table)
-      .insert({ ...base, body: content })
-      .select('id, slug')
-      .single()
-    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
-    if (!String(error?.message || '').toLowerCase().includes('body')) {
-      return { error: error?.message || 'insert-failed' }
-    }
-  }
-
-  // 3) text
-  {
-    const { data, error } = await supabase.from(table)
-      .insert({ ...base, text: content })
-      .select('id, slug')
-      .single()
-    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
-    if (!String(error?.message || '').toLowerCase().includes('text')) {
-      return { error: error?.message || 'insert-failed' }
-    }
-  }
-
-  // 4) description
-  {
-    const { data, error } = await supabase.from(table)
-      .insert({ ...base, description: content })
-      .select('id, slug')
-      .single()
-    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
-    if (!String(error?.message || '').toLowerCase().includes('description')) {
-      return { error: error?.message || 'insert-failed' }
-    }
-  }
-
-  // 5) Sin contenido (si la tabla lo permite)
-  {
-    const { data, error } = await supabase.from(table)
-      .insert({ ...base })
-      .select('id, slug')
-      .single()
-    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
-    return { error: error?.message || 'insert-failed' }
-  }
-}
-
-export async function createStoryAction(formData: FormData) {
-  const supabase = createSupabaseServerClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return { error: 'no-auth' }
 
   const title = String(formData.get('title') || '').trim()
@@ -88,20 +25,38 @@ export async function createStoryAction(formData: FormData) {
     created_at: new Date().toISOString(),
   }
 
-  // 1) Intentar en STORIES con variantes
-  const rStories = await tryInsertVariants('stories', base, content)
-  if (rStories.ok) {
-    revalidatePath('/')
-    return rStories
+  // probamos primero en 'stories' y luego en 'posts'
+  const tables = ['stories', 'posts'] as const
+  // distintos nombres de columna para el contenido
+  const contentFields = ['content', 'body', 'text', 'description', ''] as const
+
+  for (const table of tables) {
+    for (const field of contentFields) {
+      const payload: Record<string, any> = { ...base }
+      if (field) payload[field] = content
+
+      // ⚠️ Importante: solo seleccionamos 'id' para no depender de 'slug'
+      const { data, error } = await supabase
+        .from(table)
+        .insert(payload)
+        .select('id')
+        .single()
+
+      if (!error && data?.id) {
+        revalidatePath('/') // refresca home/listados
+        return { ok: true, id: data.id }
+      }
+
+      // si el error es "columna X no existe", intentamos con el siguiente nombre
+      const msg = String(error?.message || '').toLowerCase()
+      if (field && (msg.includes('does not exist') || msg.includes('schema'))) {
+        continue
+      }
+
+      // otro tipo de error: pasamos a la siguiente tabla
+      break
+    }
   }
 
-  // 2) Intentar en POSTS con variantes
-  const rPosts = await tryInsertVariants('posts', base, content)
-  if (rPosts.ok) {
-    revalidatePath('/')
-    return rPosts
-  }
-
-  // Si nada funcionó, devolvemos el error más informativo
-  return { error: rStories.error || rPosts.error || 'insert-failed' }
+  return { error: 'insert-failed' }
 }
