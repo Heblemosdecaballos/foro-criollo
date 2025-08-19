@@ -1,4 +1,3 @@
-// app/api/threads/route.ts
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
