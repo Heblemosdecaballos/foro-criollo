@@ -25,7 +25,6 @@ export default function AuthPage() {
         redirectTo: `${getPublicBaseUrl()}/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
-    // Redirige a Google; no hay nada más que hacer aquí
   }
 
   const signInWithPassword = async (e: FormEvent) => {
@@ -79,7 +78,6 @@ export default function AuthPage() {
       </form>
 
       {error && <p className="text-red-600 mt-3">{error}</p>}
-
       <p className="text-xs text-gray-500 mt-6">
         Serás redirigido a: <code>{next}</code>
       </p>
