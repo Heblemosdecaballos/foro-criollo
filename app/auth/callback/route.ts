@@ -3,16 +3,22 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
-  const supabase = createSupabaseServerClient()
   const url = new URL(request.url)
-
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') ?? '/'
+  const next = url.searchParams.get('next') || '/'
 
   if (code) {
-    // Intercambia el code por sesión y deja cookies sb-... válidas
-    await supabase.auth.exchangeCodeForSession(code)
+    const supabase = createSupabaseServerClient()
+    // Intercambia el code por la sesión y ESCRIBE las cookies sb-*
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      // Si algo falla, devuélveme a /auth con el error
+      const back = new URL(`/auth?error=${encodeURIComponent(error.message)}`, url.origin)
+      return NextResponse.redirect(back)
+    }
   }
 
-  return NextResponse.redirect(new URL(next, process.env.NEXT_PUBLIC_SITE_URL))
+  // Redirige a donde nos pidieron volver (por defecto /)
+  const redirectTo = new URL(next, process.env.NEXT_PUBLIC_SITE_URL || 'https://hablandodecaballos.com')
+  return NextResponse.redirect(redirectTo)
 }
