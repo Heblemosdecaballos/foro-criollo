@@ -1,32 +1,22 @@
+// components/SupabaseListener.tsx
 'use client';
 
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { createSupabaseBrowser } from '@/utils/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function SupabaseListener() {
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        // Importante: solo sincronizamos cookies en estos eventos:
-        if (
-          event === 'INITIAL_SESSION' ||
-          event === 'SIGNED_IN' ||
-          event === 'TOKEN_REFRESHED'
-        ) {
-          await fetch('/auth/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event, session }),
-          });
-        }
+  const supabase = createSupabaseBrowser();
+  const router = useRouter();
 
-        // NO hagas ningún fetch en SIGNED_OUT aquí, para no borrar cookies por accidente.
-        // Para salir, usa la ruta /logout (más abajo).
-      }
-    );
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, _session) => {
+      // Cuando cambie el estado de auth, refrescamos la UI
+      router.refresh();
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase, router]);
 
   return null;
 }
