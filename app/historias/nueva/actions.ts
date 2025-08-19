@@ -1,8 +1,76 @@
-// app/historias/nueva/actions.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+
+type InsertResult = { ok?: true; slug?: string; id?: string; error?: string }
+
+async function tryInsertVariants(
+  table: string,
+  base: Record<string, any>,
+  content: string
+): Promise<InsertResult> {
+  const supabase = createSupabaseServerClient()
+
+  // 1) content
+  {
+    const { data, error } = await supabase.from(table)
+      .insert({ ...base, content })
+      .select('id, slug')
+      .single()
+    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
+    // Solo seguimos probando si el error sugiere columna inexistente
+    if (!String(error?.message || '').toLowerCase().includes('content')) {
+      return { error: error?.message || 'insert-failed' }
+    }
+  }
+
+  // 2) body
+  {
+    const { data, error } = await supabase.from(table)
+      .insert({ ...base, body: content })
+      .select('id, slug')
+      .single()
+    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
+    if (!String(error?.message || '').toLowerCase().includes('body')) {
+      return { error: error?.message || 'insert-failed' }
+    }
+  }
+
+  // 3) text
+  {
+    const { data, error } = await supabase.from(table)
+      .insert({ ...base, text: content })
+      .select('id, slug')
+      .single()
+    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
+    if (!String(error?.message || '').toLowerCase().includes('text')) {
+      return { error: error?.message || 'insert-failed' }
+    }
+  }
+
+  // 4) description
+  {
+    const { data, error } = await supabase.from(table)
+      .insert({ ...base, description: content })
+      .select('id, slug')
+      .single()
+    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
+    if (!String(error?.message || '').toLowerCase().includes('description')) {
+      return { error: error?.message || 'insert-failed' }
+    }
+  }
+
+  // 5) Sin contenido (si la tabla lo permite)
+  {
+    const { data, error } = await supabase.from(table)
+      .insert({ ...base })
+      .select('id, slug')
+      .single()
+    if (!error && data) return { ok: true, slug: data.slug ?? data.id, id: data.id }
+    return { error: error?.message || 'insert-failed' }
+  }
+}
 
 export async function createStoryAction(formData: FormData) {
   const supabase = createSupabaseServerClient()
@@ -14,22 +82,26 @@ export async function createStoryAction(formData: FormData) {
   const content = String(formData.get('content') || '').trim()
   if (!title) return { error: 'title-required' }
 
-  const now = new Date().toISOString()
-  const payload = { title, content, author_id: user.id, created_at: now }
-
-  // Intento 1: tabla "stories"
-  const r1 = await supabase.from('stories').insert(payload).select('id,slug').single()
-  if (!r1.error && r1.data) {
-    revalidatePath('/')
-    return { ok: true, slug: r1.data.slug ?? r1.data.id }
+  const base = {
+    title,
+    author_id: user.id,
+    created_at: new Date().toISOString(),
   }
 
-  // Intento 2 (fallback): tabla "posts"
-  const r2 = await supabase.from('posts').insert(payload).select('id,slug').single()
-  if (!r2.error && r2.data) {
+  // 1) Intentar en STORIES con variantes
+  const rStories = await tryInsertVariants('stories', base, content)
+  if (rStories.ok) {
     revalidatePath('/')
-    return { ok: true, slug: r2.data.slug ?? r2.data.id }
+    return rStories
   }
 
-  return { error: r1.error?.message || r2.error?.message || 'insert-failed' }
+  // 2) Intentar en POSTS con variantes
+  const rPosts = await tryInsertVariants('posts', base, content)
+  if (rPosts.ok) {
+    revalidatePath('/')
+    return rPosts
+  }
+
+  // Si nada funcionó, devolvemos el error más informativo
+  return { error: rStories.error || rPosts.error || 'insert-failed' }
 }
