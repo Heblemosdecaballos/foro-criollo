@@ -1,24 +1,13 @@
-// app/login/GoogleButton.tsx
-'use client';
+// app/login/page.tsx
+import GoogleButton from '@/components/auth/GoogleButton'
 
-import { createSupabaseBrowser } from '@/utils/supabase/client';
-
-export default function GoogleButton() {
-  const supabase = createSupabaseBrowser();
-
-  const handleGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-        queryParams: { prompt: 'select_account' },
-      },
-    });
-  };
-
+export default function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
+  const next = searchParams?.next ?? '/'
   return (
-    <button onClick={handleGoogle} className="btn">
-      Continuar con Google
-    </button>
-  );
+    <main className="container-page py-8">
+      <h1>Iniciar sesión</h1>
+      <GoogleButton next={next} />
+      {/* Si tienes login por correo/contraseña, colócalo aquí también */}
+    </main>
+  )
 }
