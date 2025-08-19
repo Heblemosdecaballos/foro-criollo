@@ -1,39 +1,32 @@
 // app/historias/nueva/page.tsx
-export const dynamic = 'force-dynamic';
-
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '@supabase/ssr';
+import { createSupabaseServer } from '@/utils/supabase/server';
+import NewStoryForm from './NewStoryForm'; // tu componente de formulario (cliente)
+
+export const dynamic = 'force-dynamic'; // opcional, si notas issues con caché
+export const revalidate = 0;             // opcional
 
 export default async function NuevaHistoriaPage() {
-  const cookieStore = cookies();
+  const supabase = createSupabaseServer();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) =>
-          cookieStore.set({ name, value, ...options }),
-        remove: (name, options) =>
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 }),
-      },
-    }
-  );
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  if (error) {
+    // Manejo de error si quieres
+  }
 
   if (!user) {
-    // Si no hay usuario, redirige a login o muéstrale un botón
+    // Redirige a login y regresa a esta ruta luego
     redirect('/login?next=/historias/nueva');
   }
 
   return (
     <main className="container-page py-8">
-      <h1 className="text-2xl font-semibold mb-6">Nueva historia</h1>
-      {/* Renderiza aquí tu formulario de publicación */}
-      {/* ... */}
+      <h1 className="mb-4 text-2xl font-semibold">Nueva historia</h1>
+      <NewStoryForm />
     </main>
   );
 }
