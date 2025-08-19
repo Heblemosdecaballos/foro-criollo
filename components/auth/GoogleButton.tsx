@@ -1,54 +1,34 @@
 // components/auth/GoogleButton.tsx
-'use client';
+'use client'
 
-import { useState, useCallback } from 'react';
-import { createSupabaseBrowserClient } from '@/utils/supabase/client';
+import { useState } from 'react'
+import { createSupabaseBrowserClient } from '@/utils/supabase/client'
 
 export default function GoogleButton({ next = '/' }: { next?: string }) {
-  const [loading, setLoading] = useState(false);
-  const supabase = createSupabaseBrowserClient();
+  const [loading, setLoading] = useState(false)
 
-  const handleGoogle = useCallback(async () => {
+  const onClick = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-
-      // SIEMPRE redirigimos a TU callback en tu dominio
-      const origin =
-        typeof window !== 'undefined' ? window.location.origin : '';
-      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(
-        next || '/'
-      )}`;
-
+      const supabase = createSupabaseBrowserClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
-          // opcionalmente:
-          // queryParams: { prompt: 'consent', access_type: 'offline' },
-          // skipBrowserRedirect: false // (por defecto)
-        },
-      });
-
-      if (error) {
-        console.error(error);
-        alert('No se pudo iniciar sesión con Google.');
-        setLoading(false);
-      }
-      // Si no hay error, el navegador será redirigido a Google → callback
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(next)}`,
+          queryParams: { prompt: 'consent' } // fuerza selector de cuenta
+        }
+      })
+      if (error) throw error
+      // Redirecciona Google → callback → tu "next"
+    } catch (e: any) {
+      alert(e.message ?? 'Error iniciando con Google')
+      setLoading(false)
     }
-  }, [supabase, next]);
+  }
 
   return (
-    <button
-      type="button"
-      onClick={handleGoogle}
-      disabled={loading}
-      className="btn btn-primary w-full"
-    >
-      {loading ? 'Entrando…' : 'Continuar con Google'}
+    <button onClick={onClick} disabled={loading}>
+      {loading ? 'Conectando…' : 'Continuar con Google'}
     </button>
-  );
+  )
 }
