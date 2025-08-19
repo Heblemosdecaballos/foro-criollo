@@ -2,11 +2,6 @@
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
-/**
- * Opciones de cookie coherentes para producción.
- * - SameSite=None y Secure en HTTPS
- * - Domain en apex para que comparta subdominios si los usas
- */
 function defaultCookieOptions(): Partial<CookieOptions> {
   const isProd = process.env.NODE_ENV === 'production'
   const domain =
@@ -53,8 +48,7 @@ export function createSupabaseServerClient() {
   )
 }
 
-/* ---------- Compatibilidad de imports (alias usados en tu código) ---------- */
-// Ejemplos que quizá tengas en imports viejos:
+/* ---------- Alias de compatibilidad ---------- */
 export const supabaseServer = createSupabaseServerClient
 export const createRouteHandlerClient = createSupabaseServerClient
 export default createSupabaseServerClient
