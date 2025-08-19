@@ -1,40 +1,32 @@
-'use client';
+// components/auth/GoogleButton.tsx
+'use client'
 
-import { supabase } from '@/lib/supabase/client';
+import { useState } from 'react'
+import { supabaseBrowser } from '@/utils/supabase/browser'
 
-type Props = {
-  next?: string; // a dónde quieres volver después del login
-  className?: string;
-};
+type Props = { next?: string }
 
-export default function GoogleLoginButton({ next = '/historias/nueva', className }: Props) {
-  async function loginWithGoogle() {
-    // Usa el apex del sitio (sin www) para que las cookies caigan en el host correcto
-    const base =
-      typeof window !== 'undefined'
-        ? window.location.origin // en prod será https://hablandodecaballos.com
-        : process.env.NEXT_PUBLIC_SITE_URL!;
+export default function GoogleButton({ next = '/' }: Props) {
+  const [loading, setLoading] = useState(false)
 
-    const redirectTo = `${base}/auth/callback?next=${encodeURIComponent(next)}`;
+  const handle = async () => {
+    setLoading(true)
+    const supabase = supabaseBrowser()
+    const origin = window.location.origin || process.env.NEXT_PUBLIC_SITE_URL || 'https://hablandodecaballos.com'
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
-        // (Opcional) mejora refresh tokens en Google
-        queryParams: { access_type: 'offline', prompt: 'consent' },
-      },
-    });
+        redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        // (opcional) fuerza refresh_token
+        queryParams: { access_type: 'offline', prompt: 'consent' }
+      }
+    })
   }
 
   return (
-    <button
-      type="button"
-      onClick={loginWithGoogle}
-      className={className ?? 'px-4 py-2 rounded bg-emerald-600 text-white'}
-      aria-label="Continuar con Google"
-    >
-      Continuar con Google
+    <button onClick={handle} disabled={loading}>
+      {loading ? 'Conectando…' : 'Continuar con Google'}
     </button>
-  );
+  )
 }
