@@ -1,21 +1,11 @@
 // app/logout/route.ts
-import { NextResponse } from 'next/server';
-import { createSupabaseServer } from '@/utils/supabase/server';
+import { NextResponse } from 'next/server'
+import { supabaseServer } from '@/utils/supabase/server'
 
-export async function POST(req: Request) {
-  const supabase = createSupabaseServer();
+export async function POST() {
+  const supabase = supabaseServer()
+  await supabase.auth.signOut()
 
-  // Cierra sesión (borra cookies sb-*)
-  await supabase.auth.signOut();
-
-  // Redirige a donde quieras. Intentamos tomar ?next=...
-  const url = new URL(req.url);
-  const next = url.searchParams.get('next') ?? '/';
-
-  return NextResponse.redirect(new URL(next, req.url), { status: 302 });
-}
-
-// (Opcional) si también quieres permitir GET /logout
-export async function GET(req: Request) {
-  return POST(req);
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://hablandodecaballos.com'
+  return NextResponse.redirect(`${origin}/`)
 }
