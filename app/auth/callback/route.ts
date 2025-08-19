@@ -1,25 +1,21 @@
 // app/auth/callback/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseServer } from '@/utils/supabase/server'
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/utils/supabase/server';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic' // evitamos cache/edge
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url)
-  const code = url.searchParams.get('code')
-
-  const supabase = supabaseServer()
+  const supabase = createSupabaseServer();
 
   if (code) {
-    // crea la sesión y escribe los cookies sb-*
-    await supabase.auth.exchangeCodeForSession(code)
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      // Si hay error, vuelve al login
+      return NextResponse.redirect(new URL('/login?error=oauth', request.url));
+    }
   }
 
-  // a dónde lo mandamos después de loguear
-  const next = url.searchParams.get('next') ?? '/historias/nueva'
-  // forza destino en el APEX
-  const dest = new URL(next, 'https://hablandodecaballos.com')
-
-  return NextResponse.redirect(dest, { status: 302 })
+  // ✅ Aquí ya están los cookies sb-… seteados por el server helper
+  return NextResponse.redirect(new URL('/historias/nueva', request.url));
 }
