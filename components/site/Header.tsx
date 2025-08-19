@@ -1,11 +1,18 @@
 // components/site/Header.tsx
 import Link from 'next/link'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
 import SignOutButton from './SignOutButton'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export default async function Header() {
-  const supabase = createSupabaseServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+  let isLogged = false
+  try {
+    const supabase = createSupabaseServerClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    isLogged = !!session
+  } catch {
+    // no bloquees el render si algo falla leyendo cookies
+    isLogged = false
+  }
 
   return (
     <header className="w-full border-b bg-white/70 backdrop-blur">
@@ -22,7 +29,7 @@ export default async function Header() {
             + Publicar
           </Link>
 
-          {session ? (
+          {isLogged ? (
             <SignOutButton />
           ) : (
             <Link href="/auth" className="px-3 py-2 border rounded">Iniciar sesión</Link>
