@@ -1,19 +1,18 @@
 // app/auth/callback/route.ts
 import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/utils/supabase/server'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
 export async function GET(request: Request) {
+  const supabase = createSupabaseServerClient()
   const url = new URL(request.url)
+
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') || '/'
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || url.origin
+  const next = url.searchParams.get('next') ?? '/'
 
   if (code) {
-    const supabase = supabaseServer()
-    // Crea/actualiza los cookies sb-… en esta respuesta
+    // Intercambia el code por sesión y deja cookies sb-... válidas
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Redirige a donde venía el usuario (o a /)
-  return NextResponse.redirect(`${origin}${next}`)
+  return NextResponse.redirect(new URL(next, process.env.NEXT_PUBLIC_SITE_URL))
 }
