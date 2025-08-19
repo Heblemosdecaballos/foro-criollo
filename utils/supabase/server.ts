@@ -1,13 +1,9 @@
 // utils/supabase/server.ts
-import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
-export function supabaseServer() {
-  const cookieStore = cookies()
-
-  // usa tu apex; puedes moverlo a un env var
-  const cookieDomain =
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN || '.hablandodecaballos.com'
+export function createSupabaseServer() {
+  const cookieStore = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,31 +11,32 @@ export function supabaseServer() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({
-            name,
-            value,
+        set(name: string, value: string, options: any) {
+          cookieStore.set(name, value, {
             ...options,
-            path: '/',
-            sameSite: 'lax',
+            // Fuerza atributos seguros para prod
+            httpOnly: true,
             secure: true,
-            domain: cookieDomain,
-          })
+            sameSite: 'lax',
+            path: '/',
+            // Si usas apex (sin www) y rediriges www -> apex, no pongas domain.
+            // Si quieres compartir con subdominios explícitamente:
+            // domain: '.hablandodecaballos.com',
+          });
         },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({
-            name,
-            value: '',
+        remove(name: string, options: any) {
+          cookieStore.set(name, '', {
             ...options,
+            httpOnly: true,
+            secure: true,
+            sameSite: 'lax',
             path: '/',
             maxAge: 0,
-            expires: new Date(0),
-            domain: cookieDomain,
-          })
+          });
         },
       },
     }
-  )
+  );
 }
