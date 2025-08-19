@@ -2,16 +2,18 @@
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
-function defaultCookieOptions(): Partial<CookieOptions> {
+function defaultCookieOptions(): CookieOptions {
   const isProd = process.env.NODE_ENV === 'production'
-  const domain =
-    process.env.NEXT_PUBLIC_COOKIE_DOMAIN || '.hablandodecaballos.com'
-
   return {
+    name: 'sb',                // prefijo por defecto de Supabase
     path: '/',
     sameSite: isProd ? 'none' : 'lax',
     secure: isProd ? true : false,
-    domain: isProd ? domain : undefined,
+    // Dominio apex para compartir subdominios si los usas:
+    domain: isProd
+      ? (process.env.NEXT_PUBLIC_COOKIE_DOMAIN || '.hablandodecaballos.com')
+      : undefined,
+    maxAge: 60 * 60 * 24 * 7,  // 7 días
   }
 }
 
@@ -44,6 +46,8 @@ export function createSupabaseServerClient() {
           })
         },
       },
+      // 👇 muy importante: aplica atributos en todos los Set-Cookie de Supabase
+      cookieOptions: defaultCookieOptions(),
     }
   )
 }
