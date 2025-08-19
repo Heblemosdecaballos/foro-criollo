@@ -7,3 +7,7 @@ export function createSupabaseBrowserClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
+
+/* ---------- Capa de compatibilidad ---------- */
+// Alias alternativo, por si en algún sitio esperabas `createClient`
+export const createClient = createSupabaseBrowserClient
