@@ -1,26 +1,21 @@
 // app/layout.tsx
-import './globals.css';
-import type { ReactNode } from 'react';
-import { cookies } from 'next/headers';
-import { createSupabaseServer } from '@/utils/supabase/server';
-import SupabaseListener from '@/components/SupabaseListener';
+import type { Metadata } from 'next'
+import SessionListener from '@/components/auth/SessionListener'
+import './globals.css'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Hablando de Caballos',
-};
+  description: 'Comunidad del caballo criollo',
+}
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
-  const supabase = createSupabaseServer();
-  // Toca Supabase al menos una vez para que el helper sincronice cookies si hiciera falta
-  await supabase.auth.getSession();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <body>
-        {/* Mantiene client-state acorde a server-state de auth */}
-        <SupabaseListener />
+        {/* Listener que mantiene la UI sincronizada con la sesión */}
+        <SessionListener />
         {children}
       </body>
     </html>
-  );
+  )
 }
