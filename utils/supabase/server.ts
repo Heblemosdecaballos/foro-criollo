@@ -1,24 +1,21 @@
-import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+// app/logout/route.ts
+import { NextResponse } from 'next/server';
+import { createSupabaseServer } from '@/utils/supabase/server';
 
-export function createSupabaseServer() {
-  const cookieStore = cookies();
+export async function POST(req: Request) {
+  const supabase = createSupabaseServer();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options?: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options?: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options });
-        },
-      },
-    },
-  );
+  // Cierra sesión (borra cookies sb-*)
+  await supabase.auth.signOut();
+
+  // Redirige a donde quieras. Intentamos tomar ?next=...
+  const url = new URL(req.url);
+  const next = url.searchParams.get('next') ?? '/';
+
+  return NextResponse.redirect(new URL(next, req.url), { status: 302 });
+}
+
+// (Opcional) si también quieres permitir GET /logout
+export async function GET(req: Request) {
+  return POST(req);
 }
