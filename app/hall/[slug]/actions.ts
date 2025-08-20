@@ -3,86 +3,51 @@
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
 
-type VoteResp = { ok: true; voted: boolean; count: number } | { ok: false; error: string }
-type CmtResp  = { ok: true } | { ok: false; error: string }
-type UpResp   = { ok: true } | { ok: false; error: string }
-
-export async function toggleVote(profileId: string): Promise<VoteResp> {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
-
-  const { data: existing } = await supabase
-    .from('hall_votes').select('profile_id')
-    .eq('profile_id', profileId).eq('user_id', user.id).maybeSingle()
-
-  if (existing) {
-    const { error } = await supabase
-      .from('hall_votes').delete().eq('profile_id', profileId).eq('user_id', user.id)
-    if (error) return { ok: false, error: error.message }
-  } else {
-    const { error } = await supabase.from('hall_votes').insert({ profile_id: profileId, user_id: user.id })
-    if (error) return { ok: false, error: error.message }
-  }
-
-  const { data: prof } = await supabase.from('hall_profiles').select('votes_count, slug').eq('id', profileId).maybeSingle()
-  if (!prof) return { ok: false, error: 'not-found' }
-  revalidatePath(`/hall/${prof.slug}`)
-  return { ok: true, voted: !existing, count: prof.votes_count }
+function fileExt(name: string) {
+  const p = name.lastIndexOf('.')
+  return p === -1 ? '' : name.slice(p + 1)
 }
 
-export async function addHallComment(formData: FormData): Promise<CmtResp> {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
-
-  const profile_id = String(formData.get('profile_id') || '')
-  const content    = String(formData.get('content') || '').trim()
-  if (!profile_id) return { ok: false, error: 'profile-required' }
-  if (!content)    return { ok: false, error: 'content-required' }
-
-  const { data: prof } = await supabase.from('hall_profiles').select('slug').eq('id', profile_id).maybeSingle()
-  if (!prof) return { ok: false, error: 'not-found' }
-
-  const { error } = await supabase.from('hall_comments').insert({ profile_id, content, author_id: user.id })
-  if (error) return { ok: false, error: error.message }
-
-  revalidatePath(`/hall/${prof.slug}`)
-  return { ok: true }
-}
-
-export async function uploadMedia(formData: FormData): Promise<UpResp> {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
-
-  const profile_id = String(formData.get('profile_id') || '')
+export async function addMediaAction(formData: FormData) {
+  const profileId = String(formData.get('profileId') || '')
+  const slug = String(formData.get('slug') || '')
+  const caption = String(formData.get('caption') || '').slice(0, 500)
   const file = formData.get('file') as File | null
-  const caption = String(formData.get('caption') || '').trim()
-  if (!profile_id) return { ok: false, error: 'profile-required' }
-  if (!file)       return { ok: false, error: 'file-required' }
-  if (!file.type.startsWith('image/')) return { ok: false, error: 'archivo-no-es-imagen' }
 
-  // Verifica estado = nominee
-  const { data: prof } = await supabase.from('hall_profiles').select('slug, status').eq('id', profile_id).maybeSingle()
-  if (!prof) return { ok: false, error: 'not-found' }
-  if (prof.status !== 'nominee') return { ok: false, error: 'solo-nominados-admiten-fotos' }
+  if (!profileId) return { ok: false, error: 'Perfil inválido.' }
+  if (!file || file.size === 0) return { ok: false, error: 'Selecciona una imagen.' }
 
-  // Subir a Storage
-  const ext = file.name.split('.').pop() || 'jpg'
-  const path = `${profile_id}/${user.id}/${Date.now()}.${ext}`
-  const up = await supabase.storage.from('hall').upload(path, file, { upsert: false })
+  const supabase = createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Debes iniciar sesión.' }
+
+  const ext = fileExt(file.name) || 'jpg'
+  const path = `${profileId}/${randomUUID()}.${ext}`
+
+  // 1) Subir a Storage
+  const up = await supabase.storage.from('hall').upload(path, file, {
+    contentType: file.type || 'image/jpeg',
+    cacheControl: '3600',
+    upsert: false,
+  })
   if (up.error) return { ok: false, error: up.error.message }
 
-  const pub = supabase.storage.from('hall').getPublicUrl(path)
-  const url = pub.data.publicUrl
+  // 2) URL pública
+  const { data: pub } = supabase.storage.from('hall').getPublicUrl(path)
+  const url = pub.publicUrl
 
-  const { error } = await supabase.from('hall_media').insert({
-    profile_id, url, caption, added_by: user.id
+  // 3) Registrar en BD
+  const ins = await supabase.from('hall_media').insert({
+    profile_id: profileId,
+    url,
+    caption,
+    added_by: user.id,
   })
-  if (error) return { ok: false, error: error.message }
+  if (ins.error) return { ok: false, error: ins.error.message }
 
-  revalidatePath(`/hall/${prof.slug}`)
+  // Revalidar la página del perfil
+  revalidatePath(`/hall/${slug}`)
   return { ok: true }
 }
