@@ -2,52 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =======================
-   Paleta de marca (RGB)
-   ======================= */
+/* ====== Paleta ====== */
 :root{
-  /* Paleta guía */
-  --brand: 100 68 42;     /* #64442A - Marrón Cuero */
-  --brand-2: 97 111 76;   /* #616F4C - Verde Pino   */
-  --accent: 199 154 42;   /* #C79A2A - Mostaza      */
-  --beige: 217 197 155;   /* #D9C59B - Beige Arena  */
-
-  /* Superficie y texto */
-  --surface: 248 246 239;        /* beige muy claro de base */
-  --on-surface: 25 25 25;        /* texto */
+  --bg:            #fbf9f1;  /* fondo crema */
+  --fg:            #1b1b1b;  /* texto principal */
+  --surface:       #ffffff;  /* tarjetas / fondos */
+  --muted:         #6c6257;  /* texto secundario */
+  --brand-amber:   #b8860b;  /* botones principales */
+  --brand-green:   #1f6f54;  /* acción secundaria */
+  --brand-brown:   #5c4630;  /* enlaces, acentos */
+  --ring:          rgba(0,0,0,.08);
 }
 
-.dark{
-  /* Mantén la identidad en modo oscuro */
-  --brand: 100 68 42;     /* mismo marrón para coherencia */
-  --brand-2: 97 111 76;
-  --accent: 210 165 54;   /* un punto más claro para contraste */
-  --beige: 50 48 43;      /* beige tostado para bloques */
-  --surface: 22 22 22;    /* fondo base oscuro */
-  --on-surface: 235 235 235;
+/* Tipografías cargadas vía next/font en el layout:
+   --font-serif (Lora) y --font-sans (Inter) */
+html, body { font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-serif), Georgia, 'Times New Roman', serif; }
+
+/* ✅ Clases de compatibilidad (NO usan @apply) */
+.font-heading { font-family: var(--font-serif), Georgia, 'Times New Roman', serif; }
+.font-body    { font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+
+/* Tarjetas y contenedores */
+@layer components{
+  .card { @apply bg-white rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,.08)] border border-black/5; }
+  .container { @apply max-w-6xl mx-auto px-4; }
 }
 
-/* Base */
-html, body{
-  @apply bg-[rgb(var(--surface))] text-[rgb(var(--on-surface))] font-body;
+/* Botones */
+@layer components{
+  .btn { @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2; }
+  .btn-primary { @apply text-white bg-[var(--brand-amber)] hover:opacity-90 focus:ring-[var(--ring)]; }
+  .btn-secondary { @apply text-white bg-[var(--brand-green)] hover:opacity-90 focus:ring-[var(--ring)]; }
+  .btn-ghost { @apply border border-black/10 hover:bg-black/5; }
+  .link { @apply text-[var(--brand-brown)] hover:underline; }
 }
 
-/* Contenedor */
-.container-page{ @apply mx-auto max-w-6xl px-4; }
-
-/* Cards y botones */
-.card{ @apply rounded-2xl border border-black/5 bg-white/90 dark:bg-neutral-900/90 shadow-soft; }
-
-.btn-brand{ @apply inline-flex items-center justify-center rounded-xl bg-brand text-white px-4 py-2 font-medium hover:opacity-90; }
-.btn-outline{ @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5; }
-.btn-accent{ @apply inline-flex items-center justify-center rounded-xl bg-accent text-black px-4 py-2 font-medium hover:opacity-90; }
-
-/* Tipografías: headings con Cinzel */
-@layer base{
-  h1{ @apply font-heading text-4xl md:text-5xl font-semibold tracking-tight; }
-  h2{ @apply font-heading text-3xl font-semibold tracking-tight; }
-  h3{ @apply font-heading text-2xl font-semibold tracking-tight; }
-}
-
-/* Utilidades de bloques "papel" */
-.paper { @apply bg-beige/20 dark:bg-beige/20 rounded-2xl; }
+/* Utilidades varias */
+.prose { color: var(--fg); }
+.text-muted { color: var(--muted); }
