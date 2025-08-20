@@ -37,7 +37,6 @@ export default async function HallProfilePage({ params }: { params: { slug: stri
   if (profErr) console.error(profErr)
   if (!profileRaw) return notFound()
 
-  // Garantizamos el tipo correctamente con una aserción segura del gait
   const profile: HallProfile = {
     ...(profileRaw as any),
     gait: assertGait((profileRaw as any).gait),
@@ -97,6 +96,7 @@ export default async function HallProfilePage({ params }: { params: { slug: stri
               profileId={profile.id}
               initialCount={profile.votes_count}
               initialVoted={alreadyVoted}
+              slug={profile.slug}
             />
           </div>
         </div>
@@ -118,7 +118,9 @@ export default async function HallProfilePage({ params }: { params: { slug: stri
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Galería</h2>
-          {session && profile.status === 'nominee' && <AddMediaForm profileId={profile.id} />}
+          {session && profile.status === 'nominee' && (
+            <AddMediaForm profileId={profile.id} slug={profile.slug} />
+          )}
         </div>
 
         {!media?.length ? (
@@ -167,7 +169,7 @@ export default async function HallProfilePage({ params }: { params: { slug: stri
         )}
 
         {session ? (
-          <HallCommentForm profileId={profile.id} viewerName={viewerName} />
+          <HallCommentForm profileId={profile.id} slug={profile.slug} viewerName={viewerName} />
         ) : (
           <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
         )}
