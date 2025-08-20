@@ -1,49 +1,94 @@
 // app/admin/hall/[slug]/page.tsx
 import { createSupabaseServerClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { updateProfile, updateMediaCaption, deleteMedia, uploadCover, addMediaAdmin } from './actions'
+import {
+  updateProfile,
+  updateMediaCaption,
+  deleteMedia,
+  uploadCover,
+  addMediaAdmin,
+} from './actions' // Asegúrate de que este archivo y exports existen
 
 type Params = { params: { slug: string } }
 
 export default async function AdminHallEditor({ params }: Params) {
   const supabase = createSupabaseServerClient()
 
-  // 1) Auth
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth')
+  // 1) Usuario
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser()
 
-  // 2) Admin check
+  if (authErr || !user) {
+    // si no hay sesión, a login
+    redirect('/auth')
+  }
+
+  // 2) ¿Es admin?
   const { data: me, error: meErr } = await supabase
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (meErr || !me?.is_admin) redirect('/')
+  if (meErr) {
+    // Muestra el error en la UI sin romper el render
+    return (
+      <div className="container py-10">
+        <h2 className="text-xl font-semibold">Error verificando admin</h2>
+        <pre className="bg-red-50 p-4 rounded text-red-700 whitespace-pre-wrap text-sm">
+          {meErr.message}
+        </pre>
+      </div>
+    )
+  }
 
-  // 3) Perfil
+  if (!me?.is_admin) {
+    redirect('/')
+  }
+
+  // 3) Carga del perfil
   const { data: profile, error: pErr } = await supabase
     .from('hall_profiles')
     .select('id, slug, title, gait, year, status, image_url')
     .eq('slug', params.slug)
-    .single()
+    .maybeSingle()
 
-  if (pErr || !profile) {
-    // Si no existe el perfil, vuelve a /admin
+  if (pErr) {
+    return (
+      <div className="container py-10">
+        <h2 className="text-xl font-semibold">Error cargando perfil</h2>
+        <pre className="bg-red-50 p-4 rounded text-red-700 whitespace-pre-wrap text-sm">
+          {pErr.message}
+        </pre>
+        <a href="/admin" className="underline">Volver</a>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    // si el slug no existe
     redirect('/admin')
   }
 
-  // 4) Media (si la tabla no tiene alguna columna, no rompas el render)
+  // 4) Carga de media (no debe romper)
   let media: any[] = []
+  let mediaErrMsg: string | null = null
   try {
     const { data: m, error: mErr } = await supabase
       .from('hall_media')
       .select('id, kind, url, youtube_id, caption, created_at')
       .eq('profile_id', profile.id)
       .order('created_at', { ascending: true })
-    if (!mErr && m) media = m
-  } catch {
-    media = []
+
+    if (mErr) {
+      mediaErrMsg = mErr.message
+    } else {
+      media = m ?? []
+    }
+  } catch (e: any) {
+    mediaErrMsg = e?.message ?? 'Error desconocido cargando galería'
   }
 
   return (
@@ -110,6 +155,13 @@ export default async function AdminHallEditor({ params }: Params) {
       {/* GALERÍA */}
       <div className="space-y-3">
         <h3 className="font-medium">Galería</h3>
+
+        {mediaErrMsg ? (
+          <pre className="bg-yellow-50 p-4 rounded text-yellow-800 whitespace-pre-wrap text-sm">
+            {mediaErrMsg}
+          </pre>
+        ) : null}
+
         {media?.length > 0 ? (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((m: any) => (
