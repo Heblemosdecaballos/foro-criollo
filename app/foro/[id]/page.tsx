@@ -20,14 +20,21 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
   const content =
     (thread as any).content ?? (thread as any).body ?? (thread as any).text ?? (thread as any).description ?? ''
 
-  // 🔎 Traer autor desde profiles gracias al FK: author:profiles(...)
+  // Comentarios + autor desde profiles
   const { data: comments } = await supabase
     .from('thread_comments')
     .select('id, content, created_at, author:profiles(id, username, full_name)')
     .eq('thread_id', params.id)
     .order('created_at', { ascending: true })
 
+  // Quien comenta (para mostrar el “comentando como …”)
   const { data: { session } } = await supabase.auth.getSession()
+  let viewerName: string | null = null
+  if (session) {
+    const { data: prof } = await supabase
+      .from('profiles').select('full_name, username').eq('id', session.user.id).maybeSingle()
+    viewerName = prof?.full_name || prof?.username || 'Usuario'
+  }
 
   return (
     <div className="container p-6 space-y-6">
@@ -67,7 +74,7 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
         )}
 
         {session ? (
-          <CommentForm threadId={params.id} />
+          <CommentForm threadId={params.id} viewerName={viewerName} />
         ) : (
           <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
         )}
