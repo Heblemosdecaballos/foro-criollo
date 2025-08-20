@@ -2,42 +2,74 @@
 'use server'
 
 import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
 
-type Resp = { ok: true; slug: string } | { ok: false; error: string }
-
-function slugify(input: string) {
-  return input
+function slugify(s: string) {
+  return s
+    .normalize('NFKD')
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
 }
 
-export async function createNomination(formData: FormData): Promise<Resp> {
+function fileExt(name: string) {
+  const p = name.lastIndexOf('.')
+  return p === -1 ? '' : name.slice(p + 1)
+}
+
+export async function createHallProfile(formData: FormData) {
+  const title = String(formData.get('title') || '').trim().slice(0, 200)
+  const gait = String(formData.get('gait') || '').trim()
+  const year = formData.get('year') ? Number(formData.get('year')) : null
+  const bio = String(formData.get('bio') || '')
+  const achievements = String(formData.get('achievements') || '')
+  const cover = formData.get('cover') as File | null
+
+  if (!title) throw new Error('El título es obligatorio')
+  if (!['trocha_galope','trote_galope','trocha_colombia','paso_fino'].includes(gait))
+    throw new Error('Gait inválido')
+
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
+  if (!user) throw new Error('Debes iniciar sesión')
 
-  const title = String(formData.get('title') || '').trim()
-  const gait  = String(formData.get('gait')  || 'trocha_galope').trim()
-  const year  = formData.get('year') ? Number(formData.get('year')) : null
-  const bio   = String(formData.get('bio') || '').trim()
-  const achievements = String(formData.get('achievements') || '').trim()
-  const image_url    = String(formData.get('image_url')    || '').trim()
+  // slug único
+  let slug = slugify(title)
+  if (!slug) slug = randomUUID().slice(0, 8)
+  const exists = await supabase.from('hall_profiles').select('id').eq('slug', slug).maybeSingle()
+  if (exists.data) slug = `${slug}-${randomUUID().slice(0, 4)}`
 
-  if (!title) return { ok: false, error: 'title-required' }
-  let slug = slugify(title) || ('hall-' + Date.now())
+  // Subida de portada si viene archivo
+  let image_url: string | null = null
+  if (cover && cover.size > 0) {
+    const ext = fileExt(cover.name) || 'jpg'
+    const path = `covers/${slug}-${randomUUID()}.${ext}`
+    const up = await supabase.storage.from('hall').upload(path, cover, {
+      contentType: cover.type || 'image/jpeg',
+      cacheControl: '3600',
+    })
+    if (up.error) throw new Error(up.error.message)
+    const { data: pub } = supabase.storage.from('hall').getPublicUrl(path)
+    image_url = pub.publicUrl
+  }
 
-  // Evitar duplicados de slug
-  const { data: exists } = await supabase.from('hall_profiles').select('id').eq('slug', slug).maybeSingle()
-  if (exists) slug = `${slug}-${Math.floor(Math.random()*1000)}`
+  const ins = await supabase.from('hall_profiles').insert({
+    slug,
+    title,
+    gait,
+    year,
+    bio,
+    achievements,
+    image_url,
+    status: 'nominee', // todos inician como nominados
+  }).select('slug').single()
 
-  const { error } = await supabase.from('hall_profiles').insert({
-    slug, title, gait, year, bio, achievements, image_url, status: 'nominee', created_by: user.id
-  })
+  if (ins.error) throw new Error(ins.error.message)
 
-  if (error) return { ok: false, error: error.message }
-  revalidatePath(`/hall?g=${gait}&view=nominees`)
-  return { ok: true, slug }
+  revalidatePath('/hall')
+  redirect(`/hall/${slug}`)
 }
