@@ -1,30 +1,35 @@
+// app/hall/[slug]/AddMediaForm.tsx
 'use client'
 
 import { useState, useTransition } from 'react'
-import { uploadMedia } from './actions'
+import { addMediaAction } from './actions'
 
-export default function AddMediaForm({ profileId }: { profileId: string }) {
-  const [isPending, startTransition] = useTransition()
+export default function AddMediaForm({ profileId, slug }: { profileId: string, slug: string }) {
+  const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   return (
     <form
-      action={(fd) => {
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const fd = new FormData(e.currentTarget as HTMLFormElement)
+        fd.set('profileId', profileId)
+        fd.set('slug', slug)
         setError(null)
         startTransition(async () => {
-          fd.set('profile_id', profileId)
-          const res = await uploadMedia(fd)
-          if (!res.ok) setError(res.error || 'No se pudo subir la foto')
+          const res = await addMediaAction(fd)
+          if (!res.ok) setError(res.error || 'No se pudo subir')
+          else (e.currentTarget as HTMLFormElement).reset()
         })
       }}
-      className="flex items-center gap-2"
     >
-      <input name="file" type="file" accept="image/*" required className="max-w-[240px]" />
-      <input name="caption" placeholder="Leyenda (opcional)" className="border rounded px-2 py-1" />
-      <button className="btn btn-secondary" disabled={isPending}>
-        {isPending ? 'Subiendo…' : 'Subir foto'}
+      <input type="file" name="file" accept="image/*" required />
+      <input type="text" name="caption" placeholder="Leyenda (opcional)" className="input" />
+      <button className="btn btn-secondary" disabled={pending}>
+        {pending ? 'Subiendo…' : 'Subir foto'}
       </button>
-      {error && <span className="text-red-700 text-sm">{error}</span>}
+      {error && <span className="text-red-600 text-sm">{error}</span>}
     </form>
   )
 }
