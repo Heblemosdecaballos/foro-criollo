@@ -1,52 +1,61 @@
-// app/hall/[slug]/VoteButton.tsx
 'use client'
 
-import { useOptimistic, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { toggleVote } from './actions'
+
+type Props = {
+  profileId: string
+  slug: string
+  initialVoted: boolean
+  initialCount: number
+}
 
 export default function VoteButton({
   profileId,
-  initialCount,
-  initialVoted,
   slug,
-}: {
-  profileId: string
-  initialCount: number
-  initialVoted: boolean
-  slug?: string
-}) {
+  initialVoted,
+  initialCount,
+}: Props) {
   const [pending, startTransition] = useTransition()
+  const [voted, setVoted] = useState(initialVoted)
+  const [count, setCount] = useState(initialCount)
 
-  const [state, setState] = useOptimistic(
-    { count: initialCount, voted: initialVoted },
-    (current, action: { type: 'toggle' }) => {
-      if (action.type === 'toggle') {
-        const voted = !current.voted
-        const count = current.count + (voted ? 1 : -1)
-        return { voted, count: Math.max(0, count) }
+  const handleClick = () => {
+    const prevVoted = voted
+    const prevCount = count
+
+    // Optimista
+    setVoted(!prevVoted)
+    setCount(prevVoted ? prevCount - 1 : prevCount + 1)
+
+    startTransition(async () => {
+      const fd = new FormData()
+      fd.set('profileId', profileId)
+      fd.set('slug', slug)
+
+      const res = await toggleVote(fd)
+
+      if (!res?.ok) {
+        // revertir si falló
+        setVoted(prevVoted)
+        setCount(prevCount)
+        return
       }
-      return current
-    }
-  )
+      // opcional: sincronizar con lo que devuelva el server
+      if (typeof res.voted === 'boolean') setVoted(res.voted)
+      if (typeof res.count === 'number') setCount(res.count)
+    })
+  }
 
   return (
     <button
-      className={`btn ${state.voted ? 'btn-secondary' : 'btn-ghost'}`}
+      type="button"
+      className="btn btn-secondary"
+      onClick={handleClick}
       disabled={pending}
-      onClick={() => {
-        setState({ type: 'toggle' })
-        startTransition(async () => {
-          const res = await toggleVote(profileId, slug)
-          if (!res.ok) {
-            // revertir si falló
-            setState({ type: 'toggle' })
-            console.error(res.error)
-          }
-        })
-      }}
-      title={state.voted ? 'Quitar voto' : 'Votar'}
+      aria-pressed={voted}
     >
-      {state.voted ? '✓ Votaste' : 'Votar'} · {state.count}
+      {voted ? 'Quitar voto' : 'Votar'} ({count})
     </button>
   )
 }
