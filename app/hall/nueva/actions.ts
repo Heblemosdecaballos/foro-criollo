@@ -31,7 +31,7 @@ export async function createHallProfile(formData: FormData) {
 
   if (!title) throw new Error('El título es obligatorio')
   if (!['trocha_galope','trote_galope','trocha_colombia','paso_fino'].includes(gait))
-    throw new Error('Gait inválido')
+    throw new Error('Andar inválido')
 
   const supabase = createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,10 +40,14 @@ export async function createHallProfile(formData: FormData) {
   // slug único
   let slug = slugify(title)
   if (!slug) slug = randomUUID().slice(0, 8)
-  const exists = await supabase.from('hall_profiles').select('id').eq('slug', slug).maybeSingle()
+  const exists = await supabase
+    .from('hall_profiles')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
   if (exists.data) slug = `${slug}-${randomUUID().slice(0, 4)}`
 
-  // Subida de portada si viene archivo
+  // portada opcional al bucket 'hall'
   let image_url: string | null = null
   if (cover && cover.size > 0) {
     const ext = fileExt(cover.name) || 'jpg'
@@ -57,19 +61,26 @@ export async function createHallProfile(formData: FormData) {
     image_url = pub.publicUrl
   }
 
-  const ins = await supabase.from('hall_profiles').insert({
-    slug,
-    title,
-    gait,
-    year,
-    bio,
-    achievements,
-    image_url,
-    status: 'nominee', // todos inician como nominados
-  }).select('slug').single()
+  const ins = await supabase
+    .from('hall_profiles')
+    .insert({
+      slug,
+      title,
+      gait,
+      year,
+      bio,
+      achievements,
+      image_url,
+      status: 'nominee',
+    })
+    .select('slug')
+    .single()
 
   if (ins.error) throw new Error(ins.error.message)
 
   revalidatePath('/hall')
   redirect(`/hall/${slug}`)
 }
+
+// Alias para que tus imports actuales no fallen:
+export { createHallProfile as createNomination }
