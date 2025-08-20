@@ -1,28 +1,47 @@
+// app/historias/[id]/CommentForm.tsx
 'use client'
 
 import { useState, useTransition } from 'react'
-import { createStoryCommentAction } from './actions'
+import { addStoryComment } from './actions'
 
-export default function CommentForm({ storyId }: { storyId: string }) {
-  const [error, setError] = useState<string | null>(null)
+export default function CommentForm({
+  storyId,
+  viewerName,
+}: {
+  storyId: string
+  viewerName?: string | null
+}) {
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <form
       action={(fd) => {
         setError(null)
         startTransition(async () => {
-          const res = await createStoryCommentAction(storyId, fd)
+          fd.set('story_id', storyId)
+          const res = await addStoryComment(fd)
           if (!res.ok) setError(res.error || 'No se pudo comentar')
         })
       }}
       className="space-y-3"
     >
-      <textarea name="content" placeholder="Escribe un comentario…" className="w-full border rounded px-3 py-2 min-h-[120px]" />
-      <button className="px-4 py-2 rounded bg-green-700 text-white" disabled={isPending}>
-        {isPending ? 'Publicando…' : 'Comentar'}
+      <div className="text-sm text-muted">
+        Comentando como <strong>{viewerName ?? 'Usuario'}</strong>
+      </div>
+
+      <textarea
+        name="content"
+        className="w-full min-h-[150px] border rounded px-3 py-2"
+        placeholder="Escribe un comentario…"
+        required
+      />
+
+      <button type="submit" className="btn btn-secondary" disabled={isPending}>
+        {isPending ? 'Enviando…' : 'Comentar'}
       </button>
-      {error && <p className="text-red-600">{error}</p>}
+
+      {error && <p className="text-red-700">{error}</p>}
     </form>
   )
 }
