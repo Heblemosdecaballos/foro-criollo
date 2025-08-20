@@ -10,6 +10,7 @@ function fileExt(name: string) {
   return p === -1 ? '' : name.slice(p + 1)
 }
 
+/** Subir foto a la galería del perfil (bucket 'hall') */
 export async function addMediaAction(formData: FormData) {
   const profileId = String(formData.get('profileId') || '')
   const slug = String(formData.get('slug') || '')
@@ -26,7 +27,7 @@ export async function addMediaAction(formData: FormData) {
   const ext = fileExt(file.name) || 'jpg'
   const path = `${profileId}/${randomUUID()}.${ext}`
 
-  // 1) Subir a Storage
+  // 1) subir a storage
   const up = await supabase.storage.from('hall').upload(path, file, {
     contentType: file.type || 'image/jpeg',
     cacheControl: '3600',
@@ -34,11 +35,11 @@ export async function addMediaAction(formData: FormData) {
   })
   if (up.error) return { ok: false, error: up.error.message }
 
-  // 2) URL pública
+  // 2) url pública
   const { data: pub } = supabase.storage.from('hall').getPublicUrl(path)
   const url = pub.publicUrl
 
-  // 3) Registrar en BD
+  // 3) registrar en BD
   const ins = await supabase.from('hall_media').insert({
     profile_id: profileId,
     url,
@@ -47,7 +48,9 @@ export async function addMediaAction(formData: FormData) {
   })
   if (ins.error) return { ok: false, error: ins.error.message }
 
-  // Revalidar la página del perfil
-  revalidatePath(`/hall/${slug}`)
+  if (slug) revalidatePath(`/hall/${slug}`)
   return { ok: true }
 }
+
+/** Agregar comentario al perfil del Hall */
+export asy
