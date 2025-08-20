@@ -20,9 +20,10 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
   const content =
     (thread as any).content ?? (thread as any).body ?? (thread as any).text ?? (thread as any).description ?? ''
 
+  // 🔎 Traer autor desde profiles gracias al FK: author:profiles(...)
   const { data: comments } = await supabase
     .from('thread_comments')
-    .select('id, content, author_id, created_at')
+    .select('id, content, created_at, author:profiles(id, username, full_name)')
     .eq('thread_id', params.id)
     .order('created_at', { ascending: true })
 
@@ -47,14 +48,21 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
           <p className="text-gray-600">Sé el primero en comentar.</p>
         ) : (
           <ul className="space-y-3">
-            {comments!.map(c => (
-              <li key={c.id} className="card p-3">
-                <div className="text-sm text-muted mb-1">
-                  {new Date(c.created_at as any).toLocaleString('es-CO')}
-                </div>
-                <div className="whitespace-pre-wrap">{c.content}</div>
-              </li>
-            ))}
+            {comments!.map((c) => {
+              const authorName =
+                (c as any).author?.full_name ||
+                (c as any).author?.username ||
+                'Autor'
+              return (
+                <li key={(c as any).id} className="card p-3">
+                  <div className="flex items-center justify-between text-sm text-muted mb-1">
+                    <span>{authorName}</span>
+                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
+                </li>
+              )
+            })}
           </ul>
         )}
 
