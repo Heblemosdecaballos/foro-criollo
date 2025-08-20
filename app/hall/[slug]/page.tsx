@@ -1,178 +1,181 @@
 // app/hall/[slug]/page.tsx
-import { notFound } from 'next/navigation'
-import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 import VoteButton from './VoteButton'
-import HallCommentForm from './HallCommentForm'
 import AddMediaForm from './AddMediaForm'
-import { GAITS, assertGait, type Gait } from '../_gaits'
+import HallCommentForm from './HallCommentForm'
 
-export const revalidate = 0
+type Params = { params: { slug: string } }
 
-type HallStatus = 'nominee' | 'inducted' | 'archived'
+export default async function HallProfilePage({ params }: Params) {
+  const supabase = createSupabaseServerClient()
 
-type HallProfile = {
-  id: string
-  slug: string
-  title: string
-  gait: Gait
-  year: number | null
-  bio: string | null
-  achievements: string | null
-  image_url: string | null
-  votes_count: number
-  status: HallStatus
-  created_at: string
-}
-
-export default async function HallProfilePage({ params }: { params: { slug: string } }) {
-  const supabase = createSupabaseServerClientReadOnly()
-
-  // ── Perfil del caballo
-  const { data: profileRaw, error: profErr } = await supabase
+  // Perfil por slug
+  const { data: profile, error: pErr } = await supabase
     .from('hall_profiles')
-    .select('id, slug, title, gait, year, bio, achievements, image_url, votes_count, status, created_at')
+    .select(
+      `
+      id,
+      slug,
+      title,
+      gait,
+      year,
+      status,
+      image_url,
+      votes_count
+    `
+    )
     .eq('slug', params.slug)
-    .maybeSingle()
+    .single()
 
-  if (profErr) console.error(profErr)
-  if (!profileRaw) return notFound()
-
-  const profile: HallProfile = {
-    ...(profileRaw as any),
-    gait: assertGait((profileRaw as any).gait),
+  if (pErr || !profile) {
+    return (
+      <div className="container py-12">
+        <h1 className="text-2xl font-semibold">Miembro no encontrado</h1>
+      </div>
+    )
   }
 
-  // ── Sesión: nombre del usuario y si ya votó
-  const { data: { session } } = await supabase.auth.getSession()
-  let viewerName: string | null = null
-  let alreadyVoted = false
+  // Media de la galería
+  const { data: media } = await supabase
+    .from('hall_media')
+    .select('id, kind, url, youtube_id, caption, created_at')
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: true })
 
-  if (session) {
-    const [{ data: prof }, { data: vote }] = await Promise.all([
-      supabase.from('profiles').select('full_name, username').eq('id', session.user.id).maybeSingle(),
-      supabase.from('hall_votes').select('profile_id').eq('profile_id', profile.id).eq('user_id', session.user.id).maybeSingle(),
-    ])
-    viewerName = (prof as any)?.full_name || (prof as any)?.username || 'Usuario'
-    alreadyVoted = Boolean(vote)
+  // Comentarios (mostramos abajo)
+  const { data: comments } = await supabase
+    .from('hall_comments')
+    .select(
+      `
+      id,
+      content,
+      created_at,
+      profiles:author_id (
+        id,
+        full_name
+      )
+    `
+    )
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: true })
+
+  const GAITS: Record<string, string> = {
+    trocha_galope: 'TROCHA Y GALOPE',
+    trote_galope: 'TROTE Y GALOPE',
+    trocha_colombia: 'TROCHA COLOMBIA',
+    paso_fino: 'PASO FINO COLOMBIANO',
   }
-
-  // ── Comentarios y galería
-  const [{ data: comments }, { data: media }] = await Promise.all([
-    supabase
-      .from('hall_comments')
-      .select('id, content, created_at, author:profiles(id, full_name, username)')
-      .eq('profile_id', profile.id)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('hall_media')
-      .select('id, url, caption, created_at, added:profiles(id, full_name, username)')
-      .eq('profile_id', profile.id)
-      .order('created_at', { ascending: false }),
-  ])
-
-  const gaitLabel = GAITS[profile.gait]
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="grid md:grid-cols-2 gap-6 items-start">
-        <div className="aspect-[16/9] bg-black/5 overflow-hidden rounded">
-          {profile.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.image_url} alt={profile.title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full grid place-items-center text-sm text-muted">Sin imagen</div>
-          )}
-        </div>
-
+    <div className="container py-10 space-y-10">
+      {/* Cabecera */}
+      <header className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         <div className="space-y-2">
           <div className="text-xs uppercase text-muted">
-            {gaitLabel} · {profile.year ?? '—'}
+            {GAITS[profile.gait] || profile.gait}{' '}
+            {profile.year ? `· ${profile.year}` : ''}
           </div>
-          <h1 className="text-3xl font-bold">{profile.title}</h1>
+          <h1 className="text-3xl font-semibold">{profile.title}</h1>
           <div className="text-sm text-muted">Estado: {profile.status}</div>
-
-          <div className="flex items-center gap-3 pt-3">
+          <div className="pt-2">
+            {/* Botón de votos (UI optimista) */}
             <VoteButton
               profileId={profile.id}
-              initialCount={profile.votes_count}
-              initialVoted={alreadyVoted}
               slug={profile.slug}
+              initialVoted={false}
+              initialCount={profile.votes_count ?? 0}
             />
           </div>
         </div>
-      </div>
 
-      {(profile.bio || profile.achievements) && (
-        <section className="grid md:grid-cols-2 gap-6">
-          <article className="prose max-w-none whitespace-pre-wrap">
-            <h2>Biografía</h2>
-            {profile.bio || <em>Sin contenido.</em>}
-          </article>
-          <article className="prose max-w-none whitespace-pre-wrap">
-            <h2>Logros</h2>
-            {profile.achievements || <em>—</em>}
-          </article>
-        </section>
-      )}
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Galería</h2>
-          {session && profile.status === 'nominee' && (
-            <AddMediaForm profileId={profile.id} slug={profile.slug} />
+        {/* Portada: SIN recortes, respetando proporción original */}
+        <div className="w-full">
+          {profile.image_url ? (
+            <img
+              src={profile.image_url}
+              alt={profile.title}
+              className="w-full h-auto rounded-md shadow-sm"
+              loading="eager"
+              decoding="async"
+            />
+          ) : (
+            <div className="w-full h-auto rounded-md bg-neutral-100 p-8 text-center text-sm text-muted">
+              Sin imagen
+            </div>
           )}
         </div>
+      </header>
 
-        {!media?.length ? (
-          <p className="text-gray-600">Aún no hay fotos.</p>
-        ) : (
-          <ul className="grid gap-4 md:grid-cols-3">
-            {media!.map((m) => {
-              const by = (m as any).added?.full_name || (m as any).added?.username || 'Usuario'
-              return (
-                <li key={(m as any).id} className="card overflow-hidden">
-                  <div className="aspect-[16/10] bg-black/5 overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={(m as any).url} alt={(m as any).caption || ''} className="w-full h-full object-cover" />
+      {/* Galería (imágenes y videos) */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Galería</h2>
+
+        {/* Formulario para subir foto (opcional) */}
+        <AddMediaForm profileId={profile.id} slug={profile.slug} />
+
+        {media && media.length > 0 ? (
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {media.map((m: any) => (
+              <li key={m.id} className="space-y-2">
+                {m.kind === 'image' ? (
+                  // -------- NO RECORTAR: object-contain y h-auto -----------
+                  <img
+                    src={m.url}
+                    alt={m.caption ?? ''}
+                    className="w-full h-auto rounded-md shadow-sm object-contain"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  // Video de YouTube embebido
+                  <div className="relative w-full rounded-md overflow-hidden bg-black">
+                    {/* 16:9 sin recortes */}
+                    <div className="aspect-video">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${m.youtube_id}`}
+                        title="YouTube video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    </div>
                   </div>
-                  <div className="p-3 text-sm">
-                    {(m as any).caption && <div className="mb-1">{(m as any).caption}</div>}
-                    <div className="text-muted">por {by}</div>
-                  </div>
-                </li>
-              )
-            })}
+                )}
+                {m.caption ? (
+                  <p className="text-sm text-muted">{m.caption}</p>
+                ) : null}
+              </li>
+            ))}
           </ul>
+        ) : (
+          <p className="text-muted">Aún no hay fotos.</p>
         )}
       </section>
 
+      {/* Comentarios */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Comentarios</h2>
-
-        {!comments?.length ? (
-          <p className="text-gray-600">Sé el primero en comentar.</p>
-        ) : (
+        {comments && comments.length > 0 ? (
           <ul className="space-y-3">
-            {comments!.map((c) => {
-              const authorName = (c as any).author?.full_name || (c as any).author?.username || 'Autor'
-              return (
-                <li key={(c as any).id} className="card p-3">
-                  <div className="flex items-center justify-between text-sm text-muted mb-1">
-                    <span>{authorName}</span>
-                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
-                  </div>
-                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
-                </li>
-              )
-            })}
+            {comments.map((c: any) => (
+              <li
+                key={c.id}
+                className="rounded-lg border bg-white/60 px-4 py-3 shadow-sm"
+              >
+                <div className="text-xs text-muted mb-1">
+                  {c.profiles?.full_name || 'Usuario'} ·{' '}
+                  {new Date(c.created_at).toLocaleString()}
+                </div>
+                <div className="text-sm">{c.content}</div>
+              </li>
+            ))}
           </ul>
+        ) : (
+          <p className="text-muted">Sé el primero en comentar.</p>
         )}
 
-        {session ? (
-          <HallCommentForm profileId={profile.id} slug={profile.slug} viewerName={viewerName} />
-        ) : (
-          <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
-        )}
+        {/* Formulario de comentario */}
+        <HallCommentForm profileId={profile.id} slug={profile.slug} />
       </section>
     </div>
   )
