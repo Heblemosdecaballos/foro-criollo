@@ -9,7 +9,7 @@ type Params = { params: { slug: string } }
 export default async function HallProfilePage({ params }: Params) {
   const supabase = createSupabaseServerClient()
 
-  // Perfil por slug
+  // 1) Perfil por slug
   const { data: profile, error: pErr } = await supabase
     .from('hall_profiles')
     .select(
@@ -35,14 +35,14 @@ export default async function HallProfilePage({ params }: Params) {
     )
   }
 
-  // Media de la galería
+  // 2) Media de la galería
   const { data: media } = await supabase
     .from('hall_media')
     .select('id, kind, url, youtube_id, caption, created_at')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: true })
 
-  // Comentarios (mostramos abajo)
+  // 3) Comentarios
   const { data: comments } = await supabase
     .from('hall_comments')
     .select(
@@ -77,8 +77,8 @@ export default async function HallProfilePage({ params }: Params) {
           </div>
           <h1 className="text-3xl font-semibold">{profile.title}</h1>
           <div className="text-sm text-muted">Estado: {profile.status}</div>
+
           <div className="pt-2">
-            {/* Botón de votos (UI optimista) */}
             <VoteButton
               profileId={profile.id}
               slug={profile.slug}
@@ -88,7 +88,7 @@ export default async function HallProfilePage({ params }: Params) {
           </div>
         </div>
 
-        {/* Portada: SIN recortes, respetando proporción original */}
+        {/* Portada principal SIN recortes */}
         <div className="w-full">
           {profile.image_url ? (
             <img
@@ -106,41 +106,42 @@ export default async function HallProfilePage({ params }: Params) {
         </div>
       </header>
 
-      {/* Galería (imágenes y videos) */}
+      {/* Galería con tarjetas uniformes (16:9) SIN recortes */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Galería</h2>
 
-        {/* Formulario para subir foto (opcional) */}
+        {/* Subir foto */}
         <AddMediaForm profileId={profile.id} slug={profile.slug} />
 
         {media && media.length > 0 ? (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((m: any) => (
               <li key={m.id} className="space-y-2">
-                {m.kind === 'image' ? (
-                  // -------- NO RECORTAR: object-contain y h-auto -----------
-                  <img
-                    src={m.url}
-                    alt={m.caption ?? ''}
-                    className="w-full h-auto rounded-md shadow-sm object-contain"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  // Video de YouTube embebido
-                  <div className="relative w-full rounded-md overflow-hidden bg-black">
-                    {/* 16:9 sin recortes */}
-                    <div className="aspect-video">
+                <div className="relative w-full rounded-xl overflow-hidden border bg-neutral-100 shadow-sm">
+                  {/* Contenedor con relación 16:9 para TODAS las tarjetas */}
+                  <div className="aspect-video">
+                    {m.kind === 'image' ? (
+                      // Imagen: SIN recorte (object-contain dentro del marco)
+                      <img
+                        src={m.url}
+                        alt={m.caption ?? ''}
+                        className="absolute inset-0 w-full h-full object-contain"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      // YouTube: ocupa todo el marco (es 16:9)
                       <iframe
                         src={`https://www.youtube.com/embed/${m.youtube_id}`}
                         title="YouTube video"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
-                        className="w-full h-full"
+                        className="absolute inset-0 w-full h-full"
                       />
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
+
                 {m.caption ? (
                   <p className="text-sm text-muted">{m.caption}</p>
                 ) : null}
@@ -155,6 +156,7 @@ export default async function HallProfilePage({ params }: Params) {
       {/* Comentarios */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Comentarios</h2>
+
         {comments && comments.length > 0 ? (
           <ul className="space-y-3">
             {comments.map((c: any) => (
