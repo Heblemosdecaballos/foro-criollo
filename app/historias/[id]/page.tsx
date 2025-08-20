@@ -8,12 +8,12 @@ export const revalidate = 0
 export default async function StoryDetail({ params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClientReadOnly()
 
-  // Intentar 'stories', si no 'posts'
+  // Busca la historia en 'stories' o 'posts'
   let story: any = null
   for (const table of ['stories', 'posts'] as const) {
     const r = await supabase.from(table).select('*').eq('id', params.id).maybeSingle()
     if (r.data) { story = r.data; break }
-    if (r.error && r.error.code !== 'PGRST116') { // ignora "no rows"
+    if (r.error && r.error.code !== 'PGRST116') {
       return <div className="container p-6 text-red-700">Error: {r.error.message}</div>
     }
   }
@@ -21,7 +21,6 @@ export default async function StoryDetail({ params }: { params: { id: string } }
 
   const content = story.content ?? story.body ?? story.text ?? story.description ?? ''
 
-  // Comentarios con autor desde profiles
   const { data: comments } = await supabase
     .from('story_comments')
     .select('id, content, created_at, author:profiles(id, username, full_name)')
@@ -29,6 +28,12 @@ export default async function StoryDetail({ params }: { params: { id: string } }
     .order('created_at', { ascending: true })
 
   const { data: { session } } = await supabase.auth.getSession()
+  let viewerName: string | null = null
+  if (session) {
+    const { data: prof } = await supabase
+      .from('profiles').select('full_name, username').eq('id', session.user.id).maybeSingle()
+    viewerName = prof?.full_name || prof?.username || 'Usuario'
+  }
 
   return (
     <div className="container p-6 space-y-6">
@@ -68,7 +73,7 @@ export default async function StoryDetail({ params }: { params: { id: string } }
         )}
 
         {session ? (
-          <CommentForm storyId={params.id} />
+          <CommentForm storyId={params.id} viewerName={viewerName} />
         ) : (
           <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
         )}
