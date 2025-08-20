@@ -1,48 +1,40 @@
 // app/historias/[id]/page.tsx
 import { notFound } from 'next/navigation'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
 import CommentForm from './CommentForm'
 
 export const revalidate = 0
 
 export default async function StoryDetail({ params }: { params: { id: string } }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = createSupabaseServerClientReadOnly()
 
-  // Intentamos leer en 'stories' y si no, en 'posts'
-  const fetchOne = async (table: 'stories' | 'posts') =>
-    supabase.from(table).select('*').eq('id', params.id).maybeSingle()
-
+  // Intentar 'stories', si no 'posts'
   let story: any = null
-  let error: any = null
-
-  let r = await fetchOne('stories')
-  if (r.data) story = r.data; else error = r.error
-
-  if (!story) {
-    r = await fetchOne('posts')
-    if (r.data) story = r.data; else error = r.error
-  }
-
-  if (!story && error) {
-    return <div className="max-w-3xl mx-auto p-6 text-red-700">Error: {error.message}</div>
+  for (const table of ['stories', 'posts'] as const) {
+    const r = await supabase.from(table).select('*').eq('id', params.id).maybeSingle()
+    if (r.data) { story = r.data; break }
+    if (r.error && r.error.code !== 'PGRST116') { // ignora "no rows"
+      return <div className="container p-6 text-red-700">Error: {r.error.message}</div>
+    }
   }
   if (!story) return notFound()
 
   const content = story.content ?? story.body ?? story.text ?? story.description ?? ''
 
+  // Comentarios con autor desde profiles
   const { data: comments } = await supabase
     .from('story_comments')
-    .select('id, content, author_id, created_at')
+    .select('id, content, created_at, author:profiles(id, username, full_name)')
     .eq('story_id', params.id)
     .order('created_at', { ascending: true })
 
   const { data: { session } } = await supabase.auth.getSession()
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="container p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">{story.title}</h1>
-        <div className="text-sm text-gray-500 mb-4">
+        <div className="text-sm text-muted mb-4">
           {new Date(story.created_at as any).toLocaleString('es-CO')}
         </div>
         <article className="prose max-w-none whitespace-pre-wrap">
@@ -57,14 +49,21 @@ export default async function StoryDetail({ params }: { params: { id: string } }
           <p className="text-gray-600">Sé el primero en comentar.</p>
         ) : (
           <ul className="space-y-3">
-            {comments!.map(c => (
-              <li key={c.id} className="border rounded bg-white p-3">
-                <div className="text-sm text-gray-500 mb-1">
-                  {new Date(c.created_at as any).toLocaleString('es-CO')}
-                </div>
-                <div className="whitespace-pre-wrap">{c.content}</div>
-              </li>
-            ))}
+            {comments!.map((c) => {
+              const authorName =
+                (c as any).author?.full_name ||
+                (c as any).author?.username ||
+                'Autor'
+              return (
+                <li key={(c as any).id} className="card p-3">
+                  <div className="flex items-center justify-between text-sm text-muted mb-1">
+                    <span>{authorName}</span>
+                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
+                </li>
+              )
+            })}
           </ul>
         )}
 
