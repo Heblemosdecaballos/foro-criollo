@@ -27,11 +27,9 @@ export async function createThreadAction(formData: FormData): Promise<ActionResp
       revalidatePath('/foro')
       return { ok: true, id: data.id }
     }
-
     const msg = String(error?.message || '').toLowerCase()
     if (field && (msg.includes('does not exist') || msg.includes('schema'))) continue
     break
   }
-
   return { ok: false, error: 'insert-failed' }
 }
