@@ -1,211 +1,120 @@
-// app/admin/hall/[slug]/page.tsx
-import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import {
-  updateProfile,
-  updateMediaCaption,
-  deleteMedia,
-  uploadCover,
-  addMediaAdmin,
-} from './actions' // Asegúrate de que este archivo y exports existen
+/* app/admin/hall/[slug]/page.tsx */
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-type Params = { params: { slug: string } }
+type Params = { params: { slug: string } };
 
-export default async function AdminHallEditor({ params }: Params) {
-  const supabase = createSupabaseServerClient()
+export default async function HallAdminEditPage({ params }: Params) {
+  const supabase = createSupabaseServerClient();
 
-  // 1) Usuario
+  // sesión
   const {
-    data: { user },
-    error: authErr,
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.user?.id) redirect("/admin?m=signin");
 
-  if (authErr || !user) {
-    // si no hay sesión, a login
-    redirect('/auth')
-  }
+  // admin?
+  const { data: isAdmin } = await supabase.rpc("is_admin", { uid: session.user.id });
+  if (!isAdmin) redirect("/admin?m=forbidden");
 
-  // 2) ¿Es admin?
-  const { data: me, error: meErr } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (meErr) {
-    // Muestra el error en la UI sin romper el render
-    return (
-      <div className="container py-10">
-        <h2 className="text-xl font-semibold">Error verificando admin</h2>
-        <pre className="bg-red-50 p-4 rounded text-red-700 whitespace-pre-wrap text-sm">
-          {meErr.message}
-        </pre>
-      </div>
+  // perfil
+  const { data: profile, error: profErr } = await supabase
+    .from("hall_profiles")
+    .select(
+      `
+      id, slug, title, year, gait, cover_url, votes_count
+    `
     )
-  }
+    .eq("slug", params.slug)
+    .maybeSingle();
 
-  if (!me?.is_admin) {
-    redirect('/')
-  }
-
-  // 3) Carga del perfil
-  const { data: profile, error: pErr } = await supabase
-    .from('hall_profiles')
-    .select('id, slug, title, gait, year, status, image_url')
-    .eq('slug', params.slug)
-    .maybeSingle()
-
-  if (pErr) {
+  // si falló RLS o no existe, no reventamos la página
+  if (profErr || !profile) {
     return (
-      <div className="container py-10">
-        <h2 className="text-xl font-semibold">Error cargando perfil</h2>
-        <pre className="bg-red-50 p-4 rounded text-red-700 whitespace-pre-wrap text-sm">
-          {pErr.message}
-        </pre>
-        <a href="/admin" className="underline">Volver</a>
+      <div className="container py-10 space-y-6">
+        <h1 className="text-2xl font-semibold">Editor del Hall</h1>
+        <div className="rounded-lg border bg-red-50 p-4 text-sm">
+          <div className="font-medium mb-1">No se pudo cargar el perfil</div>
+          <div>{profErr?.message ?? "Perfil inexistente o sin permisos"}</div>
+        </div>
+        <Link href="/admin" className="btn btn-primary">Volver al panel</Link>
       </div>
-    )
+    );
   }
 
-  if (!profile) {
-    // si el slug no existe
-    redirect('/admin')
-  }
-
-  // 4) Carga de media (no debe romper)
-  let media: any[] = []
-  let mediaErrMsg: string | null = null
-  try {
-    const { data: m, error: mErr } = await supabase
-      .from('hall_media')
-      .select('id, kind, url, youtube_id, caption, created_at')
-      .eq('profile_id', profile.id)
-      .order('created_at', { ascending: true })
-
-    if (mErr) {
-      mediaErrMsg = mErr.message
-    } else {
-      media = m ?? []
-    }
-  } catch (e: any) {
-    mediaErrMsg = e?.message ?? 'Error desconocido cargando galería'
-  }
+  // medios (para listar lo que ya subiste)
+  const { data: media = [] } = await supabase
+    .from("hall_media")
+    .select("id, url, caption, created_at")
+    .eq("profile_id", profile.id)
+    .order("created_at", { ascending: false });
 
   return (
-    <div className="container py-8 space-y-10">
+    <div className="container py-8 space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Editar: {profile.title}</h2>
-        <a href="/admin" className="text-sm underline">Volver</a>
+        <h1 className="text-2xl font-semibold">Editor del Hall</h1>
+        <Link href={`/hall/${profile.slug}`} className="text-sm underline">
+          Ver ficha pública
+        </Link>
       </div>
 
-      {/* DATOS DEL PERFIL */}
-      <form action={updateProfile} className="rounded-md border bg-white/60 p-4 space-y-3">
-        <input type="hidden" name="profileId" value={profile.id} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="text-sm">
-            Título
-            <input name="title" defaultValue={profile.title ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
-          </label>
-          <label className="text-sm">
-            Año
-            <input name="year" type="number" defaultValue={profile.year ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
-          </label>
-          <label className="text-sm">
-            Gait (trocha_galope, trote_galope, trocha_colombia, paso_fino)
-            <input name="gait" defaultValue={profile.gait ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
-          </label>
-          <label className="text-sm">
-            Estado (nominee / inducted)
-            <input name="status" defaultValue={profile.status ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
-          </label>
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-4">
+          <div className="rounded-xl border overflow-hidden">
+            {profile.cover_url ? (
+              <Image
+                src={profile.cover_url}
+                alt={profile.title}
+                width={1400}
+                height={900}
+                className="w-full h-auto object-contain"
+              />
+            ) : (
+              <div className="aspect-[4/3] bg-muted/20" />
+            )}
+          </div>
+
+          {/* Aquí podrías poner tu formulario de edición (título, año, andar, etc.) */}
+          <div className="rounded-xl border p-4 space-y-3">
+            <div className="text-sm text-muted">ID: {profile.id}</div>
+            <div className="text-sm text-muted">Slug: {profile.slug}</div>
+            <div className="text-sm text-muted">Andar: {profile.gait}</div>
+            <div className="text-sm text-muted">Año: {profile.year ?? "-"}</div>
+          </div>
         </div>
-        <button className="btn btn-primary">Guardar datos</button>
-      </form>
 
-      {/* PORTADA */}
-      <div className="rounded-md border bg-white/60 p-4 space-y-3">
-        <h3 className="font-medium">Portada</h3>
-        {profile.image_url ? (
-          <img src={profile.image_url} alt="" className="max-w-md h-auto rounded" />
-        ) : <div className="text-sm text-muted">Sin portada</div>}
-        <form action={uploadCover} className="flex items-center gap-3">
-          <input type="hidden" name="profileId" value={profile.id} />
-          <input type="file" name="cover" accept="image/*" />
-          <button className="btn btn-secondary">Subir nueva portada</button>
-        </form>
-      </div>
-
-      {/* SUBIR A GALERÍA */}
-      <div className="rounded-md border bg-white/60 p-4 space-y-3">
-        <h3 className="font-medium">Agregar a galería</h3>
-        <form action={addMediaAdmin} className="flex flex-col gap-3">
-          <input type="hidden" name="profileId" value={profile.id} />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input type="file" name="file" accept="image/*" />
-            <input name="caption" placeholder="Leyenda (opcional)" className="w-full rounded-md border px-3 py-2" />
-          </div>
-          <div className="text-sm text-muted">
-            Para YouTube, deja el archivo vacío y envía el ID de YouTube aquí:
-          </div>
-          <input name="youtube_id" placeholder="YouTube ID (opcional)" className="w-full rounded-md border px-3 py-2" />
-          <button className="btn btn-secondary w-fit">Agregar</button>
-        </form>
-      </div>
-
-      {/* GALERÍA */}
-      <div className="space-y-3">
-        <h3 className="font-medium">Galería</h3>
-
-        {mediaErrMsg ? (
-          <pre className="bg-yellow-50 p-4 rounded text-yellow-800 whitespace-pre-wrap text-sm">
-            {mediaErrMsg}
-          </pre>
-        ) : null}
-
-        {media?.length > 0 ? (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {media.map((m: any) => (
-              <li key={m.id} className="rounded-md border bg-white/60 p-3 space-y-2">
-                <div className="relative w-full rounded overflow-hidden bg-neutral-100">
-                  <div className="aspect-video">
-                    {m.kind === 'image' ? (
-                      <img src={m.url} alt={m.caption ?? ''} className="absolute inset-0 w-full h-full object-contain" />
-                    ) : (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${m.youtube_id}`}
-                        className="absolute inset-0 w-full h-full"
-                        allowFullScreen
-                      />
-                    )}
+        <aside className="space-y-4">
+          <h2 className="text-lg font-semibold">Medios</h2>
+          {media.length === 0 ? (
+            <p className="text-muted text-sm">Aún no hay archivos.</p>
+          ) : (
+            <ul className="space-y-3">
+              {media.map((m) => (
+                <li key={m.id} className="rounded-lg border p-2 flex gap-3">
+                  <div className="w-24 shrink-0 overflow-hidden rounded">
+                    <Image
+                      src={m.url}
+                      alt={m.caption ?? profile.title}
+                      width={200}
+                      height={150}
+                      className="w-full h-auto object-contain"
+                    />
                   </div>
-                </div>
-
-                <form action={updateMediaCaption} className="flex items-center gap-2">
-                  <input type="hidden" name="mediaId" value={m.id} />
-                  <input
-                    name="caption"
-                    defaultValue={m.caption ?? ''}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
-                    placeholder="Leyenda"
-                  />
-                  <button className="btn btn-secondary">Guardar</button>
-                </form>
-
-                <form action={deleteMedia}>
-                  <input type="hidden" name="mediaId" value={m.id} />
-                  <button className="btn btn-danger" onClick={(e) => {
-                    if (!confirm('¿Eliminar este elemento?')) e.preventDefault()
-                  }}>
-                    Eliminar
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-muted">Aún no hay elementos.</p>
-        )}
-      </div>
+                  <div className="text-sm">
+                    <div className="font-medium">{m.caption ?? "(Sin leyenda)"}</div>
+                    <div className="text-muted">{new Date(m.created_at).toLocaleString()}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href={`/hall/${profile.slug}`} className="btn btn-secondary w-full">
+            Abrir ficha pública
+          </Link>
+        </aside>
+      </section>
     </div>
-  )
+  );
 }
