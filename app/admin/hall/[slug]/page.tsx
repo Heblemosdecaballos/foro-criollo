@@ -7,27 +7,47 @@ type Params = { params: { slug: string } }
 
 export default async function AdminHallEditor({ params }: Params) {
   const supabase = createSupabaseServerClient()
+
+  // 1) Auth
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth')
 
-  const { data: me } = await supabase
-    .from('profiles').select('is_admin').eq('id', user.id).single()
-  if (!me?.is_admin) redirect('/')
+  // 2) Admin check
+  const { data: me, error: meErr } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
 
-  const { data: profile, error } = await supabase
+  if (meErr || !me?.is_admin) redirect('/')
+
+  // 3) Perfil
+  const { data: profile, error: pErr } = await supabase
     .from('hall_profiles')
     .select('id, slug, title, gait, year, status, image_url')
-    .eq('slug', params.slug).single()
-  if (error || !profile) redirect('/admin')
+    .eq('slug', params.slug)
+    .single()
 
-  const { data: media } = await supabase
-    .from('hall_media')
-    .select('id, kind, url, youtube_id, caption, created_at')
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: true })
+  if (pErr || !profile) {
+    // Si no existe el perfil, vuelve a /admin
+    redirect('/admin')
+  }
+
+  // 4) Media (si la tabla no tiene alguna columna, no rompas el render)
+  let media: any[] = []
+  try {
+    const { data: m, error: mErr } = await supabase
+      .from('hall_media')
+      .select('id, kind, url, youtube_id, caption, created_at')
+      .eq('profile_id', profile.id)
+      .order('created_at', { ascending: true })
+    if (!mErr && m) media = m
+  } catch {
+    media = []
+  }
 
   return (
-    <div className="space-y-10">
+    <div className="container py-8 space-y-10">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Editar: {profile.title}</h2>
         <a href="/admin" className="text-sm underline">Volver</a>
@@ -39,7 +59,7 @@ export default async function AdminHallEditor({ params }: Params) {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm">
             Título
-            <input name="title" defaultValue={profile.title} className="mt-1 w-full rounded-md border px-3 py-2" />
+            <input name="title" defaultValue={profile.title ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
           </label>
           <label className="text-sm">
             Año
@@ -47,11 +67,11 @@ export default async function AdminHallEditor({ params }: Params) {
           </label>
           <label className="text-sm">
             Gait (trocha_galope, trote_galope, trocha_colombia, paso_fino)
-            <input name="gait" defaultValue={profile.gait} className="mt-1 w-full rounded-md border px-3 py-2" />
+            <input name="gait" defaultValue={profile.gait ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
           </label>
           <label className="text-sm">
             Estado (nominee / inducted)
-            <input name="status" defaultValue={profile.status} className="mt-1 w-full rounded-md border px-3 py-2" />
+            <input name="status" defaultValue={profile.status ?? ''} className="mt-1 w-full rounded-md border px-3 py-2" />
           </label>
         </div>
         <button className="btn btn-primary">Guardar datos</button>
@@ -87,10 +107,10 @@ export default async function AdminHallEditor({ params }: Params) {
         </form>
       </div>
 
-      {/* GALERÍA (editar leyendas / eliminar) */}
+      {/* GALERÍA */}
       <div className="space-y-3">
         <h3 className="font-medium">Galería</h3>
-        {media && media.length > 0 ? (
+        {media?.length > 0 ? (
           <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {media.map((m: any) => (
               <li key={m.id} className="rounded-md border bg-white/60 p-3 space-y-2">
