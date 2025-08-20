@@ -9,7 +9,27 @@ type Params = { params: { slug: string } }
 export default async function HallProfilePage({ params }: Params) {
   const supabase = createSupabaseServerClient()
 
-  // 1) Perfil por slug
+  // 0) Usuario actual para mostrar su nombre en el placeholder del comentario
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let viewerName = 'Usuario'
+  if (user) {
+    const { data: viewerProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', user.id)
+      .single()
+
+    viewerName =
+      viewerProfile?.full_name ??
+      user.user_metadata?.name ??
+      user.email?.split('@')[0] ??
+      'Usuario'
+  }
+
+  // 1) Perfil
   const { data: profile, error: pErr } = await supabase
     .from('hall_profiles')
     .select(
@@ -35,7 +55,7 @@ export default async function HallProfilePage({ params }: Params) {
     )
   }
 
-  // 2) Media de la galería
+  // 2) Galería
   const { data: media } = await supabase
     .from('hall_media')
     .select('id, kind, url, youtube_id, caption, created_at')
@@ -88,7 +108,7 @@ export default async function HallProfilePage({ params }: Params) {
           </div>
         </div>
 
-        {/* Portada principal SIN recortes */}
+        {/* Portada SIN recortes */}
         <div className="w-full">
           {profile.image_url ? (
             <img
@@ -106,11 +126,10 @@ export default async function HallProfilePage({ params }: Params) {
         </div>
       </header>
 
-      {/* Galería con tarjetas uniformes (16:9) SIN recortes */}
+      {/* Galería (tarjetas 16:9 sin recortar imágenes) */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Galería</h2>
 
-        {/* Subir foto */}
         <AddMediaForm profileId={profile.id} slug={profile.slug} />
 
         {media && media.length > 0 ? (
@@ -118,10 +137,8 @@ export default async function HallProfilePage({ params }: Params) {
             {media.map((m: any) => (
               <li key={m.id} className="space-y-2">
                 <div className="relative w-full rounded-xl overflow-hidden border bg-neutral-100 shadow-sm">
-                  {/* Contenedor con relación 16:9 para TODAS las tarjetas */}
                   <div className="aspect-video">
                     {m.kind === 'image' ? (
-                      // Imagen: SIN recorte (object-contain dentro del marco)
                       <img
                         src={m.url}
                         alt={m.caption ?? ''}
@@ -130,7 +147,6 @@ export default async function HallProfilePage({ params }: Params) {
                         decoding="async"
                       />
                     ) : (
-                      // YouTube: ocupa todo el marco (es 16:9)
                       <iframe
                         src={`https://www.youtube.com/embed/${m.youtube_id}`}
                         title="YouTube video"
@@ -176,8 +192,12 @@ export default async function HallProfilePage({ params }: Params) {
           <p className="text-muted">Sé el primero en comentar.</p>
         )}
 
-        {/* Formulario de comentario */}
-        <HallCommentForm profileId={profile.id} slug={profile.slug} />
+        {/* Pasamos viewerName requerido al formulario */}
+        <HallCommentForm
+          profileId={profile.id}
+          slug={profile.slug}
+          viewerName={viewerName}
+        />
       </section>
     </div>
   )
