@@ -1,3 +1,4 @@
+// app/hall/[slug]/HallCommentForm.tsx
 'use client'
 
 import { useState, useTransition } from 'react'
@@ -5,42 +6,45 @@ import { addHallComment } from './actions'
 
 export default function HallCommentForm({
   profileId,
+  slug,
   viewerName,
 }: {
   profileId: string
-  viewerName?: string | null
+  slug: string
+  viewerName: string | null
 }) {
-  const [isPending, startTransition] = useTransition()
+  const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   return (
     <form
-      action={(fd) => {
+      className="space-y-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const fd = new FormData(e.currentTarget as HTMLFormElement)
+        fd.set('profileId', profileId)
+        fd.set('slug', slug)
         setError(null)
         startTransition(async () => {
-          fd.set('profile_id', profileId)
           const res = await addHallComment(fd)
           if (!res.ok) setError(res.error || 'No se pudo comentar')
+          else (e.currentTarget as HTMLFormElement).reset()
         })
       }}
-      className="space-y-3"
     >
-      <div className="text-sm text-muted">
-        Comentando como <strong>{viewerName ?? 'Usuario'}</strong>
-      </div>
-
       <textarea
         name="content"
-        className="w-full min-h-[150px] border rounded px-3 py-2"
-        placeholder="Escribe un comentario…"
+        rows={3}
+        className="input w-full"
+        placeholder={`Escribe un comentario${viewerName ? `, ${viewerName}` : ''}…`}
         required
       />
-
-      <button type="submit" className="btn btn-secondary" disabled={isPending}>
-        {isPending ? 'Enviando…' : 'Comentar'}
-      </button>
-
-      {error && <p className="text-red-700">{error}</p>}
+      <div className="flex items-center gap-2">
+        <button className="btn btn-primary" disabled={pending}>
+          {pending ? 'Publicando…' : 'Comentar'}
+        </button>
+        {error && <span className="text-red-600 text-sm">{error}</span>}
+      </div>
     </form>
   )
 }
