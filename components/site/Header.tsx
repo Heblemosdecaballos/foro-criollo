@@ -1,15 +1,19 @@
 // components/site/Header.tsx
 import Link from 'next/link'
 import SignOutButton from './SignOutButton'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
 
 export default async function Header() {
+  // Cliente solo lectura: no escribirá cookies durante el render
+  const supabase = createSupabaseServerClientReadOnly()
+
   let isLogged = false
   try {
-    const supabase = createSupabaseServerClient()
     const { data: { session } } = await supabase.auth.getSession()
     isLogged = !!session
-  } catch { isLogged = false }
+  } catch {
+    isLogged = false
+  }
 
   return (
     <header className="w-full border-b border-black/5 bg-white/70 backdrop-blur">
