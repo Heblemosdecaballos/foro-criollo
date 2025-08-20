@@ -118,4 +118,60 @@ export default async function HallProfilePage({ params }: { params: { slug: stri
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Galería</h2>
-          {ses
+          {session && profile.status === 'nominee' && <AddMediaForm profileId={profile.id} />}
+        </div>
+
+        {!media?.length ? (
+          <p className="text-gray-600">Aún no hay fotos.</p>
+        ) : (
+          <ul className="grid gap-4 md:grid-cols-3">
+            {media!.map((m) => {
+              const by = (m as any).added?.full_name || (m as any).added?.username || 'Usuario'
+              return (
+                <li key={(m as any).id} className="card overflow-hidden">
+                  <div className="aspect-[16/10] bg-black/5 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={(m as any).url} alt={(m as any).caption || ''} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-3 text-sm">
+                    {(m as any).caption && <div className="mb-1">{(m as any).caption}</div>}
+                    <div className="text-muted">por {by}</div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Comentarios</h2>
+
+        {!comments?.length ? (
+          <p className="text-gray-600">Sé el primero en comentar.</p>
+        ) : (
+          <ul className="space-y-3">
+            {comments!.map((c) => {
+              const authorName = (c as any).author?.full_name || (c as any).author?.username || 'Autor'
+              return (
+                <li key={(c as any).id} className="card p-3">
+                  <div className="flex items-center justify-between text-sm text-muted mb-1">
+                    <span>{authorName}</span>
+                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {session ? (
+          <HallCommentForm profileId={profile.id} viewerName={viewerName} />
+        ) : (
+          <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
+        )}
+      </section>
+    </div>
+  )
+}
