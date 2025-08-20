@@ -1,40 +1,52 @@
+// app/hall/[slug]/VoteButton.tsx
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useOptimistic, useTransition } from 'react'
 import { toggleVote } from './actions'
 
 export default function VoteButton({
   profileId,
   initialCount,
   initialVoted,
+  slug,
 }: {
   profileId: string
   initialCount: number
   initialVoted: boolean
+  slug?: string
 }) {
-  const [count, setCount] = useState(initialCount)
-  const [voted, setVoted] = useState(initialVoted)
-  const [isPending, startTransition] = useTransition()
-  const [err, setErr] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+
+  const [state, setState] = useOptimistic(
+    { count: initialCount, voted: initialVoted },
+    (current, action: { type: 'toggle' }) => {
+      if (action.type === 'toggle') {
+        const voted = !current.voted
+        const count = current.count + (voted ? 1 : -1)
+        return { voted, count: Math.max(0, count) }
+      }
+      return current
+    }
+  )
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        className={`btn ${voted ? 'btn-secondary' : 'btn-ghost'}`}
-        disabled={isPending}
-        onClick={() => {
-          setErr(null)
-          startTransition(async () => {
-            const res = await toggleVote(profileId)
-            if (!res.ok) setErr(res.error || 'Error')
-            else { setVoted(res.voted); setCount(res.count) }
-          })
-        }}
-      >
-        {voted ? 'Quitar voto' : 'Votar'}
-      </button>
-      <span className="text-sm text-muted">{count} votos</span>
-      {err && <span className="text-red-700 text-sm">{err}</span>}
-    </div>
+    <button
+      className={`btn ${state.voted ? 'btn-secondary' : 'btn-ghost'}`}
+      disabled={pending}
+      onClick={() => {
+        setState({ type: 'toggle' })
+        startTransition(async () => {
+          const res = await toggleVote(profileId, slug)
+          if (!res.ok) {
+            // revertir si falló
+            setState({ type: 'toggle' })
+            console.error(res.error)
+          }
+        })
+      }}
+      title={state.voted ? 'Quitar voto' : 'Votar'}
+    >
+      {state.voted ? '✓ Votaste' : 'Votar'} · {state.count}
+    </button>
   )
 }
