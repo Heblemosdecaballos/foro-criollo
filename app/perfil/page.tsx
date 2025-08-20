@@ -13,7 +13,7 @@ export default async function PerfilPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*')
+    .select('email, full_name, username, phone')
     .eq('id', session.user.id)
     .maybeSingle()
 
