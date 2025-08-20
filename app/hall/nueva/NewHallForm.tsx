@@ -2,23 +2,27 @@
 'use client'
 
 import { useTransition, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createNomination } from './actions'
 
 export default function NewHallForm() {
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   return (
     <form
-      action={(fd) => {
+      onSubmit={(e) => {
+        e.preventDefault()
+        const fd = new FormData(e.currentTarget as HTMLFormElement)
         setError(null)
         start(async () => {
-          try {
-            await createNomination(fd)
-            // La acción hace redirect al nuevo perfil
-          } catch (e: any) {
-            setError(e?.message || 'No se pudo crear la nominación')
+          const res = await createNomination(fd)
+          if (!res.ok) {
+            setError(res.error || 'No se pudo crear la nominación')
+            return
           }
+          router.push(`/hall/${res.slug}`)
         })
       }}
       encType="multipart/form-data"
