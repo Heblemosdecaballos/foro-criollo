@@ -23,27 +23,24 @@ export default function NewHallForm() {
     >
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm text-muted mb-1">Nombre</label>
+          <label className="block text-sm text-muted mb-1">Nombre del caballo</label>
           <input name="title" required className="w-full border rounded px-3 py-2" />
         </div>
         <div>
-          <label className="block text-sm text-muted mb-1">Categoría</label>
-          <select name="category" className="w-full border rounded px-3 py-2">
-            <option value="caballo">Caballo</option>
-            <option value="jinete">Jinete</option>
-            <option value="criador">Criador</option>
-            <option value="juez">Juez</option>
-            <option value="entrenador">Entrenador</option>
-            <option value="evento">Evento</option>
-            <option value="otro">Otro</option>
+          <label className="block text-sm text-muted mb-1">Andar</label>
+          <select name="gait" className="w-full border rounded px-3 py-2">
+            <option value="trocha_galope">Trocha y Galope</option>
+            <option value="trote_galope">Trote y Galope</option>
+            <option value="trocha_colombia">Trocha Colombia</option>
+            <option value="paso_fino">Paso Fino Colombiano</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm text-muted mb-1">Año (inducción o referencia)</label>
+          <label className="block text-sm text-muted mb-1">Año (referencia)</label>
           <input name="year" type="number" className="w-full border rounded px-3 py-2" />
         </div>
         <div>
-          <label className="block text-sm text-muted mb-1">Imagen (URL)</label>
+          <label className="block text-sm text-muted mb-1">Imagen principal (URL)</label>
           <input name="image_url" className="w-full border rounded px-3 py-2" placeholder="https://..." />
         </div>
       </div>
