@@ -1,12 +1,12 @@
 // app/foro/[id]/page.tsx
 import { notFound } from 'next/navigation'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
 import CommentForm from './CommentForm'
 
 export const revalidate = 0
 
 export default async function ThreadDetail({ params }: { params: { id: string } }) {
-  const supabase = createSupabaseServerClient()
+  const supabase = createSupabaseServerClientReadOnly()
 
   const { data: thread, error } = await supabase
     .from('threads')
@@ -14,7 +14,7 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
     .eq('id', params.id)
     .maybeSingle()
 
-  if (error) return <div className="max-w-3xl mx-auto p-6 text-red-700">Error: {error.message}</div>
+  if (error) return <div className="container p-6 text-red-700">Error: {error.message}</div>
   if (!thread) return notFound()
 
   const content =
@@ -29,10 +29,10 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
   const { data: { session } } = await supabase.auth.getSession()
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
+    <div className="container p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">{(thread as any).title}</h1>
-        <div className="text-sm text-gray-500 mb-4">
+        <div className="text-sm text-muted mb-4">
           {new Date((thread as any).created_at as any).toLocaleString('es-CO')}
         </div>
         <article className="prose max-w-none whitespace-pre-wrap">
@@ -48,8 +48,8 @@ export default async function ThreadDetail({ params }: { params: { id: string } 
         ) : (
           <ul className="space-y-3">
             {comments!.map(c => (
-              <li key={c.id} className="border rounded bg-white p-3">
-                <div className="text-sm text-gray-500 mb-1">
+              <li key={c.id} className="card p-3">
+                <div className="text-sm text-muted mb-1">
                   {new Date(c.created_at as any).toLocaleString('es-CO')}
                 </div>
                 <div className="whitespace-pre-wrap">{c.content}</div>
