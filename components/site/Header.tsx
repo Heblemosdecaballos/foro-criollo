@@ -3,10 +3,6 @@ import Link from 'next/link'
 import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
 import SignOutButton from './SignOutButton'
 
-/**
- * Server Component
- * Muestra navegación y, si hay sesión, saludo + Perfil + Salir.
- */
 async function Header() {
   const supabase = createSupabaseServerClientReadOnly()
   const { data: { session } } = await supabase.auth.getSession()
@@ -30,28 +26,28 @@ async function Header() {
           <Link href="/noticias" className="px-3 py-2">Noticias</Link>
           <Link href="/historias" className="px-3 py-2">Historias</Link>
           <Link href="/foro" className="px-3 py-2">Foro</Link>
+          <Link href="/hall" className="px-3 py-2">Hall de la fama</Link> {/* <-- NUEVO */}
           <Link href="/en-vivo" className="px-3 py-2">En vivo</Link>
           <Link href="/historias/nueva" className="btn btn-primary">+ Publicar</Link>
 
-          {session ? (
-            <>
-              {displayName && (
-                <span className="hidden md:inline text-sm text-black/70">
-                  Hola, <strong>{displayName}</strong>
-                </span>
-              )}
-              <Link href="/perfil" className="btn btn-ghost">Perfil</Link>
-              <SignOutButton />
-            </>
-          ) : (
-            <Link href="/auth" className="btn btn-ghost">Iniciar sesión</Link>
-          )}
+        {session ? (
+          <>
+            {displayName && (
+              <span className="hidden md:inline text-sm text-black/70">
+                Hola, <strong>{displayName}</strong>
+              </span>
+            )}
+            <Link href="/perfil" className="btn btn-ghost">Perfil</Link>
+            <SignOutButton />
+          </>
+        ) : (
+          <Link href="/auth" className="btn btn-ghost">Iniciar sesión</Link>
+        )}
         </div>
       </nav>
     </header>
   )
 }
 
-// Export default (y también nombrado por compatibilidad)
 export default Header
 export { Header }
