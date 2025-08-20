@@ -1,62 +1,49 @@
 // utils/supabase/server.ts
 import { cookies } from 'next/headers'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 /**
- * Atributos comunes para las cookies de sesión (sin `name`).
- * - En producción: SameSite=None y Secure
- * - Dominio apex para compartir subdominios (si aplica)
+ * Cliente SSR con permisos completos (lee y ESCRIBE cookies).
+ * Úsalo SOLO en Server Actions o Route Handlers.
  */
-function serializeOptions(): Partial<CookieOptions> {
-  const isProd = process.env.NODE_ENV === 'production'
-  return {
-    path: '/',
-    sameSite: isProd ? 'none' : 'lax',
-    secure: isProd ? true : false,
-    domain: isProd
-      ? (process.env.NEXT_PUBLIC_COOKIE_DOMAIN || '.hablandodecaballos.com')
-      : undefined,
-    maxAge: 60 * 60 * 24 * 7, // 7 días (en segundos)
-  }
-}
-
 export function createSupabaseServerClient() {
   const cookieStore = cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options?: CookieOptions) {
-          // Para Next.js sí debemos incluir `name` al hacer set
-          cookieStore.set({
-            name,
-            value,
-            ...serializeOptions(),
-            ...(options ?? {}),
-          } as any)
-        },
-        remove(name: string, options?: CookieOptions) {
-          cookieStore.set({
-            name,
-            value: '',
-            ...serializeOptions(),
-            ...(options ?? {}),
-            maxAge: 0,
-          } as any)
-        },
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
       },
-      // 👇 Opciones que `@supabase/ssr` usará al emitir Set-Cookie (sin `name`)
-      cookieOptions: serializeOptions(),
-    }
-  )
+      set(name: string, value: string, options: any) {
+        cookieStore.set({ name, value, ...options })
+      },
+      remove(name: string, options: any) {
+        cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+      },
+    },
+  })
 }
 
-/* ---------- Alias de compatibilidad ---------- */
+/**
+ * Cliente SSR SOLO LECTURA (NUNCA escribe cookies).
+ * Úsalo en páginas y Server Components.
+ */
+export function createSupabaseServerClientReadOnly() {
+  const cookieStore = cookies()
+  return createServerClient(SUPABASE_URL, SUPABASE_ANON, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      // No-ops para evitar: "Cookies can only be modified in a Server Action..."
+      set() {},
+      remove() {},
+    },
+  })
+}
+
+/* Alias de compatibilidad */
 export const supabaseServer = createSupabaseServerClient
 export const createRouteHandlerClient = createSupabaseServerClient
-export default createSupabaseServerClient
