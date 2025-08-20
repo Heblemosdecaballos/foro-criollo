@@ -12,10 +12,11 @@ export async function updateProfileAction(formData: FormData): Promise<Resp> {
   if (!user) return { ok: false, error: 'no-auth' }
 
   const full_name = String(formData.get('full_name') || '').trim()
-  const username  = String(formData.get('username') || '').trim()
-  const phone     = String(formData.get('phone') || '').trim()
+  let username    = String(formData.get('username')  || '').trim()
+  const phone     = String(formData.get('phone')     || '').trim()
 
-  // username único (en minúsculas)
+  if (username) username = username.toLowerCase()
+
   const { error } = await supabase
     .from('profiles')
     .update({ full_name, username, phone })
