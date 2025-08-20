@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createThreadAction } from '@/app/foro/nuevo/actions' // <-- import explícito
+import { createThreadAction } from '@/app/foro/nuevo/actions'
 
 export default function NewThreadForm() {
   const router = useRouter()
@@ -32,9 +32,11 @@ export default function NewThreadForm() {
         placeholder="Mensaje inicial"
         className="w-full min-h-[220px] border rounded px-3 py-2"
       />
-      <button type="submit" className="px-4 py-2 rounded bg-green-700 text-white" disabled={isPending}>
-        {isPending ? 'Publicando…' : 'Publicar'}
-      </button>
+      <div className="flex gap-3">
+        <button type="submit" className="btn btn-primary" disabled={isPending}>
+          {isPending ? 'Publicando…' : 'Publicar'}
+        </button>
+      </div>
       {error && <p className="text-red-600">{error}</p>}
     </form>
   )
