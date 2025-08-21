@@ -1,8 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server'; // ← tu helper de Supabase (ya existe en el repo)
-import { v4 as uuid } from 'uuid';
+import { createClient } from '@/utils/supabase/server'; // helper que ya tienes
 
 /** -----------------------------------------
  * Utilidades
@@ -25,11 +24,22 @@ function parseString(v: FormDataEntryValue | null | undefined) {
 }
 
 function parseYoutubeId(url: string) {
-  // soporta formatos comunes de YouTube
   const re =
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/;
   const m = url.match(re);
   return m?.[1] ?? null;
+}
+
+// Generador de ID sin dependencias externas
+function genId() {
+  try {
+    // Disponible en Node 16+ y Next moderno
+    return (globalThis as any).crypto?.randomUUID
+      ? (globalThis as any).crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
 }
 
 /** -----------------------------------------
@@ -45,37 +55,26 @@ export async function addHallComment(formData: FormData) {
   const supabase = supabaseServer();
 
   const profileId = parseString(formData.get('profileId'));
-  const text = parseString(formData.get('comment')); // name="comment" en el textarea
-  const viewerName = parseString(formData.get('viewerName')); // opcional, si lo usas
+  const text = parseString(formData.get('comment'));
+  const viewerName = parseString(formData.get('viewerName'));
 
-  if (!profileId) {
-    return { ok: false, error: 'Falta el perfil.' };
-  }
-  if (!text) {
-    return { ok: false, error: 'El comentario no puede estar vacío.' };
-  }
+  if (!profileId) return { ok: false, error: 'Falta el perfil.' };
+  if (!text) return { ok: false, error: 'El comentario no puede estar vacío.' };
 
   const { error } = await supabase.from('hall_comments').insert({
     profile_id: profileId,
     user_id: user.id,
-    author_name: viewerName || null, // si no lo usas, se puede quitar
+    author_name: viewerName || null,
     content: text,
   });
 
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
+  if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
 /** -----------------------------------------
  * 2) Subir FOTO a la galería del Hall
  *    👉 usado por: AddMediaForm
- *    Campos de FormData:
- *      - file (File)
- *      - profileId (string)
- *      - caption (string, opcional)
  * ----------------------------------------- */
 export async function addMediaAction(formData: FormData) {
   const { user, error: authError } = await requireUser();
@@ -89,18 +88,14 @@ export async function addMediaAction(formData: FormData) {
   const caption = parseString(formData.get('caption'));
   const file = formData.get('file') as File | null;
 
-  if (!profileId) {
-    return { ok: false, error: 'Falta el perfil.' };
-  }
+  if (!profileId) return { ok: false, error: 'Falta el perfil.' };
   if (!file || typeof file.arrayBuffer !== 'function') {
     return { ok: false, error: 'No se recibió el archivo.' };
   }
 
-  // Ruta del archivo en el bucket "hall"
   const ext = file.name.split('.').pop() ?? 'jpg';
-  const objectPath = `${profileId}/media/${uuid()}.${ext}`;
+  const objectPath = `${profileId}/media/${genId()}.${ext}`;
 
-  // Subida a storage
   const { error: upError } = await supabase.storage
     .from('hall')
     .upload(objectPath, file, {
@@ -108,21 +103,17 @@ export async function addMediaAction(formData: FormData) {
       upsert: false,
     });
 
-  if (upError) {
-    return { ok: false, error: upError.message };
-  }
+  if (upError) return { ok: false, error: upError.message };
 
-  // Guarda registro en la tabla hall_media
   const { error: insError } = await supabase.from('hall_media').insert({
     profile_id: profileId,
     user_id: user.id,
-    kind: 'image', // distinguimos tipos: 'image' | 'youtube'
+    kind: 'image',
     path: objectPath,
     caption: caption || null,
   });
 
   if (insError) {
-    // si falló la inserción, intentamos borrar el archivo recién subido
     await supabase.storage.from('hall').remove([objectPath]);
     return { ok: false, error: insError.message };
   }
@@ -133,10 +124,6 @@ export async function addMediaAction(formData: FormData) {
 /** -----------------------------------------
  * 3) Agregar VIDEO de YouTube a la galería
  *    👉 usado por: AddVideoForm
- *    Campos de FormData:
- *      - profileId (string)
- *      - youtube (string)  ← url o id
- *      - caption (string, opcional)
  * ----------------------------------------- */
 export async function addYoutubeAction(formData: FormData) {
   const { user, error: authError } = await requireUser();
@@ -150,17 +137,12 @@ export async function addYoutubeAction(formData: FormData) {
   const youtube = parseString(formData.get('youtube'));
   const caption = parseString(formData.get('caption'));
 
-  if (!profileId) {
-    return { ok: false, error: 'Falta el perfil.' };
-  }
-  if (!youtube) {
+  if (!profileId) return { ok: false, error: 'Falta el perfil.' };
+  if (!youtube)
     return { ok: false, error: 'Debes indicar la URL o ID de YouTube.' };
-  }
 
-  const videoId = parseYoutubeId(youtube) || youtube; // si ya viene ID
-  if (!videoId) {
-    return { ok: false, error: 'No pude reconocer la URL de YouTube.' };
-  }
+  const videoId = parseYoutubeId(youtube) || youtube;
+  if (!videoId) return { ok: false, error: 'No pude reconocer la URL de YouTube.' };
 
   const { error } = await supabase.from('hall_media').insert({
     profile_id: profileId,
@@ -170,17 +152,13 @@ export async function addYoutubeAction(formData: FormData) {
     caption: caption || null,
   });
 
-  if (error) {
-    return { ok: false, error: error.message };
-  }
-
+  if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
 /** -----------------------------------------
  * 4) Votar / quitar voto
  *    👉 usado por: VoteButton
- *    Firma: toggleVote(profileId, slug)
  * ----------------------------------------- */
 export async function toggleVote(profileId: string, slug: string) {
   const { user, error: authError } = await requireUser();
@@ -190,7 +168,6 @@ export async function toggleVote(profileId: string, slug: string) {
 
   const supabase = supabaseServer();
 
-  // ¿Ya votó este usuario a este perfil?
   const { data: existing, error: selErr } = await supabase
     .from('hall_votes')
     .select('id')
@@ -198,41 +175,27 @@ export async function toggleVote(profileId: string, slug: string) {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (selErr) {
-    return { ok: false, error: selErr.message };
-  }
+  if (selErr) return { ok: false, error: selErr.message };
 
   if (existing?.id) {
-    // quitar el voto
     const { error: delErr } = await supabase
       .from('hall_votes')
       .delete()
       .eq('id', existing.id);
-
-    if (delErr) {
-      return { ok: false, error: delErr.message };
-    }
+    if (delErr) return { ok: false, error: delErr.message };
   } else {
-    // agregar voto
     const { error: insErr } = await supabase.from('hall_votes').insert({
       profile_id: profileId,
       user_id: user.id,
     });
-
-    if (insErr) {
-      return { ok: false, error: insErr.message };
-    }
+    if (insErr) return { ok: false, error: insErr.message };
   }
 
-  // retornar el nuevo total de votos (opcional)
   const { data: countData, error: countErr } = await supabase
     .from('hall_votes')
     .select('id', { count: 'exact', head: true })
     .eq('profile_id', profileId);
 
-  if (countErr) {
-    return { ok: true, votes: null };
-  }
-
+  if (countErr) return { ok: true, votes: null };
   return { ok: true, votes: countData?.length ?? null };
 }
