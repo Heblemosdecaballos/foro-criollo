@@ -1,33 +1,21 @@
 // /utils/hall-data.ts
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 
-export type ViewerProfile = { id: string; name: string | null } | null;
-
-/**
- * Devuelve un perfil del Hall por slug.
- * Espera que la tabla "hall_profiles" tenga: id, slug, title, gait, year.
- */
 export async function getProfileBySlug(slug: string) {
   const supabase = createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from('hall_profiles')
-    .select('id, slug, title, gait, year')
+    .select('*')
     .eq('slug', slug)
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    console.error('getProfileBySlug error:', error);
-    return null;
-  }
-  return data;
+  // PGRST116 = row not found; devolvemos null para notFound()
+  if (error && (error as any).code !== 'PGRST116') throw error;
+  return data ?? null;
 }
 
-/**
- * Devuelve el perfil del usuario autenticado desde la tabla "profiles".
- * Si no tiene registro en "profiles", retorna { id, name: null } para que puedas mostrar "usuario".
- */
-export async function getViewerProfile(): Promise<ViewerProfile> {
+export async function getViewerProfile() {
   const supabase = createSupabaseServerClient();
 
   const {
@@ -40,12 +28,8 @@ export async function getViewerProfile(): Promise<ViewerProfile> {
     .from('profiles')
     .select('id, name')
     .eq('id', user.id)
-    .maybeSingle();
+    .single();
 
-  if (error) {
-    console.error('getViewerProfile error:', error);
-    return { id: user.id, name: null };
-  }
-
-  return data ?? { id: user.id, name: null };
+  if (error) throw error;
+  return data;
 }
