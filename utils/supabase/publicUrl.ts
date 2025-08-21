@@ -1,12 +1,13 @@
-// utils/supabase/publicUrl.ts
-import { createClient } from '@/utils/supabase/server';
+// /utils/supabase/publicUrl.ts
+import { createClient } from "./server";
 
 /**
- * Devuelve la URL pública de un archivo en el bucket "hall".
- * @param path Ruta interna en el bucket (ej: 'media/abc/123.jpg')
+ * storagePath: 'hall/slug/archivo.jpg'
  */
-export async function getPublicUrl(path: string) {
+export async function getPublicUrl(storagePath: string) {
   const supabase = createClient();
-  const { data } = supabase.storage.from('hall').getPublicUrl(path);
+  const [bucket, ...rest] = storagePath.split("/");
+  const path = rest.join("/");
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }
