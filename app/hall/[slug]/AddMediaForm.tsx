@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useTransition } from 'react';
-import { addMediaAction } from './actions';
+import * as React from "react";
+import { useTransition, useRef, useState } from "react";
+import { addMediaAction } from "./actions";
 
 type Props = {
   profileId: string;
@@ -10,56 +10,64 @@ type Props = {
 };
 
 export default function AddMediaForm({ profileId, slug }: Props) {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<boolean>(false);
-
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(null);
-    setOk(false);
-
-    const formEl = e.currentTarget;
-    const fd = new FormData(formEl);
-
-    // Asegurar que viajan estos campos
-    fd.set('profileId', profileId);
-    fd.set('slug', slug);
-
-    startTransition(async () => {
-      const res = await addMediaAction(fd);
-      if (res?.ok) {
-        setOk(true);
-        formEl.reset(); // limpiar inputs
-      } else {
-        setError(res?.error ?? 'No se pudo subir el archivo');
-      }
-    });
-  };
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form onSubmit={onSubmit} encType="multipart/form-data" className="space-y-2">
-      <div className="flex items-center gap-2">
+    <form
+      ref={formRef}
+      action={(fd: FormData) => {
+        setErr(null);
+        setOk(false);
+        // IMPORTANTe: la función pasada a startTransition NO debe ser async ni retornar nada.
+        start(() => {
+          void addMediaAction(fd)
+            .then(() => {
+              setOk(true);
+              formRef.current?.reset();
+            })
+            .catch((e: any) => setErr(e?.message ?? "Error al guardar"));
+        });
+      }}
+      className="space-y-3"
+    >
+      <input type="hidden" name="slug" value={slug} />
+      {/* --- Tus inputs existentes (no cambian los name) --- */}
+      <div className="space-y-2">
         <input
           type="file"
           name="file"
-          required
-          accept="image/*,video/*"
-          className="input"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          className="block w-full"
+        />
+        <input
+          type="text"
+          name="youtube"
+          placeholder="URL o ID de YouTube (opcional si subes imagen)"
+          className="w-full border rounded p-2"
         />
         <input
           type="text"
           name="caption"
-          placeholder="Leyenda (opcional)"
-          className="input"
+          placeholder="Caption (opcional)"
+          className="w-full border rounded p-2"
         />
-        <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? 'Subiendo…' : 'Subir foto'}
-        </button>
+        <input
+          type="text"
+          name="credit"
+          placeholder="Crédito (opcional)"
+          className="w-full border rounded p-2"
+        />
       </div>
 
-      {ok && <p className="text-green-600 text-sm">¡Archivo subido!</p>}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <button disabled={pending} className="px-4 py-2 rounded bg-black text-white">
+        {pending ? "Guardando..." : "Agregar media"}
+      </button>
+
+      {ok && <p className="text-green-600 text-sm">Guardado correctamente.</p>}
+      {err && <p className="text-red-600 text-sm">{err}</p>}
     </form>
   );
 }
