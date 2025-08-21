@@ -1,51 +1,44 @@
-// /utils/hall-data.ts
-import { createSupabaseServerClient } from '@/utils/supabase/server';
+// /app/hall/[slug]/page.tsx
+import { notFound } from 'next/navigation';
+import { getProfileBySlug, getViewerProfile } from '@/utils/hall-data';
+import HallCommentForm from './HallCommentForm';
+import AddMediaForm from './AddMediaForm'; // si lo usas para subir archivos
 
-export type ViewerProfile = { id: string; name: string | null } | null;
+type Params = { slug: string };
 
-/**
- * Devuelve un perfil del Hall por slug.
- * Espera que la tabla "hall_profiles" tenga: id, slug, title, gait, year.
- */
-export async function getProfileBySlug(slug: string) {
-  const supabase = createSupabaseServerClient();
+export default async function HallProfilePage({ params }: { params: Params }) {
+  const { slug } = params;
 
-  const { data, error } = await supabase
-    .from('hall_profiles')
-    .select('id, slug, title, gait, year')
-    .eq('slug', slug)
-    .maybeSingle();
+  const profile = await getProfileBySlug(slug);
+  if (!profile) return notFound();
 
-  if (error) {
-    console.error('getProfileBySlug error:', error);
-    return null;
-  }
-  return data;
-}
+  const viewer = await getViewerProfile();
 
-/**
- * Devuelve el perfil del usuario autenticado desde la tabla "profiles".
- * Si no tiene registro en "profiles", retorna { id, name: null } para que puedas mostrar "usuario".
- */
-export async function getViewerProfile(): Promise<ViewerProfile> {
-  const supabase = createSupabaseServerClient();
+  return (
+    <div className="container py-8 space-y-8">
+      {/* Encabezado */}
+      <header className="space-y-1">
+        <p className="text-xs uppercase text-muted">
+          {profile.gait?.toUpperCase()} · {profile.year ?? '—'}
+        </p>
+        <h1 className="text-3xl font-bold">{profile.title}</h1>
+      </header>
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      {/* Comentarios */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Comentarios</h2>
+        <HallCommentForm
+          profileId={profile.id}
+          slug={slug}
+          viewerName={viewer?.name ?? null}
+        />
+      </section>
 
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error('getViewerProfile error:', error);
-    return { id: user.id, name: null };
-  }
-
-  return data ?? { id: user.id, name: null };
+      {/* Subir archivos (debajo de comentarios) */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Subir archivos</h2>
+        <AddMediaForm profileId={profile.id} slug={slug} />
+      </section>
+    </div>
+  );
 }
