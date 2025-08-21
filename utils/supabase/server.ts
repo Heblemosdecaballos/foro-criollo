@@ -2,10 +2,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-/**
- * createClient (server) — coincide con tu import existente.
- * Devuelve un cliente de Supabase con cookies de Next.js (RSC/Server Actions).
- */
+/** Cliente para RSC/Server Actions (con cookies) */
 export function createClient() {
   const cookieStore = cookies();
   return createServerClient(
@@ -20,3 +17,7 @@ export function createClient() {
     }
   );
 }
+
+/* ====== ALIAS que tu repo está intentando importar ====== */
+export const createSupabaseServerClient = createClient;
+export const createSupabaseServerClientReadOnly = createClient; // mismo cliente; RLS decide permisos
