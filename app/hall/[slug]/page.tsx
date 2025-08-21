@@ -1,149 +1,127 @@
-/* app/hall/[slug]/page.tsx */
-import Image from "next/image";
-import Link from "next/link";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
-import AddMediaForm from "./AddMediaForm";
-import HallCommentForm from "./HallCommentForm";
-import VoteButton from "./VoteButton";
+// /app/hall/[slug]/page.tsx
+import Image from 'next/image'
+import Link from 'next/link'
+import { createSupabaseServerClient } from '@/utils/supabase/server'
 
-type Params = { params: { slug: string } };
+// Si ya tienes estos componentes, los usamos.
+// Si tus rutas de componentes son otras, avísame y te los adapto.
+import HallCommentForm from './HallCommentForm'
+import AddMediaForm from './AddMediaForm'
 
-const GAITS: Record<string, string> = {
-  trocha_galope: "Trocha y Galope",
-  trote_galope: "Trote y Galope",
-  trocha_colombia: "Trocha Colombia",
-  paso_fino: "Paso Fino Colombiano",
-};
+function toArray<T>(v: T[] | null | undefined): T[] {
+  return v ?? []
+}
 
-export default async function HallProfilePage({ params }: Params) {
-  const supabase = createSupabaseServerClient();
+export default async function HallProfilePage({
+  params,
+}: {
+  params: { slug: string }
+}) {
+  const supabase = createSupabaseServerClient()
 
-  // sesión (para mostrar botones/acciones de usuario)
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const viewerId = session?.user?.id ?? null;
+  // 1) Perfil
+  const profileRes = await supabase
+    .from('hall_profiles')
+    .select('*')
+    .eq('slug', params.slug)
+    .single()
 
-  // obtenemos el perfil por slug
-  const { data: profile, error: profErr } = await supabase
-    .from("hall_profiles")
-    .select(
-      `
-      id,
-      slug,
-      title,
-      year,
-      gait,
-      cover_url,
-      votes_count
-    `
+  if (profileRes.error || !profileRes.data) {
+    return (
+      <div className="container py-10">
+        <h1 className="text-2xl font-semibold">No se encontró el perfil</h1>
+        <p className="text-sm text-muted">Slug: {params.slug}</p>
+      </div>
     )
-    .eq("slug", params.slug)
-    .maybeSingle();
-
-  if (profErr) {
-    // Si hay error de RLS o similar evita page crash
-    return (
-      <div className="container py-10">
-        <h1 className="text-2xl font-semibold mb-2">No se pudo cargar el perfil</h1>
-        <p className="text-muted">
-          {profErr.message}
-        </p>
-        <div className="mt-6">
-          <Link href="/hall" className="btn btn-primary">Volver al Hall</Link>
-        </div>
-      </div>
-    );
   }
 
-  if (!profile) {
-    return (
-      <div className="container py-10">
-        <h1 className="text-2xl font-semibold mb-2">Caballo no encontrado</h1>
-        <div className="mt-6">
-          <Link href="/hall" className="btn btn-primary">Volver al Hall</Link>
-        </div>
-      </div>
-    );
+  const profile = profileRes.data
+
+  // 2) Usuario actual (para permisos)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  let viewerProfile: any = null
+  if (user?.id) {
+    const meRes = await supabase
+      .from('profiles')
+      .select('id, name, is_admin')
+      .eq('id', user.id)
+      .single()
+    viewerProfile = meRes.data ?? null
   }
 
-  // ¿Es admin? (para mostrar el form de subir medios)
-  let viewerIsAdmin = false;
-  if (viewerId) {
-    const { data: isAdmin } = await supabase.rpc("is_admin", { uid: viewerId });
-    viewerIsAdmin = !!isAdmin;
-  }
+  const canUpload = !!viewerProfile?.is_admin // solo admin puede subir
 
-  // galería
-  const { data: media = [] } = await supabase
-    .from("hall_media")
-    .select("id, url, caption, created_at")
-    .eq("profile_id", profile.id)
-    .order("created_at", { ascending: false });
+  // 3) Medios y comentarios (siempre null-safe)
+  const mediaRes = await supabase
+    .from('hall_media')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: false })
+  const media = toArray(mediaRes.data)
 
-  // comentarios (si ya los listabas en server)
-  const { data: comments = [] } = await supabase
-    .from("hall_comments")
-    .select("id, user_name, content, created_at")
-    .eq("profile_id", profile.id)
-    .order("created_at", { ascending: true });
+  const commentsRes = await supabase
+    .from('hall_comments')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: true })
+  const comments = toArray(commentsRes.data)
 
   return (
     <div className="container py-8 space-y-10">
       {/* Cabecera */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          {/* Portada SIN recorte */}
           {profile.cover_url ? (
-            <div className="overflow-hidden rounded-2xl">
-              {/* NO recortamos: contenemos la imagen */}
+            <div className="relative w-full aspect-[4/3] bg-neutral-100 rounded-xl overflow-hidden">
               <Image
                 src={profile.cover_url}
                 alt={profile.title}
-                width={1600}
-                height={1200}
-                className="w-full h-auto object-contain"
+                fill
                 priority
+                className="object-contain"   // <- NO recorta
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           ) : (
-            <div className="rounded-xl border bg-muted/20 aspect-[4/3]" />
+            <div className="w-full aspect-[4/3] bg-neutral-100 rounded-xl grid place-items-center">
+              <span className="text-sm text-muted">Sin imagen</span>
+            </div>
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="text-xs uppercase tracking-wide text-muted">
-            {GAITS[profile.gait] ?? "Andar"} {profile.year ? `· ${profile.year}` : ""}
+        <div className="space-y-3">
+          <div className="text-xs uppercase text-muted">
+            {profile.gait?.replaceAll('_', ' ').toUpperCase()} {profile.year ? `· ${profile.year}` : ''}
           </div>
           <h1 className="text-3xl font-bold">{profile.title}</h1>
-
-          <div className="flex items-center gap-3">
-            <VoteButton profileId={profile.id} />
-            <Link href="/hall" className="text-sm underline">
-              Volver al Hall
-            </Link>
-          </div>
         </div>
       </div>
 
       {/* Galería */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Galería</h2>
+        <h2 className="text-lg font-semibold">Galería</h2>
 
         {media.length === 0 ? (
-          <p className="text-muted">Aún no hay fotos.</p>
+          <p className="text-sm text-muted-foreground">Aún no hay fotos.</p>
         ) : (
           <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {media.map((m) => (
-              <li key={m.id} className="rounded-xl border overflow-hidden bg-white">
-                <Image
-                  src={m.url}
-                  alt={m.caption ?? profile.title}
-                  width={1000}
-                  height={800}
-                  className="w-full h-auto object-contain"
-                />
+            {media.map((m: any) => (
+              <li key={m.id} className="space-y-2">
+                <div className="relative w-full aspect-[4/3] bg-neutral-100 rounded-lg overflow-hidden">
+                  <Image
+                    src={m.url}
+                    alt={m.caption ?? ''}
+                    fill
+                    className="object-contain" // <- NO recorta
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                  />
+                </div>
                 {m.caption ? (
-                  <div className="px-3 py-2 text-xs text-muted">{m.caption}</div>
+                  <p className="text-xs text-muted-foreground">{m.caption}</p>
                 ) : null}
               </li>
             ))}
@@ -152,45 +130,44 @@ export default async function HallProfilePage({ params }: Params) {
       </section>
 
       {/* Comentarios */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Comentarios</h2>
+      <section className="space-y-4" id="comments">
+        <h2 className="text-lg font-semibold">Comentarios</h2>
 
         {comments.length === 0 ? (
-          <p className="text-muted">Sé el primero en comentar.</p>
+          <p className="text-sm text-muted-foreground">Sé el primero en comentar.</p>
         ) : (
           <ul className="space-y-3">
-            {comments.map((c) => (
-              <li key={c.id} className="rounded-xl border p-3">
-                <div className="text-xs text-muted mb-1">{c.user_name}</div>
+            {comments.map((c: any) => (
+              <li key={c.id} className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">
+                  {c.author_name ?? 'Anónimo'}
+                </div>
                 <div className="text-sm">{c.content}</div>
               </li>
             ))}
           </ul>
         )}
 
-        {/* Formulario para comentar (pasamos viewerName si lo necesitas) */}
+        {/* Formulario para comentar */}
         <HallCommentForm
           profileId={profile.id}
-          slug={profile.slug}
-          viewerName={
-            session?.user?.user_metadata?.full_name ??
-            session?.user?.email?.split("@")?.[0] ??
-            "usuario"
-          }
+          viewerName={viewerProfile?.name ?? null}
         />
       </section>
 
-      {/* === AQUÍ movemos el uploader AL FINAL, debajo de comentarios === */}
-      {viewerIsAdmin ? (
+      {/* >>>>>>>>>>>>>>>  Subida de archivos debajo de comentarios  <<<<<<<<<<<<<< */}
+      {canUpload && (
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Añadir foto o video</h2>
-          <p className="text-sm text-muted">
-            Solo administradores pueden subir archivos. (Los permisos de escritura ya están
-            resueltos por RLS y <code>public.is_admin</code>).
-          </p>
+          <h2 className="text-lg font-semibold">Agregar foto o video</h2>
           <AddMediaForm profileId={profile.id} slug={profile.slug} />
         </section>
-      ) : null}
+      )}
+
+      <div>
+        <Link href="/hall" className="text-sm underline">
+          ← Volver al Hall
+        </Link>
+      </div>
     </div>
-  );
+  )
 }
