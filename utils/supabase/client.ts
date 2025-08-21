@@ -1,7 +1,6 @@
 // /utils/supabase/client.ts
 import { createClient as createJsClient } from "@supabase/supabase-js";
 
-/** Cliente para el navegador */
 export function createSupabaseBrowserClient() {
   return createJsClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,6 +8,6 @@ export function createSupabaseBrowserClient() {
   );
 }
 
-/* Alias que tu código intenta importar */
+/** Alias posibles en tu repo */
 export const createSupabaseClient = createSupabaseBrowserClient;
 export const createSupabaseBrowserClientReadOnly = createSupabaseBrowserClient;
