@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import path from "node:path";
 import { createSupabaseServerClient as createSupabase } from "@/utils/supabase/server";
 
-/* ================== Helpers comunes ================== */
+/* ========== Helpers comunes ========== */
 async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) throw new Error("No autenticado");
@@ -25,11 +25,14 @@ async function requireUser(supabase: ReturnType<typeof createSupabase>) {
   return auth.user;
 }
 
-async function getEntryId(supabase: ReturnType<typeof createSupabase>, slug: string) {
+async function getEntryId(supabase: ReturnType<typeof createSupabase>, slugOrId: string) {
+  // Acepta slug o UUID
+  const looksUuid = /^[0-9a-fA-F-]{36}$/.test(slugOrId);
+  if (looksUuid) return slugOrId;
   const { data, error } = await supabase
     .from("hall_entries")
     .select("id")
-    .eq("slug", slug)
+    .eq("slug", slugOrId)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("No existe el Hall con ese slug");
@@ -39,8 +42,8 @@ async function getEntryId(supabase: ReturnType<typeof createSupabase>, slug: str
 const YT_ID_RE =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
 
-/* ================== Media (imagen / youtube) ================== */
-/** No retorna nada (Promise<void>) para cumplir tipo de <form action> */
+/* ========== Media (imagen / YouTube) ========== */
+/** No retorna nada (Promise<void>) para que encaje con <form action> */
 export async function addMediaAction(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   await requireAdmin(supabase);
@@ -100,7 +103,7 @@ export async function addMediaAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/hall/${slug}`);
 }
 
-/** Wrappers con los nombres que usan tus formularios */
+/** Wrappers con los nombres que usan tus componentes */
 export async function addYoutubeAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
@@ -108,11 +111,7 @@ export async function uploadImageAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
 
-/* ================== Comentarios ================== */
-/**
- * Export que tu componente espera: addHallComment
- * Inputs aceptados: 'comment' | 'body' | 'content'
- */
+/* ========== Comentarios ========== */
 export async function addHallComment(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   const user = await requireUser(supabase);
@@ -129,7 +128,6 @@ export async function addHallComment(formData: FormData): Promise<void> {
 
   const entryId = await getEntryId(supabase, slug);
 
-  // opcional: nombre para mostrar si ya lo guardas en profiles
   const { data: prof } = await supabase
     .from("profiles")
     .select("full_name")
@@ -145,4 +143,48 @@ export async function addHallComment(formData: FormData): Promise<void> {
   if (error) throw error;
 
   revalidatePath(`/hall/${slug}`);
+}
+
+/* ========== Votos (toggle) ========== */
+/**
+ * Export que tu botón espera: toggleVote
+ * Acepta: 'entryId' (uuid) o 'slug' (string). Si vienen ambos, usa entryId.
+ */
+export async function toggleVote(formData: FormData): Promise<void> {
+  const supabase = createSupabase();
+  const user = await requireUser(supabase);
+
+  const entryIdInput = (formData.get("entryId") as string) || "";
+  const slug = (formData.get("slug") as string) || "";
+  if (!entryIdInput && !slug) throw new Error("slug o entryId requerido");
+
+  const entryId = await getEntryId(supabase, entryIdInput || slug);
+
+  // ¿ya existe el voto?
+  const { data: existing, error: selErr } = await supabase
+    .from("hall_votes")
+    .select("id")
+    .eq("entry_id", entryId)
+    .eq("voter_id", user.id)
+    .maybeSingle();
+  if (selErr) throw selErr;
+
+  if (existing?.id) {
+    // quitar voto
+    const { error: delErr } = await supabase
+      .from("hall_votes")
+      .delete()
+      .eq("id", existing.id);
+    if (delErr) throw delErr;
+  } else {
+    // agregar voto
+    const { error: insErr } = await supabase.from("hall_votes").insert({
+      entry_id: entryId,
+      voter_id: user.id,
+    });
+    if (insErr) throw insErr;
+  }
+
+  // Revalida la página pública
+  if (slug) revalidatePath(`/hall/${slug}`);
 }
