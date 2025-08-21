@@ -4,6 +4,29 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 
+/** Utilidad: extraer el ID de un video de YouTube desde distintos formatos de URL */
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    // https://www.youtube.com/watch?v=VIDEOID
+    if (u.hostname.includes('youtube.com')) {
+      if (u.searchParams.get('v')) return u.searchParams.get('v');
+      const parts = u.pathname.split('/').filter(Boolean);
+      // https://www.youtube.com/embed/VIDEOID
+      const idx = parts.indexOf('embed');
+      if (idx !== -1 && parts[idx + 1]) return parts[idx + 1];
+    }
+    // https://youtu.be/VIDEOID
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.replace('/', '').trim();
+      if (id) return id;
+    }
+  } catch (_) {
+    // URL inválida
+  }
+  return null;
+}
+
 /** Comentar en un perfil del Hall */
 export async function addHallComment(args: {
   profileId: string;
@@ -15,7 +38,6 @@ export async function addHallComment(args: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) throw new Error('Debes iniciar sesión');
 
   const { error } = await supabase
@@ -29,9 +51,10 @@ export async function addHallComment(args: {
   if (error) throw error;
 
   revalidatePath(`/hall/${args.slug}`);
+  revalidatePath(`/admin/hall/${args.slug}`);
 }
 
-/** Subir imagen/video a Storage y registrar en hall_media */
+/** Subir imagen/video de archivo a Storage y registrar en hall_media */
 export async function addMediaAction(
   ctx: { profileId: string; slug: string },
   formData: FormData
@@ -41,7 +64,6 @@ export async function addMediaAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) throw new Error('Debes iniciar sesión');
 
   const file = formData.get('file') as File | null;
@@ -66,19 +88,59 @@ export async function addMediaAction(
 
   if (upErr) throw upErr;
 
-  // Registra la fila en la tabla hall_media
-  // (si tu columna se llama "path" en vez de "file_path", cambia la clave)
-  const row: any = {
+  // Inserta en la tabla hall_media
+  // Nota: usa 'file_path'. Si tu columna se llama 'path', cambia la clave a { path: path }.
+  const { error: dbErr } = await supabase.from('hall_media').insert({
     profile_id: ctx.profileId,
-    file_path: path, // <-- cambia a path: path si tu columna se llama "path"
+    file_path: path,     // <-- cámbialo a 'path: path' si tu columna se llama 'path'
     caption,
     created_by: user.id,
-  };
+    kind: 'image',       // por si ya agregaste la columna 'kind' (ver SQL opcional abajo)
+  });
 
-  const { error: dbErr } = await supabase.from('hall_media').insert(row);
   if (dbErr) throw dbErr;
 
-  // Refresca la página pública y (si la usas) la del admin
+  revalidatePath(`/hall/${ctx.slug}`);
+  revalidatePath(`/admin/hall/${ctx.slug}`);
+  return { ok: true };
+}
+
+/** Registrar un video de YouTube en hall_media (sin subir nada a Storage) */
+export async function addYoutubeAction(
+  ctx: { profileId: string; slug: string },
+  formData: FormData
+) {
+  const supabase = createSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Debes iniciar sesión');
+
+  const url = (formData.get('youtube_url') as string)?.trim();
+  const caption = (formData.get('caption') as string) || null;
+
+  if (!url) throw new Error('Debes pegar una URL de YouTube');
+
+  const id = extractYouTubeId(url);
+  if (!id) throw new Error('URL de YouTube no válida');
+
+  // Miniatura estándar de YouTube
+  const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+
+  // Insertamos como "video" de origen YouTube.
+  // Si NO tienes estas columnas, más abajo te dejo el SQL Opcional para agregarlas.
+  const { error } = await supabase.from('hall_media').insert({
+    profile_id: ctx.profileId,
+    kind: 'youtube',        // <-- nueva columna opcional
+    video_url: url,         // <-- nueva columna opcional
+    thumbnail_url: thumb,   // <-- nueva columna opcional
+    caption,
+    created_by: user.id,
+  });
+
+  if (error) throw error;
+
   revalidatePath(`/hall/${ctx.slug}`);
   revalidatePath(`/admin/hall/${ctx.slug}`);
   return { ok: true };
