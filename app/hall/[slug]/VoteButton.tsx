@@ -4,11 +4,8 @@ import { useState, useTransition } from 'react';
 import { toggleVote } from './actions';
 
 type Props = {
-  /** ID del perfil del caballo */
   profileId: string;
-  /** slug de la URL, por ejemplo "resorte-iv" */
   slug: string;
-  /** conteo inicial de votos */
   initialCount: number;
 };
 
@@ -19,7 +16,6 @@ export default function VoteButton({ profileId, slug, initialCount }: Props) {
   const onClick = () => {
     startTransition(async () => {
       const res = await toggleVote(profileId, slug);
-      // toggleVote() devuelve { ok: boolean, votes?: number }
       if (res?.ok && typeof res.votes === 'number') {
         setCount(res.votes);
       }
