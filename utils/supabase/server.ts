@@ -18,6 +18,6 @@ export function createClient() {
   );
 }
 
-/* ====== ALIAS que tu repo está intentando importar ====== */
+/** Alias que otros archivos podrían importar */
 export const createSupabaseServerClient = createClient;
-export const createSupabaseServerClientReadOnly = createClient; // mismo cliente; RLS decide permisos
+export const createSupabaseServerClientReadOnly = createClient;
