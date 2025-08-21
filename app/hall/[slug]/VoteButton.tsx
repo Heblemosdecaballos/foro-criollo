@@ -1,35 +1,37 @@
 'use client';
 
-import * as React from 'react';
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { toggleVote } from './actions';
 
-export default function VoteButton({
-  profileId,
-  slug,
-  count,
-}: {
+type Props = {
+  /** ID del perfil del caballo */
   profileId: string;
+  /** slug de la URL, por ejemplo "resorte-iv" */
   slug: string;
-  count: number;
-}) {
-  const [pending, start] = useTransition();
+  /** conteo inicial de votos */
+  initialCount: number;
+};
 
-  async function handleClick() {
-    const fd = new FormData();
-    fd.set('profileId', profileId);
-    fd.set('slug', slug);
+export default function VoteButton({ profileId, slug, initialCount }: Props) {
+  const [pending, startTransition] = useTransition();
+  const [count, setCount] = useState<number>(initialCount ?? 0);
 
-    start(async () => {
-      await toggleVote(fd);
+  const onClick = () => {
+    startTransition(async () => {
+      const res = await toggleVote(profileId, slug);
+      // toggleVote() devuelve { ok: boolean, votes?: number }
+      if (res?.ok && typeof res.votes === 'number') {
+        setCount(res.votes);
+      }
     });
-  }
+  };
 
   return (
     <button
-      disabled={pending}
-      onClick={handleClick}
+      type="button"
       className="btn btn-success"
+      disabled={pending}
+      onClick={onClick}
     >
       {pending ? 'Votando…' : `Votar (${count})`}
     </button>
