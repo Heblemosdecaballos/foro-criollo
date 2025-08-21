@@ -1,35 +1,49 @@
-// app/hall/[slug]/AddMediaForm.tsx
-'use client'
+// /app/hall/[slug]/AddMediaForm.tsx
+'use client';
 
-import { useState, useTransition } from 'react'
-import { addMediaAction } from './actions'
+import { useRef, useTransition } from 'react';
+import { addMediaAction } from './actions';
 
-export default function AddMediaForm({ profileId, slug }: { profileId: string, slug: string }) {
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+type Props = {
+  profileId: string;
+  slug: string;
+};
+
+export default function AddMediaForm({ profileId, slug }: Props) {
+  const ref = useRef<HTMLFormElement>(null);
+  const [isPending, startTransition] = useTransition();
+
+  // Esta función se asigna al action del <form>, recibe automáticamente el FormData
+  const onAction = (fd: FormData) => {
+    startTransition(async () => {
+      await addMediaAction({ profileId, slug }, fd);
+      ref.current?.reset();
+    });
+  };
 
   return (
     <form
-      className="flex flex-wrap items-center gap-2"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const fd = new FormData(e.currentTarget as HTMLFormElement)
-        fd.set('profileId', profileId)
-        fd.set('slug', slug)
-        setError(null)
-        startTransition(async () => {
-          const res = await addMediaAction(fd)
-          if (!res.ok) setError(res.error || 'No se pudo subir')
-          else (e.currentTarget as HTMLFormElement).reset()
-        })
-      }}
+      ref={ref}
+      action={onAction}
+      className="space-y-3"
+      encType="multipart/form-data"
     >
-      <input type="file" name="file" accept="image/*" required />
-      <input type="text" name="caption" placeholder="Leyenda (opcional)" className="input" />
-      <button className="btn btn-secondary" disabled={pending}>
-        {pending ? 'Subiendo…' : 'Subir foto'}
+      <input
+        required
+        name="file"
+        type="file"
+        accept="image/*,video/*"
+        className="block"
+      />
+      <input
+        name="caption"
+        type="text"
+        placeholder="Leyenda (opcional)"
+        className="w-full rounded-md border p-2"
+      />
+      <button type="submit" disabled={isPending} className="btn btn-primary">
+        {isPending ? 'Subiendo…' : 'Subir archivo'}
       </button>
-      {error && <span className="text-red-600 text-sm">{error}</span>}
     </form>
-  )
+  );
 }
