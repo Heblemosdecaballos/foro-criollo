@@ -6,14 +6,15 @@ import { revalidatePath } from 'next/cache';
 
 export async function addHallComment(args: {
   profileId: string;
+  slug: string;
   content: string;
-  slug?: string;
 }) {
   const supabase = createSupabaseServerClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) throw new Error('Debes iniciar sesión');
 
   const { error } = await supabase
@@ -26,6 +27,5 @@ export async function addHallComment(args: {
 
   if (error) throw error;
 
-  // Revalidar la página del perfil para ver el nuevo comentario
-  revalidatePath(args.slug ? `/hall/${args.slug}` : '/hall');
+  revalidatePath(`/hall/${args.slug}`);
 }
