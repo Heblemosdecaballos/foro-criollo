@@ -1,44 +1,57 @@
 // /app/hall/[slug]/page.tsx
-import { notFound } from 'next/navigation';
-import { getProfileBySlug, getViewerProfile } from '@/utils/hall-data';
-import HallCommentForm from './HallCommentForm';
-import AddMediaForm from './AddMediaForm'; // si lo usas para subir archivos
+import VoteButton from './VoteButton';
+import { supabaseServer } from '@/lib/supabase/server';
 
-type Params = { slug: string };
+type PageProps = {
+  params: { slug: string };
+};
 
-export default async function HallProfilePage({ params }: { params: Params }) {
+export default async function HallProfilePage({ params }: PageProps) {
   const { slug } = params;
+  const supabase = supabaseServer();
 
-  const profile = await getProfileBySlug(slug);
-  if (!profile) return notFound();
+  // 1) Obtener el perfil por slug
+  const { data: profile, error: profileErr } = await supabase
+    .from('hall_profiles')
+    .select('id, title, slug, cover_url')
+    .eq('slug', slug)
+    .maybeSingle();
 
-  const viewer = await getViewerProfile();
+  if (profileErr || !profile) {
+    return (
+      <div className="container py-10">
+        <h1 className="text-2xl font-bold">Perfil no encontrado</h1>
+        <p className="text-muted mt-2">{profileErr?.message}</p>
+      </div>
+    );
+  }
+
+  // 2) Contar votos actuales de ese perfil
+  const { count: votesCount } = await supabase
+    .from('hall_votes')
+    .select('*', { count: 'exact', head: true })
+    .eq('profile_id', profile.id);
+
+  const initialVotes = votesCount ?? 0;
 
   return (
-    <div className="container py-8 space-y-8">
-      {/* Encabezado */}
-      <header className="space-y-1">
-        <p className="text-xs uppercase text-muted">
-          {profile.gait?.toUpperCase()} · {profile.year ?? '—'}
-        </p>
+    <div className="container py-10 space-y-6">
+      <header>
         <h1 className="text-3xl font-bold">{profile.title}</h1>
+        {/* Si tienes imagen de portada: */}
+        {/* {profile.cover_url ? <img src={profile.cover_url} alt={profile.title} className="mt-4 rounded" /> : null} */}
       </header>
 
-      {/* Comentarios */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Comentarios</h2>
-        <HallCommentForm
+      {/* Botón de votación */}
+      <div>
+        <VoteButton
           profileId={profile.id}
           slug={slug}
-          viewerName={viewer?.name ?? null}
+          initialCount={initialVotes}
         />
-      </section>
+      </div>
 
-      {/* Subir archivos (debajo de comentarios) */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Subir archivos</h2>
-        <AddMediaForm profileId={profile.id} slug={slug} />
-      </section>
+      {/* Aquí sigue tu contenido (galería, comentarios, etc.) */}
     </div>
   );
 }
