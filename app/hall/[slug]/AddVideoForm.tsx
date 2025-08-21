@@ -1,42 +1,24 @@
-// /app/hall/[slug]/AddVideoForm.tsx
 'use client';
 
-import { useRef, useTransition } from 'react';
+import { useTransition } from 'react';
 import { addYoutubeAction } from './actions';
 
-type Props = {
-  profileId: string;
-  slug: string;
-};
-
-export default function AddVideoForm({ profileId, slug }: Props) {
-  const ref = useRef<HTMLFormElement>(null);
-  const [isPending, startTransition] = useTransition();
-
-  const onAction = (fd: FormData) => {
-    startTransition(async () => {
-      await addYoutubeAction({ profileId, slug }, fd);
-      ref.current?.reset();
-    });
-  };
+export default function AddVideoForm({ profileId, slug }: { profileId: string; slug: string }) {
+  const [pending, start] = useTransition();
 
   return (
-    <form ref={ref} action={onAction} className="space-y-3">
-      <input
-        name="youtube_url"
-        type="url"
-        placeholder="Pega la URL de YouTube (https://...)"
-        required
-        className="w-full rounded-md border p-2"
-      />
-      <input
-        name="caption"
-        type="text"
-        placeholder="Leyenda (opcional)"
-        className="w-full rounded-md border p-2"
-      />
-      <button type="submit" disabled={isPending} className="btn btn-primary">
-        {isPending ? 'Agregando…' : 'Agregar video'}
+    <form
+      action={(formData) => start(() => addYoutubeAction(formData))}
+      className="flex items-center gap-2"
+    >
+      <input type="hidden" name="profileId" value={profileId} />
+      <input type="hidden" name="slug" value={slug} />
+
+      <input type="url" name="url" placeholder="URL de YouTube" className="input input-bordered" required />
+      <input type="text" name="caption" placeholder="Leyenda (opcional)" className="input input-bordered" />
+
+      <button disabled={pending} className="btn btn-primary">
+        {pending ? 'Agregando…' : 'Agregar video'}
       </button>
     </form>
   );
