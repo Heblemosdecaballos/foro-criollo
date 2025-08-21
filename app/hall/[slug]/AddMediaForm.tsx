@@ -4,51 +4,62 @@ import * as React from 'react';
 import { useTransition } from 'react';
 import { addMediaAction } from './actions';
 
-export default function AddMediaForm({
-  profileId,
-  slug,
-}: {
+type Props = {
   profileId: string;
   slug: string;
-}) {
-  const [pending, start] = useTransition();
+};
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+export default function AddMediaForm({ profileId, slug }: Props) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = React.useState<string | null>(null);
+  const [ok, setOk] = React.useState<boolean>(false);
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
+    setError(null);
+    setOk(false);
 
-    // Nos aseguramos de enviar los campos ocultos
+    const formEl = e.currentTarget;
+    const fd = new FormData(formEl);
+
+    // Asegurar que viajan estos campos
     fd.set('profileId', profileId);
     fd.set('slug', slug);
 
-    start(async () => {
-      await addMediaAction(fd);
-      form.reset(); // limpiar el formulario tras subir
+    startTransition(async () => {
+      const res = await addMediaAction(fd);
+      if (res?.ok) {
+        setOk(true);
+        formEl.reset(); // limpiar inputs
+      } else {
+        setError(res?.error ?? 'No se pudo subir el archivo');
+      }
     });
-  }
+  };
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex items-center gap-2"
-      encType="multipart/form-data"
-    >
-      {/* Hidden para redundancia (también se setean en onSubmit) */}
-      <input type="hidden" name="profileId" value={profileId} />
-      <input type="hidden" name="slug" value={slug} />
+    <form onSubmit={onSubmit} encType="multipart/form-data" className="space-y-2">
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          name="file"
+          required
+          accept="image/*,video/*"
+          className="input"
+        />
+        <input
+          type="text"
+          name="caption"
+          placeholder="Leyenda (opcional)"
+          className="input"
+        />
+        <button type="submit" disabled={pending} className="btn btn-primary">
+          {pending ? 'Subiendo…' : 'Subir foto'}
+        </button>
+      </div>
 
-      <input type="file" name="file" accept="image/*" required />
-      <input
-        type="text"
-        name="caption"
-        placeholder="Leyenda (opcional)"
-        className="input input-bordered"
-      />
-
-      <button type="submit" disabled={pending} className="btn btn-primary">
-        {pending ? 'Subiendo…' : 'Subir foto'}
-      </button>
+      {ok && <p className="text-green-600 text-sm">¡Archivo subido!</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
     </form>
   );
 }
