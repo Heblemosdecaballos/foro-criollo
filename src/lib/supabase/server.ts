@@ -1,8 +1,9 @@
-// src/lib/supabase/server.ts
+// /src/utils/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export function createSupabaseServer() {
+/** Cliente para RSC/Server Actions con cookies */
+export function createClient() {
   const cookieStore = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,3 +17,8 @@ export function createSupabaseServer() {
     }
   );
 }
+
+/* ==== Alias para compatibilidad con imports existentes ==== */
+export const createSupabaseServerClient = createClient;
+export const createSupabaseServerClientReadOnly = createClient;
+export const createSupabaseServer = createClient;
