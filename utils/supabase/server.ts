@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-/** Cliente para RSC/Server Actions (con cookies) */
+/** Cliente Supabase para RSC/Server Actions (con cookies) */
 export function createClient() {
   const cookieStore = cookies();
   return createServerClient(
@@ -18,6 +18,7 @@ export function createClient() {
   );
 }
 
-/** Alias que otros archivos podrían importar */
+/* Alias comunes en proyectos existentes */
 export const createSupabaseServerClient = createClient;
 export const createSupabaseServerClientReadOnly = createClient;
+export const createSupabaseServer = createClient;
