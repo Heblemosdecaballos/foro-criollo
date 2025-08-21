@@ -13,40 +13,30 @@ export default function AddVideoForm({
 }) {
   const [pending, start] = useTransition();
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-
-    fd.set('profileId', profileId);
-    fd.set('slug', slug);
-
-    start(async () => {
-      await addYoutubeAction(fd);
-      form.reset();
-    });
-  }
-
   return (
-    <form onSubmit={onSubmit} className="flex items-center gap-2">
+    <form
+      action={(formData) => start(() => addYoutubeAction(formData))}
+      className="space-y-3"
+    >
       <input type="hidden" name="profileId" value={profileId} />
       <input type="hidden" name="slug" value={slug} />
 
       <input
-        type="url"
         name="url"
-        placeholder="URL de YouTube"
-        className="input input-bordered"
+        type="url"
         required
-      />
-      <input
-        type="text"
-        name="caption"
-        placeholder="Leyenda (opcional)"
-        className="input input-bordered"
+        placeholder="URL de YouTube (ej. https://youtu.be/XXXXXXXXXXX)"
+        className="input w-full"
       />
 
-      <button type="submit" disabled={pending} className="btn btn-primary">
+      <input
+        name="caption"
+        type="text"
+        placeholder="Leyenda (opcional)"
+        className="input w-full"
+      />
+
+      <button type="submit" disabled={pending} className="btn btn-success">
         {pending ? 'Agregando…' : 'Agregar video'}
       </button>
     </form>
