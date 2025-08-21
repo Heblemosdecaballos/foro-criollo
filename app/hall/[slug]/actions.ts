@@ -4,9 +4,10 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import path from "node:path";
-import { createSupabaseServerClient as createSupabase } from "@/utils/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 
-/* ===================== Helpers comunes ===================== */
+const createSupabase = supabaseServer;
+
 async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) throw new Error("No autenticado");
@@ -18,20 +19,16 @@ async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
   if (error) throw error;
   if (!prof?.is_admin) throw new Error("Acceso denegado");
 }
-
 async function requireUser(supabase: ReturnType<typeof createSupabase>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) throw new Error("Debes iniciar sesión");
   return auth.user;
 }
-
-async function getEntryId(supabase: ReturnType<typeof createSupabase>, slugOrId: string) {
-  const looksUuid = /^[0-9a-fA-F-]{36}$/.test(slugOrId);
-  if (looksUuid) return slugOrId;
+async function getEntryId(supabase: ReturnType<typeof createSupabase>, slug: string) {
   const { data, error } = await supabase
     .from("hall_entries")
     .select("id")
-    .eq("slug", slugOrId)
+    .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("No existe el Hall con ese slug");
@@ -41,8 +38,6 @@ async function getEntryId(supabase: ReturnType<typeof createSupabase>, slugOrId:
 const YT_ID_RE =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
 
-/* ===================== Media (imagen / YouTube) ===================== */
-/** No retorna nada (Promise<void>) para que encaje con <form action> */
 export async function addMediaAction(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   await requireAdmin(supabase);
@@ -50,7 +45,6 @@ export async function addMediaAction(formData: FormData): Promise<void> {
   const slug = String(formData.get("slug") || "");
   const caption = (formData.get("caption") as string) || null;
   const credit = (formData.get("credit") as string) || null;
-
   if (!slug) throw new Error("slug requerido");
 
   const entryId = await getEntryId(supabase, slug);
@@ -60,8 +54,8 @@ export async function addMediaAction(formData: FormData): Promise<void> {
 
   if (file && file.size > 0) {
     const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-    if (!allowed.includes(file.type)) throw new Error("Formato no permitido (JPG/PNG/WebP/AVIF)");
-    if (file.size > 8 * 1024 * 1024) throw new Error("Máximo 8MB");
+    if (!allowed.includes(file.type)) throw new Error("Formato no permitido");
+    if (file.size > 8 * 1024 * 1024) throw new Error("Máx 8MB");
 
     const ext = file.name.split(".").pop() || "jpg";
     const base = path.parse(file.name).name.replace(/[^\w\-]+/g, "_").slice(0, 48);
@@ -102,7 +96,6 @@ export async function addMediaAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/hall/${slug}`);
 }
 
-/** Wrappers con los nombres que usan tus componentes */
 export async function addYoutubeAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
@@ -110,7 +103,6 @@ export async function uploadImageAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
 
-/* ===================== Comentarios ===================== */
 export async function addHallComment(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   const user = await requireUser(supabase);
@@ -144,26 +136,16 @@ export async function addHallComment(formData: FormData): Promise<void> {
   revalidatePath(`/hall/${slug}`);
 }
 
-/* ===================== Votos (coincide con tu botón) ===================== */
-/**
- * toggleVote(profileId, slug) — Server Action invocable desde cliente.
- * Devuelve { ok, votes } para que actualices el contador en UI.
- */
 export async function toggleVote(
   profileId: string,
   slug: string
 ): Promise<{ ok: boolean; votes: number }> {
   const supabase = createSupabase();
   const user = await requireUser(supabase);
-
-  // (Opcional) validar que el profileId recibido coincide con el user.id
-  if (profileId && profileId !== user.id) {
-    throw new Error("Sesión no coincide con el perfil");
-  }
+  if (profileId && profileId !== user.id) throw new Error("Sesión no coincide con el perfil");
 
   const entryId = await getEntryId(supabase, slug);
 
-  // ¿Existe voto actual?
   const { data: existing, error: selErr } = await supabase
     .from("hall_votes")
     .select("entry_id")
@@ -173,7 +155,6 @@ export async function toggleVote(
   if (selErr) throw selErr;
 
   if (existing) {
-    // Quitar voto
     const { error: delErr } = await supabase
       .from("hall_votes")
       .delete()
@@ -181,7 +162,6 @@ export async function toggleVote(
       .eq("voter_id", user.id);
     if (delErr) throw delErr;
   } else {
-    // Agregar voto
     const { error: insErr } = await supabase.from("hall_votes").insert({
       entry_id: entryId,
       voter_id: user.id,
@@ -189,15 +169,12 @@ export async function toggleVote(
     if (insErr) throw insErr;
   }
 
-  // Contar votos actualizados
   const { count, error: cntErr } = await supabase
     .from("hall_votes")
     .select("*", { count: "exact", head: true })
     .eq("entry_id", entryId);
   if (cntErr) throw cntErr;
 
-  // Revalida página pública
   revalidatePath(`/hall/${slug}`);
-
   return { ok: true, votes: count ?? 0 };
 }
