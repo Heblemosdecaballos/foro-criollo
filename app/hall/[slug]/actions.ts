@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import path from "node:path";
 import { createSupabaseServerClient as createSupabase } from "@/utils/supabase/server";
 
-/* ========= Helpers ========= */
+/* ===================== Helpers comunes ===================== */
 async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) throw new Error("No autenticado");
@@ -41,7 +41,8 @@ async function getEntryId(supabase: ReturnType<typeof createSupabase>, slugOrId:
 const YT_ID_RE =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
 
-/* ========= Media (imagen / YouTube) ========= */
+/* ===================== Media (imagen / YouTube) ===================== */
+/** No retorna nada (Promise<void>) para que encaje con <form action> */
 export async function addMediaAction(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   await requireAdmin(supabase);
@@ -101,6 +102,7 @@ export async function addMediaAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/hall/${slug}`);
 }
 
+/** Wrappers con los nombres que usan tus componentes */
 export async function addYoutubeAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
@@ -108,7 +110,7 @@ export async function uploadImageAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
 
-/* ========= Comentarios ========= */
+/* ===================== Comentarios ===================== */
 export async function addHallComment(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   const user = await requireUser(supabase);
@@ -142,28 +144,36 @@ export async function addHallComment(formData: FormData): Promise<void> {
   revalidatePath(`/hall/${slug}`);
 }
 
-/* ========= Votos (toggle, sin depender de 'id') ========= */
-export async function toggleVote(formData: FormData): Promise<void> {
+/* ===================== Votos (coincide con tu botón) ===================== */
+/**
+ * toggleVote(profileId, slug) — Server Action invocable desde cliente.
+ * Devuelve { ok, votes } para que actualices el contador en UI.
+ */
+export async function toggleVote(
+  profileId: string,
+  slug: string
+): Promise<{ ok: boolean; votes: number }> {
   const supabase = createSupabase();
   const user = await requireUser(supabase);
 
-  const entryIdInput = (formData.get("entryId") as string) || "";
-  const slug = (formData.get("slug") as string) || "";
-  if (!entryIdInput && !slug) throw new Error("slug o entryId requerido");
+  // (Opcional) validar que el profileId recibido coincide con el user.id
+  if (profileId && profileId !== user.id) {
+    throw new Error("Sesión no coincide con el perfil");
+  }
 
-  const entryId = await getEntryId(supabase, entryIdInput || slug);
+  const entryId = await getEntryId(supabase, slug);
 
-  // ¿ya existe el voto?
+  // ¿Existe voto actual?
   const { data: existing, error: selErr } = await supabase
     .from("hall_votes")
-    .select("entry_id") // NO requerimos 'id'
+    .select("entry_id")
     .eq("entry_id", entryId)
     .eq("voter_id", user.id)
     .maybeSingle();
   if (selErr) throw selErr;
 
   if (existing) {
-    // quitar voto por par (entry_id, voter_id) — no dependemos de 'id'
+    // Quitar voto
     const { error: delErr } = await supabase
       .from("hall_votes")
       .delete()
@@ -171,7 +181,7 @@ export async function toggleVote(formData: FormData): Promise<void> {
       .eq("voter_id", user.id);
     if (delErr) throw delErr;
   } else {
-    // agregar voto
+    // Agregar voto
     const { error: insErr } = await supabase.from("hall_votes").insert({
       entry_id: entryId,
       voter_id: user.id,
@@ -179,5 +189,15 @@ export async function toggleVote(formData: FormData): Promise<void> {
     if (insErr) throw insErr;
   }
 
-  if (slug) revalidatePath(`/hall/${slug}`);
+  // Contar votos actualizados
+  const { count, error: cntErr } = await supabase
+    .from("hall_votes")
+    .select("*", { count: "exact", head: true })
+    .eq("entry_id", entryId);
+  if (cntErr) throw cntErr;
+
+  // Revalida página pública
+  revalidatePath(`/hall/${slug}`);
+
+  return { ok: true, votes: count ?? 0 };
 }
