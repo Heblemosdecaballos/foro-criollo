@@ -1,130 +1,76 @@
-// /app/hall/[slug]/actions.ts
 'use server';
 
+import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { supabaseServer } from '@/lib/supabase/server';
-import { randomUUID } from 'crypto';
 
-/**
- * Alterna el voto del usuario para un perfil del Hall.
- * Devuelve { ok: boolean, votes?: number, error?: string }
- */
-export async function toggleVote(profileId: string, slug: string) {
-  const supabase = supabaseServer();
+// ————————————————————————————————————————
+// Utilidad: extraer el ID de un video de YouTube
+function extractYouTubeId(input: string): string | null {
+  try {
+    const url = new URL(input);
 
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth?.user;
-  if (!user) return { ok: false, error: 'UNAUTHENTICATED' };
+    // youtu.be/VIDEOID
+    if (url.hostname.includes('youtu.be')) {
+      return url.pathname.replace('/', '');
+    }
 
-  const { data: existing, error: readErr } = await supabase
-    .from('hall_votes')
-    .select('id')
-    .eq('profile_id', profileId)
-    .eq('user_id', user.id)
-    .maybeSingle();
+    // youtube.com/watch?v=VIDEOID
+    if (url.hostname.includes('youtube.com')) {
+      const v = url.searchParams.get('v');
+      if (v) return v;
 
-  if (readErr) return { ok: false, error: readErr.message };
+      // youtube.com/shorts/VIDEOID
+      const parts = url.pathname.split('/');
+      const sIdx = parts.indexOf('shorts');
+      if (sIdx >= 0 && parts[sIdx + 1]) return parts[sIdx + 1];
 
-  if (existing) {
-    const { error: delErr } = await supabase
-      .from('hall_votes')
-      .delete()
-      .eq('id', existing.id);
-    if (delErr) return { ok: false, error: delErr.message };
-  } else {
-    const { error: insErr } = await supabase
-      .from('hall_votes')
-      .insert({ profile_id: profileId, user_id: user.id });
-    if (insErr) return { ok: false, error: insErr.message };
+      // youtube.com/embed/VIDEOID
+      const eIdx = parts.indexOf('embed');
+      if (eIdx >= 0 && parts[eIdx + 1]) return parts[eIdx + 1];
+    }
+  } catch {
+    // no es URL completa, intentemos regex
   }
 
-  const { count } = await supabase
-    .from('hall_votes')
-    .select('*', { count: 'exact', head: true })
-    .eq('profile_id', profileId);
-
-  revalidatePath(`/hall/${slug}`);
-  return { ok: true, votes: count ?? 0 };
+  const m = input.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:[^0-9A-Za-z_-]|$)/);
+  return m?.[1] ?? null;
 }
 
-/**
- * Subir media (imagen/video) al bucket "hall" y registrar en hall_media.
- * Se llama desde el AddMediaForm (cliente).
- *
- * FormData esperado:
- *  - file: File (image/* o video/*)
- *  - caption: string (opcional)
- *  - profileId: string
- *  - slug: string
- */
-export async function addMediaAction(formData: FormData) {
-  const supabase = supabaseServer();
+// ————————————————————————————————————————
+// ACCIÓN: agregar video de YouTube a la galería del perfil del Hall
+export async function addYoutubeAction(formData: FormData) {
+  const profileId = String(formData.get('profileId') || '');
+  const slug = String(formData.get('slug') || '');
+  const url = String(formData.get('url') || '');
+  const caption = String(formData.get('caption') || '');
 
-  // Usuario logeado
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth?.user;
-  if (!user) {
-    return { ok: false, error: 'UNAUTHENTICATED' };
+  if (!profileId || !slug || !url) {
+    return { ok: false, error: 'Faltan datos del formulario.' };
   }
 
-  const file = formData.get('file') as File | null;
-  const caption = (formData.get('caption') as string | null) ?? '';
-  const profileId = formData.get('profileId') as string | null;
-  const slug = formData.get('slug') as string | null;
-
-  if (!file || !profileId || !slug) {
-    return { ok: false, error: 'FALTAN_DATOS' };
+  const videoId = extractYouTubeId(url);
+  if (!videoId) {
+    return { ok: false, error: 'URL de YouTube inválida.' };
   }
 
-  // Construir ruta de subida en el bucket
-  const cleanName = file.name.replace(/\s+/g, '-');
-  const objectPath = `${profileId}/media/${randomUUID()}-${cleanName}`;
+  const supabase = createClient();
 
-  // Subir a Storage (bucket "hall")
-  const { error: upErr } = await supabase
-    .storage
-    .from('hall')
-    .upload(objectPath, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type || undefined,
-    });
+  // Guardamos el video en la tabla hall_media
+  // Ajusta los nombres de columna si tu tabla usa otros (p. ej. external_url).
+  const { error } = await supabase.from('hall_media').insert({
+    profile_id: profileId,
+    media_type: 'video',           // 👈 importante para distinguir de imagen
+    storage_path: `youtube:${videoId}`, // 👈 guardamos el ID con un prefijo
+    caption,
+  });
 
-  if (upErr) {
-    return { ok: false, error: upErr.message };
+  if (error) {
+    return { ok: false, error: error.message };
   }
 
-  // URL pública (si el bucket es público)
-  const { data: pub } = supabase.storage.from('hall').getPublicUrl(objectPath);
-  const publicUrl = pub?.publicUrl ?? null;
-
-  // Determinar tipo simple
-  const mediaType = file.type.startsWith('video/')
-    ? 'video'
-    : file.type.startsWith('image/')
-    ? 'image'
-    : 'file';
-
-  // Insertar metadatos en hall_media
-  const { error: metaErr } = await supabase
-    .from('hall_media')
-    .insert({
-      profile_id: profileId,
-      user_id: user.id,
-      storage_path: objectPath,
-      public_url: publicUrl,
-      caption: caption || null,
-      media_type: mediaType,
-    });
-
-  if (metaErr) {
-    // (Opcional) borrar del storage si la inserción falla
-    await supabase.storage.from('hall').remove([objectPath]);
-    return { ok: false, error: metaErr.message };
-  }
-
-  // Refrescar página del perfil
+  // Revalidamos la vista pública y, si la tienes, la de admin
   revalidatePath(`/hall/${slug}`);
+  revalidatePath(`/admin/hall/${slug}`);
 
   return { ok: true };
 }
