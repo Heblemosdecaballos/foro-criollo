@@ -1,44 +1,27 @@
-// /app/hall/[slug]/HallCommentForm.tsx
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { addHallComment } from './actions';
 
-type Props = {
-  profileId: string;
-  slug: string;
-  viewerName?: string | null;
-};
-
-export default function HallCommentForm({ profileId, slug, viewerName }: Props) {
-  const [content, setContent] = useState('');
-  const [isPending, startTransition] = useTransition();
-
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = content.trim();
-    if (!text) return;
-
-    startTransition(async () => {
-      await addHallComment({ profileId, slug, content: text });
-      setContent('');
-    });
-  };
+export default function HallCommentForm({ profileId, slug, viewerName }: { profileId: string; slug: string; viewerName?: string | null }) {
+  const [pending, start] = useTransition();
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <label className="block text-sm text-muted">
-        Escribe un comentario{viewerName ? `, ${viewerName}` : ''}…
-      </label>
+    <form
+      action={(formData) => start(() => addHallComment(formData))}
+      className="space-y-2"
+    >
+      <input type="hidden" name="profileId" value={profileId} />
+      <input type="hidden" name="slug" value={slug} />
+
       <textarea
-        className="w-full rounded-md border p-3"
-        rows={4}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="Escribe un comentario…"
+        name="content"
+        placeholder={`Escribe un comentario…${viewerName ? `, ${viewerName}` : ''}`}
+        className="textarea textarea-bordered w-full"
+        required
       />
-      <button type="submit" disabled={isPending} className="btn btn-primary">
-        {isPending ? 'Guardando…' : 'Comentar'}
+      <button disabled={pending} className="btn btn-success">
+        {pending ? 'Comentando…' : 'Comentar'}
       </button>
     </form>
   );
