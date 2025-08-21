@@ -1,51 +1,53 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useTransition } from 'react';
-import { addHallComment } from './actions';
+import * as React from "react";
+import { useTransition, useState, useRef } from "react";
+import { addHallComment } from "./actions";
 
 export default function HallCommentForm({
   profileId,
   slug,
-  viewerName,
 }: {
   profileId: string;
   slug: string;
-  viewerName?: string | null;
 }) {
   const [pending, start] = useTransition();
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-
-    fd.set('profileId', profileId);
-    fd.set('slug', slug);
-
-    start(async () => {
-      await addHallComment(fd);
-      form.reset();
-    });
-  }
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-2">
-      <input type="hidden" name="profileId" value={profileId} />
+    <form
+      ref={formRef}
+      action={(fd: FormData) => {
+        setErr(null);
+        setOk(false);
+        start(() => {
+          void addHallComment(fd)
+            .then(() => {
+              setOk(true);
+              formRef.current?.reset();
+            })
+            .catch((e: any) => setErr(e?.message ?? "No se pudo comentar"));
+        });
+      }}
+      className="space-y-3"
+    >
       <input type="hidden" name="slug" value={slug} />
-
       <textarea
-        name="content"
-        placeholder={`Escribe un comentario…${
-          viewerName ? `, ${viewerName}` : ''
-        }`}
-        className="textarea textarea-bordered w-full"
+        name="comment"
         required
+        minLength={2}
+        placeholder="Escribe tu comentario…"
+        className="w-full border rounded p-2 min-h-[96px]"
       />
-
-      <button type="submit" disabled={pending} className="btn btn-success">
-        {pending ? 'Comentando…' : 'Comentar'}
-      </button>
+      <div className="flex items-center gap-2">
+        <button disabled={pending} className="px-4 py-2 rounded bg-black text-white">
+          {pending ? "Enviando…" : "Comentar"}
+        </button>
+        {ok && <span className="text-green-600 text-sm">Comentario publicado.</span>}
+        {err && <span className="text-red-600 text-sm">{err}</span>}
+      </div>
     </form>
   );
 }
