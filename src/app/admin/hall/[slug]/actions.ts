@@ -4,7 +4,10 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import path from "node:path";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
+
+// Alias local para no tocar el resto del código
+const createSupabaseServer = supabaseServer;
 
 /* ===== Helpers ===== */
 async function assertAdmin(supabase: ReturnType<typeof createSupabaseServer>) {
@@ -43,13 +46,11 @@ const YT_ID_RE =
 export async function addYouTubeAction(formData: FormData) {
   const supabase = createSupabaseServer();
 
-  // Datos
   const slug = String(formData.get("slug") || "");
   const youtubeUrlOrId = String(formData.get("youtube") || "");
   const caption = ((formData.get("caption") as string) || "").trim() || null;
   const credit = ((formData.get("credit") as string) || "").trim() || null;
 
-  // Validaciones básicas
   if (!slug) return { ok: false, error: "slug requerido." };
   if (!youtubeUrlOrId) return { ok: false, error: "URL o ID de YouTube requerido." };
 
@@ -111,7 +112,6 @@ export async function uploadImageAction(formData: FormData) {
     const filename = `${base}_${randomUUID().slice(0, 8)}.${ext}`;
     const storagePath = `${slug}/${filename}`; // dentro del bucket 'hall'
 
-    // Subir a Storage
     const { error: upErr } = await supabase.storage
       .from("hall")
       .upload(storagePath, file, {
@@ -121,7 +121,6 @@ export async function uploadImageAction(formData: FormData) {
       });
     if (upErr) throw upErr;
 
-    // Insert en tabla media
     const { error: insErr } = await supabase.from("hall_media").insert({
       entry_id: entryId,
       storage_path: `hall/${storagePath}`,
