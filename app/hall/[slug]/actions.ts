@@ -6,6 +6,7 @@ import { randomUUID } from "crypto";
 import path from "node:path";
 import { createSupabaseServerClient as createSupabase } from "@/utils/supabase/server";
 
+/* ================== Helpers comunes ================== */
 async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth?.user) throw new Error("No autenticado");
@@ -16,6 +17,12 @@ async function requireAdmin(supabase: ReturnType<typeof createSupabase>) {
     .maybeSingle();
   if (error) throw error;
   if (!prof?.is_admin) throw new Error("Acceso denegado");
+}
+
+async function requireUser(supabase: ReturnType<typeof createSupabase>) {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) throw new Error("Debes iniciar sesión");
+  return auth.user;
 }
 
 async function getEntryId(supabase: ReturnType<typeof createSupabase>, slug: string) {
@@ -32,7 +39,8 @@ async function getEntryId(supabase: ReturnType<typeof createSupabase>, slug: str
 const YT_ID_RE =
   /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
 
-/** Acción genérica (no retorna nada) */
+/* ================== Media (imagen / youtube) ================== */
+/** No retorna nada (Promise<void>) para cumplir tipo de <form action> */
 export async function addMediaAction(formData: FormData): Promise<void> {
   const supabase = createSupabase();
   await requireAdmin(supabase);
@@ -92,10 +100,49 @@ export async function addMediaAction(formData: FormData): Promise<void> {
   revalidatePath(`/admin/hall/${slug}`);
 }
 
-/** Wrappers con el nombre que esperan tus formularios (también `void`) */
+/** Wrappers con los nombres que usan tus formularios */
 export async function addYoutubeAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
 }
 export async function uploadImageAction(fd: FormData): Promise<void> {
   await addMediaAction(fd);
+}
+
+/* ================== Comentarios ================== */
+/**
+ * Export que tu componente espera: addHallComment
+ * Inputs aceptados: 'comment' | 'body' | 'content'
+ */
+export async function addHallComment(formData: FormData): Promise<void> {
+  const supabase = createSupabase();
+  const user = await requireUser(supabase);
+
+  const slug = String(formData.get("slug") || "");
+  const body =
+    (formData.get("comment") as string) ||
+    (formData.get("body") as string) ||
+    (formData.get("content") as string) ||
+    "";
+
+  if (!slug) throw new Error("slug requerido");
+  if (!body || body.trim().length < 2) throw new Error("Escribe un comentario");
+
+  const entryId = await getEntryId(supabase, slug);
+
+  // opcional: nombre para mostrar si ya lo guardas en profiles
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const { error } = await supabase.from("hall_comments").insert({
+    entry_id: entryId,
+    body: body.trim(),
+    author_id: user.id,
+    author_name: prof?.full_name ?? null,
+  });
+  if (error) throw error;
+
+  revalidatePath(`/hall/${slug}`);
 }
