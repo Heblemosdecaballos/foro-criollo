@@ -4,7 +4,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 
-/** Utilidad: extraer el ID de un video de YouTube desde distintos formatos de URL */
+/** Utilidad: extraer el ID de un video de YouTube desde distintos formatos */
 function extractYouTubeId(url: string): string | null {
   try {
     const u = new URL(url);
@@ -21,13 +21,11 @@ function extractYouTubeId(url: string): string | null {
       const id = u.pathname.replace('/', '').trim();
       if (id) return id;
     }
-  } catch (_) {
-    // URL inválida
-  }
+  } catch (_) {}
   return null;
 }
 
-/** Comentar en un perfil del Hall */
+/** 1) Comentar en el perfil del Hall */
 export async function addHallComment(args: {
   profileId: string;
   slug: string;
@@ -54,7 +52,7 @@ export async function addHallComment(args: {
   revalidatePath(`/admin/hall/${args.slug}`);
 }
 
-/** Subir imagen/video de archivo a Storage y registrar en hall_media */
+/** 2) Subir archivo (imagen) a Storage y registrar en hall_media */
 export async function addMediaAction(
   ctx: { profileId: string; slug: string },
   formData: FormData
@@ -73,11 +71,11 @@ export async function addMediaAction(
     throw new Error('Selecciona un archivo válido');
   }
 
-  // Ruta dentro del bucket "hall"
+  // Ruta en el bucket "hall"
   const safeName = file.name.replace(/\s+/g, '_');
   const path = `${ctx.profileId}/media/${Date.now()}-${safeName}`;
 
-  // Sube a Storage (bucket: hall)
+  // Subir a Storage
   const { error: upErr } = await supabase.storage
     .from('hall')
     .upload(path, file, {
@@ -88,14 +86,14 @@ export async function addMediaAction(
 
   if (upErr) throw upErr;
 
-  // Inserta en la tabla hall_media
-  // Nota: usa 'file_path'. Si tu columna se llama 'path', cambia la clave a { path: path }.
+  // Registrar en DB
+  // OJO: si tu columna se llama 'path' (y no 'file_path'), cambia a { path: path }
   const { error: dbErr } = await supabase.from('hall_media').insert({
     profile_id: ctx.profileId,
-    file_path: path,     // <-- cámbialo a 'path: path' si tu columna se llama 'path'
+    file_path: path,   // <-- usa 'path: path' si tu columna se llama así
     caption,
     created_by: user.id,
-    kind: 'image',       // por si ya agregaste la columna 'kind' (ver SQL opcional abajo)
+    kind: 'image',     // si ya añadiste la columna 'kind' (opcional)
   });
 
   if (dbErr) throw dbErr;
@@ -105,7 +103,7 @@ export async function addMediaAction(
   return { ok: true };
 }
 
-/** Registrar un video de YouTube en hall_media (sin subir nada a Storage) */
+/** 3) Agregar video de YouTube al perfil (sin subir archivo) */
 export async function addYoutubeAction(
   ctx: { profileId: string; slug: string },
   formData: FormData
@@ -125,16 +123,13 @@ export async function addYoutubeAction(
   const id = extractYouTubeId(url);
   if (!id) throw new Error('URL de YouTube no válida');
 
-  // Miniatura estándar de YouTube
   const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 
-  // Insertamos como "video" de origen YouTube.
-  // Si NO tienes estas columnas, más abajo te dejo el SQL Opcional para agregarlas.
   const { error } = await supabase.from('hall_media').insert({
     profile_id: ctx.profileId,
-    kind: 'youtube',        // <-- nueva columna opcional
-    video_url: url,         // <-- nueva columna opcional
-    thumbnail_url: thumb,   // <-- nueva columna opcional
+    kind: 'youtube',       // columnas opcionales recomendadas
+    video_url: url,
+    thumbnail_url: thumb,
     caption,
     created_by: user.id,
   });
@@ -145,3 +140,22 @@ export async function addYoutubeAction(
   revalidatePath(`/admin/hall/${ctx.slug}`);
   return { ok: true };
 }
+
+/** 4) Votar / quitar voto sobre un perfil del Hall  */
+export async function toggleVote(profileId: string, slug: string) {
+  const supabase = createSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Debes iniciar sesión');
+
+  // ¿Ya votó este usuario este perfil?
+  const { data: existing, error: selErr } = await supabase
+    .from('hall_votes')
+    .select('id')
+    .eq('profile_id', profileId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (selErr) throw
