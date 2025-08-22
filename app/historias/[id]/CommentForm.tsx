@@ -1,47 +1,69 @@
-// app/historias/[id]/CommentForm.tsx
-'use client'
+"use client";
 
-import { useState, useTransition } from 'react'
-import { addStoryComment } from './actions'
+import { useState, useTransition } from "react";
+import { addStoryComment } from "./actions";
 
-export default function CommentForm({
-  storyId,
-  viewerName,
-}: {
-  storyId: string
-  viewerName?: string | null
-}) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+type Props = {
+  storyId: string;
+  /** Opcional: nombre visible del usuario que comenta */
+  viewerName?: string | null;
+};
+
+type ActionResp = { ok: boolean; error?: string };
+
+export default function CommentForm({ storyId, viewerName }: Props) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <form
-      action={(fd) => {
-        setError(null)
-        startTransition(async () => {
-          fd.set('story_id', storyId)
-          const res = await addStoryComment(fd)
-          if (!res.ok) setError(res.error || 'No se pudo comentar')
-        })
-      }}
       className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget as HTMLFormElement;
+        const fd = new FormData(form);
+        fd.set("story_id", storyId); // id oculto en el submit
+
+        setError(null);
+        start(() => {
+          addStoryComment(fd)
+            .then((res) => {
+              const r = res as ActionResp; // ok + error? opcional
+              if (!r.ok) {
+                setError(r.error ?? "No se pudo comentar");
+                return;
+              }
+              form.reset();
+            })
+            .catch(() => setError("No se pudo comentar"));
+        });
+      }}
     >
-      <div className="text-sm text-muted">
-        Comentando como <strong>{viewerName ?? 'Usuario'}</strong>
-      </div>
+      {viewerName ? (
+        <div className="text-xs text-neutral-600">
+          Comentando como <strong>{viewerName}</strong>
+        </div>
+      ) : null}
 
       <textarea
-        name="content"
-        className="w-full min-h-[150px] border rounded px-3 py-2"
-        placeholder="Escribe un comentario…"
+        name="body"
         required
+        minLength={2}
+        rows={3}
+        placeholder={viewerName ? `Escribe tu mensaje, ${viewerName}…` : "Escribe tu mensaje…"}
+        className="w-full rounded-lg border px-3 py-2 text-sm"
       />
 
-      <button type="submit" className="btn btn-secondary" disabled={isPending}>
-        {isPending ? 'Enviando…' : 'Comentar'}
-      </button>
-
-      {error && <p className="text-red-700">{error}</p>}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-lg border border-[#14110F] bg-[#14110F] px-4 py-2 text-sm text-white disabled:opacity-60"
+        >
+          {pending ? "Enviando…" : "Comentar"}
+        </button>
+        {error && <span className="text-sm text-red-600">{error}</span>}
+      </div>
     </form>
-  )
+  );
 }
