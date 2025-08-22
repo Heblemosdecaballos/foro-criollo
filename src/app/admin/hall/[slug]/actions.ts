@@ -1,6 +1,5 @@
 // /src/app/admin/hall/[slug]/actions.ts
 "use server";
-export const runtime = "nodejs";
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
