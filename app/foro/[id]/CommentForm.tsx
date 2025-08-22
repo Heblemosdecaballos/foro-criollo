@@ -5,11 +5,13 @@ import { addThreadComment } from "./actions";
 
 type Props = {
   threadId: string;
+  /** Nombre del usuario que comenta; sólo para mostrar en el UI. */
+  viewerName?: string | null;
 };
 
 type ActionResp = { ok: boolean; error?: string };
 
-export default function CommentForm({ threadId }: Props) {
+export default function CommentForm({ threadId, viewerName }: Props) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -20,32 +22,36 @@ export default function CommentForm({ threadId }: Props) {
         e.preventDefault();
         const form = e.currentTarget as HTMLFormElement;
         const fd = new FormData(form);
-        fd.set("thread_id", threadId); // id oculto en el submit
+        fd.set("thread_id", threadId);
 
         setError(null);
         start(() => {
           addThreadComment(fd)
             .then((res) => {
-              const r = res as ActionResp; // tipado plano: ok + error?
+              const r = res as ActionResp;
               if (!r.ok) {
                 setError(r.error ?? "No se pudo comentar");
                 return;
               }
-              // Si tu action hace revalidatePath, el comentario aparecerá al recargar la ruta.
               form.reset();
             })
             .catch(() => setError("No se pudo comentar"));
         });
       }}
     >
+      {viewerName ? (
+        <div className="text-xs text-neutral-600">Comentando como <strong>{viewerName}</strong></div>
+      ) : null}
+
       <textarea
         name="body"
         required
         minLength={2}
         rows={3}
-        placeholder="Escribe tu comentario…"
+        placeholder={viewerName ? `Escribe tu mensaje, ${viewerName}…` : "Escribe tu mensaje…"}
         className="w-full rounded-lg border px-3 py-2 text-sm"
       />
+
       <div className="flex items-center gap-3">
         <button
           type="submit"
