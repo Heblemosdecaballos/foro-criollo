@@ -1,8 +1,6 @@
 // /app/foro/nuevo/actions.ts
 "use server";
 
-export const runtime = "nodejs";
-
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@supabase/ssr";
@@ -33,7 +31,6 @@ export async function createThreadAction(fd: FormData) {
 
     if (!title || title.length < 3) throw new Error("Título demasiado corto.");
 
-    // Inserta en la tabla (ajusta el nombre si la tuya es distinta)
     const { data, error } = await s
       .from("forum_threads")
       .insert({
@@ -46,9 +43,7 @@ export async function createThreadAction(fd: FormData) {
 
     if (error) throw error;
 
-    // Revalida el listado del foro
     revalidatePath("/foro");
-
     return { ok: true, id: data?.id ?? null };
   } catch (e: any) {
     return { ok: false, error: e?.message ?? "No se pudo crear el foro." };
