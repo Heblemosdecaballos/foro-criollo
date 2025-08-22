@@ -1,10 +1,10 @@
 // /lib/supabase/server.ts
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
-export function supabaseServer() {
+/** Cliente Supabase para RSC/Server Actions (con cookies) */
+export function createSupabaseServer() {
   const cookieStore = cookies();
-
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -13,13 +13,15 @@ export function supabaseServer() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 });
-        },
       },
     }
   );
 }
+
+/* ===== Alias para cubrir TODOS los imports posibles ===== */
+export const supabaseServer = createSupabaseServer;
+export const createSupabaseServerClient = createSupabaseServer;
+export const createSupabaseServerClientReadOnly = createSupabaseServer;
+export const createClient = createSupabaseServer;
+
+export default createSupabaseServer;
