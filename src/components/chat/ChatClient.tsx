@@ -1,4 +1,3 @@
-// /src/components/chat/ChatClient.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,7 +35,7 @@ export default function ChatClient({
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Cargar últimos 100
+  // Cargar últimos 100 mensajes
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -54,16 +53,14 @@ export default function ChatClient({
     };
   }, [room, supabase]);
 
-  // Realtime: INSERTs en la tabla
+  // Suscripción Realtime a INSERTs
   useEffect(() => {
     const channel = supabase
       .channel(`chat:${room}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `room=eq.${room}` },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as Msg]);
-        }
+        (payload) => setMessages((prev) => [...prev, payload.new as Msg])
       )
       .subscribe();
 
@@ -72,7 +69,7 @@ export default function ChatClient({
     };
   }, [room, supabase]);
 
-  // Autoscroll
+  // Autoscroll al final
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -90,7 +87,7 @@ export default function ChatClient({
     });
 
     if (!error) setText("");
-    // Si hay error, podrías mostrar un toast
+    // Si quieres manejar error, puedes mostrar un toast setError(error.message)
   }
 
   return (
