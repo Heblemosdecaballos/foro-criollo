@@ -1,6 +1,5 @@
 // /src/app/admin/hall/[slug]/actions.ts
 "use server";
-
 export const runtime = "nodejs";
 
 import { revalidatePath } from "next/cache";
@@ -9,122 +8,96 @@ import { createServerClient } from "@supabase/ssr";
 import { randomUUID } from "crypto";
 import path from "node:path";
 
-/** Cliente Supabase local (evita imports frágiles) */
-function createSupabaseServer() {
+function supa() {
   const cookieStore = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: { get: (name: string) => cookieStore.get(name)?.value },
-    }
+    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
   );
 }
 
-/* ===== Helpers ===== */
 async function assertAdmin() {
-  const supabase = createSupabaseServer();
-  const { data: auth } = await supabase.auth.getUser();
+  const s = supa();
+  const { data: auth } = await s.auth.getUser();
   if (!auth?.user) throw new Error("No autenticado.");
-
-  const { data: prof, error } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", auth.user.id)
-    .maybeSingle();
+  const { data: p, error } = await s.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
   if (error) throw error;
-  if (!prof?.is_admin) throw new Error("Acceso denegado: requiere admin.");
+  if (!p?.is_admin) throw new Error("Acceso denegado.");
 }
 
-async function getEntryIdBySlug(slug: string) {
-  const supabase = createSupabaseServer();
-  const { data, error } = await supabase
-    .from("hall_entries")
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
+async function getEntryId(slug: string) {
+  const s = supa();
+  const { data, error } = await s.from("hall_entries").select("id").eq("slug", slug).maybeSingle();
   if (error) throw error;
-  if (!data?.id) throw new Error("No existe un Hall con ese slug.");
+  if (!data?.id) throw new Error("No existe el Hall.");
   return data.id as string;
 }
 
-const YT_ID_RE =
-  /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
+const YT = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
 
-/* ===== Acción: Agregar YouTube ===== */
-export async function addYouTubeAction(formData: FormData) {
+export async function addYouTubeAction(fd: FormData) {
   try {
     await assertAdmin();
-    const supabase = createSupabaseServer();
+    const s = supa();
 
-    const slug = String(formData.get("slug") || "");
-    const youtubeUrlOrId = String(formData.get("youtube") || "");
-    const caption = ((formData.get("caption") as string) || "").trim() || null;
-    const credit = ((formData.get("credit") as string) || "").trim() || null;
+    const slug = String(fd.get("slug") || "");
+    const urlOrId = String(fd.get("youtube") || "");
+    const caption = ((fd.get("caption") as string) || "").trim() || null;
+    const credit = ((fd.get("credit") as string) || "").trim() || null;
+    if (!slug || !urlOrId) throw new Error("slug y YouTube requeridos");
 
-    if (!slug) throw new Error("slug requerido.");
-    if (!youtubeUrlOrId) throw new Error("URL o ID de YouTube requerido.");
+    const entryId = await getEntryId(slug);
+    const m = urlOrId.match(YT);
+    const id = (m ? m[1] : urlOrId).trim();
+    if (!/^[A-Za-z0-9_-]{6,}$/.test(id)) throw new Error("YouTube ID inválido");
 
-    const entryId = await getEntryIdBySlug(slug);
-    const match = youtubeUrlOrId.match(YT_ID_RE);
-    const ytId = (match ? match[1] : youtubeUrlOrId).trim();
-    if (!/^[A-Za-z0-9_-]{6,}$/.test(ytId)) throw new Error("YouTube ID inválido.");
-
-    const { error: insErr } = await supabase.from("hall_media").insert({
+    const { error } = await s.from("hall_media").insert({
       entry_id: entryId,
-      storage_path: `youtube:${ytId}`,
+      storage_path: `youtube:${id}`,
       kind: "youtube",
       caption,
       credit,
     });
-    if (insErr) throw insErr;
+    if (error) throw error;
 
     revalidatePath(`/hall/${slug}`);
     revalidatePath(`/admin/hall/${slug}`);
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Error agregando video." };
+    return { ok: false, error: e?.message ?? "Error agregando video" };
   }
 }
 
-/* ===== Acción: Subir imagen ===== */
-export async function uploadImageAction(formData: FormData) {
+export async function uploadImageAction(fd: FormData) {
   try {
     await assertAdmin();
-    const supabase = createSupabaseServer();
+    const s = supa();
 
-    const slug = String(formData.get("slug") || "");
-    const caption = ((formData.get("caption") as string) || "").trim() || null;
-    const credit = ((formData.get("credit") as string) || "").trim() || null;
+    const slug = String(fd.get("slug") || "");
+    const file = fd.get("file") as File | null;
+    const caption = ((fd.get("caption") as string) || "").trim() || null;
+    const credit = ((fd.get("credit") as string) || "").trim() || null;
 
-    if (!slug) throw new Error("slug requerido.");
+    if (!slug || !file) throw new Error("slug y archivo requeridos");
+    const okTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+    if (!okTypes.includes(file.type)) throw new Error("Formato no permitido");
+    if (file.size > 8 * 1024 * 1024) throw new Error("Máximo 8MB");
 
-    const file = formData.get("file") as File | null;
-    if (!file) throw new Error("Archivo requerido.");
-
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-    if (!allowed.includes(file.type)) throw new Error("Formato no permitido (JPG/PNG/WebP/AVIF).");
-    if (file.size > 8 * 1024 * 1024) throw new Error("Máximo 8MB.");
-
-    const entryId = await getEntryIdBySlug(slug);
-
+    const entryId = await getEntryId(slug);
     const ext = file.name.split(".").pop() || "jpg";
     const base = path.parse(file.name).name.replace(/[^\w\-]+/g, "_").slice(0, 48);
     const filename = `${base}_${randomUUID().slice(0, 8)}.${ext}`;
-    const storagePath = `${slug}/${filename}`; // dentro del bucket 'hall'
+    const storagePath = `${slug}/${filename}`;
 
-    // Subir a Storage
-    const { error: upErr } = await supabase.storage
-      .from("hall")
-      .upload(storagePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type,
-      });
+    const { error: upErr } = await s.storage.from("hall").upload(storagePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
     if (upErr) throw upErr;
 
-    // Registrar en DB
-    const { error: insErr } = await supabase.from("hall_media").insert({
+    const { error: insErr } = await s.from("hall_media").insert({
       entry_id: entryId,
       storage_path: `hall/${storagePath}`,
       kind: "image",
@@ -137,6 +110,6 @@ export async function uploadImageAction(formData: FormData) {
     revalidatePath(`/admin/hall/${slug}`);
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Error subiendo imagen." };
+    return { ok: false, error: e?.message ?? "Error subiendo imagen" };
   }
 }
