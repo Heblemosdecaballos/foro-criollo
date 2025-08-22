@@ -9,6 +9,7 @@ const NAV = [
   { href: "/foro", label: "Foro" },
   { href: "/hall", label: "Hall de la Fama" },
   { href: "/en-vivo", label: "En Vivo" },
+  { href: "/chat", label: "Chat" }, // 👉 acceso al chat
 ];
 
 export default function TopBar() {
@@ -48,7 +49,6 @@ export default function TopBar() {
               </Link>
             );
           })}
-          {/* OJO: aquí ya NO va “+Publicar” */}
         </nav>
       </div>
     </header>
