@@ -1,35 +1,56 @@
-// app/foro/nuevo/actions.ts
-'use server'
+// /app/foro/nuevo/actions.ts
+"use server";
 
-import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
+export const runtime = "nodejs";
 
-type ActionResponse = { ok: true; id: string } | { ok: false; error: string }
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { createServerClient } from "@supabase/ssr";
 
-export async function createThreadAction(formData: FormData): Promise<ActionResponse> {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
+/** Cliente Supabase (server) */
+function supa() {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
+  );
+}
 
-  const title = String(formData.get('title') || '').trim()
-  const content = String(formData.get('content') || '').trim()
-  if (!title) return { ok: false, error: 'title-required' }
+/**
+ * Crea un nuevo foro/hilo.
+ * Espera campos: title, body
+ */
+export async function createThreadAction(fd: FormData) {
+  try {
+    const s = supa();
 
-  const base = { title, author_id: user.id, created_at: new Date().toISOString() }
-  const contentFields = ['content', 'body', 'text', 'description', ''] as const
+    const { data: auth } = await s.auth.getUser();
+    if (!auth?.user) throw new Error("Debes iniciar sesión.");
 
-  for (const field of contentFields) {
-    const payload: Record<string, any> = { ...base }
-    if (field) payload[field] = content
+    const title = (fd.get("title") as string)?.trim();
+    const body = ((fd.get("body") as string) || "").trim();
 
-    const { data, error } = await supabase.from('threads').insert(payload).select('id').single()
-    if (!error && data?.id) {
-      revalidatePath('/foro')
-      return { ok: true, id: data.id }
-    }
-    const msg = String(error?.message || '').toLowerCase()
-    if (field && (msg.includes('does not exist') || msg.includes('schema'))) continue
-    break
+    if (!title || title.length < 3) throw new Error("Título demasiado corto.");
+
+    // Inserta en la tabla (ajusta el nombre si la tuya es distinta)
+    const { data, error } = await s
+      .from("forum_threads")
+      .insert({
+        title,
+        body,
+        author_id: auth.user.id,
+      })
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Revalida el listado del foro
+    revalidatePath("/foro");
+
+    return { ok: true, id: data?.id ?? null };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? "No se pudo crear el foro." };
   }
-  return { ok: false, error: 'insert-failed' }
 }
