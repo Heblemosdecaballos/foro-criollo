@@ -1,9 +1,10 @@
 // /src/app/chat/page.tsx
+export const dynamic = "force-dynamic";
+
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import ChatClient from "@/components/chat/ChatClient";
-
-export const dynamic = "force-dynamic";
+// ⬇️ Ruta relativa desde /src/app/chat/ hacia /src/components/chat/
+import ChatClient from "../../components/chat/ChatClient";
 
 function supaServer() {
   const cookieStore = cookies();
@@ -17,7 +18,6 @@ function supaServer() {
 export default async function ChatPage() {
   const supa = supaServer();
 
-  // Traemos al usuario y, si quieres, su perfil
   const { data: auth } = await supa.auth.getUser();
   const user = auth?.user;
 
@@ -25,14 +25,11 @@ export default async function ChatPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 space-y-4">
         <h1 className="text-2xl font-bold">Chat</h1>
-        <p className="text-neutral-600">
-          Debes iniciar sesión para chatear.
-        </p>
+        <p className="text-neutral-600">Debes iniciar sesión para chatear.</p>
       </div>
     );
   }
 
-  // Nombre para mostrar (ajusta según tu tabla profiles)
   let displayName: string | null = null;
   const { data: prof } = await supa
     .from("profiles")
