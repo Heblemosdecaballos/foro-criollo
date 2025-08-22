@@ -19,9 +19,9 @@ export function createSupabaseServer() {
 }
 
 /* ===== Alias para cubrir TODOS los imports posibles ===== */
+export const supabaseServer = createSupabaseServer;
 export const createSupabaseServerClient = createSupabaseServer;
 export const createSupabaseServerClientReadOnly = createSupabaseServer;
-export const supabaseServer = createSupabaseServer;
-export const createClient = createSupabaseServer; // por si importan { createClient } de aquí
+export const createClient = createSupabaseServer;
 
 export default createSupabaseServer;
