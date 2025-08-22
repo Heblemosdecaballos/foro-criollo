@@ -1,156 +1,113 @@
-import { createSupabaseServer } from "@/lib/supabase/server";
+// /src/app/admin/hall/[slug]/page.tsx
+import createSupabaseServer from "@/lib/supabase/server"; // ⬅️ default export, SIEMPRE existe
+import { notFound } from "next/navigation";
 import { addYouTubeAction, uploadImageAction } from "./actions";
 
 type Props = { params: { slug: string } };
 
-export default async function AdminHallSlugPage({ params: { slug } }: Props) {
+export default async function AdminHallPage({ params }: Props) {
+  const { slug } = params;
+
   const supabase = createSupabaseServer();
 
-  const { data: entry } = await supabase
+  // Cargamos la entrada para validar que existe
+  const { data: entry, error: entryErr } = await supabase
     .from("hall_entries")
-    .select("id, title, slug")
+    .select("id, slug, title, andar")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (!entry) {
-    return <div className="p-6">No existe el Hall con slug: {slug}</div>;
-  }
+  if (entryErr) throw entryErr;
+  if (!entry) notFound();
 
-  // Trae media para visualización rápida
+  // (Opcional) Traer media existente para mostrar algo en admin
   const { data: media } = await supabase
     .from("hall_media")
-    .select("id, storage_path, kind, caption, credit, created_at")
+    .select("id, kind, storage_path, caption, credit, created_at")
     .eq("entry_id", entry.id)
     .order("created_at", { ascending: false });
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-10">
-      <header>
-        <h1 className="text-2xl font-bold">Admin · {entry.title}</h1>
-        <p className="text-sm text-neutral-500">Slug: {slug}</p>
+    <main className="max-w-3xl mx-auto px-6 py-10 space-y-10">
+      <header className="space-y-1">
+        <h1 className="text-3xl font-bold">Admin: {entry.title}</h1>
+        <p className="text-sm text-neutral-600">
+          Andar: {entry.andar ?? "—"} · slug: <code>{entry.slug}</code>
+        </p>
       </header>
 
-      {/* Galería básica */}
-      <section className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {media?.map((m) => {
-          const isYT = m.storage_path.startsWith("youtube:");
-          if (isYT) {
-            const yt = m.storage_path.replace("youtube:", "");
-            return (
-              <div key={m.id} className="aspect-video bg-black">
-                <iframe
-                  className="w-full h-full"
-                  src={`https://www.youtube.com/embed/${yt}`}
-                  title="YouTube video"
-                  allowFullScreen
-                />
-              </div>
-            );
-          }
-          // Imagen pública
-          const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${m.storage_path}`;
-          return (
-            <figure key={m.id} className="overflow-hidden rounded-md border">
-              <img src={url} alt={m.caption || ""} className="w-full h-auto" />
-              {(m.caption || m.credit) && (
-                <figcaption className="p-2 text-xs text-neutral-600">
-                  {m.caption} {m.credit ? `· Crédito: ${m.credit}` : ""}
-                </figcaption>
-              )}
-            </figure>
-          );
-        })}
+      {/* ====== Media existente (simple) ====== */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Galería</h2>
+        {media?.length ? (
+          <ul className="divide-y border rounded">
+            {media.map((m) => (
+              <li key={m.id} className="p-3 text-sm flex items-center gap-3">
+                <span className="px-2 py-0.5 rounded bg-neutral-100">{m.kind}</span>
+                <span className="truncate">{m.storage_path}</span>
+                {m.caption && <span className="text-neutral-500">· {m.caption}</span>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-neutral-600">Sin media aún.</p>
+        )}
       </section>
 
-      {/* Comentarios (coloca tu componente real aquí) */}
-      <section id="comentarios" className="space-y-2">
-        <h2 className="text-xl font-semibold">Comentarios</h2>
-        <div className="text-sm text-neutral-500">
-          {/* Reemplaza por tu componente real de comentarios */}
-          (Aquí van los comentarios del Hall)
-        </div>
-      </section>
-
-      {/* === FORMULARIOS ADMIN DEBAJO DE LOS COMENTARIOS === */}
-      <section id="admin-actions" className="space-y-8">
-        <h2 className="text-xl font-semibold">Acciones de Administrador</h2>
-
-        {/* Subir imagen */}
-        <form
-          action={async (fd) => {
-            fd.set("slug", slug);
-            "use server";
-            const res = await uploadImageAction(fd);
-            if (!res.ok) {
-              return { message: res.error };
-            }
-          }}
-          className="border rounded-lg p-4 space-y-3"
-        >
-          <h3 className="font-semibold">Subir imagen</h3>
-          <input type="hidden" name="slug" defaultValue={slug} />
-          <div className="space-y-2">
+      {/* ====== Form: Agregar YouTube ====== */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Agregar video de YouTube</h2>
+        <form action={addYouTubeAction} className="space-y-3">
+          <input type="hidden" name="slug" value={slug} />
+          <input
+            name="youtube"
+            required
+            placeholder="URL o ID de YouTube"
+            className="w-full border rounded p-2"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
-              type="file"
-              name="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              required
-              className="block w-full"
-            />
-            <input
-              type="text"
               name="caption"
               placeholder="Caption (opcional)"
               className="w-full border rounded p-2"
             />
             <input
-              type="text"
               name="credit"
               placeholder="Crédito (opcional)"
               className="w-full border rounded p-2"
             />
           </div>
-          <button className="px-4 py-2 rounded bg-black text-white">Subir</button>
+          <button className="px-4 py-2 rounded bg-black text-white">Agregar video</button>
         </form>
+      </section>
 
-        {/* Agregar YouTube */}
-        <form
-          action={async (fd) => {
-            fd.set("slug", slug);
-            "use server";
-            const res = await addYouTubeAction(fd);
-            if (!res.ok) {
-              return { message: res.error };
-            }
-          }}
-          className="border rounded-lg p-4 space-y-3"
-        >
-          <h3 className="font-semibold">Agregar video YouTube</h3>
-          <input type="hidden" name="slug" defaultValue={slug} />
-          <div className="space-y-2">
+      {/* ====== Form: Subir imagen ====== */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Subir imagen</h2>
+        <form action={uploadImageAction} className="space-y-3">
+          <input type="hidden" name="slug" value={slug} />
+          <input
+            type="file"
+            name="file"
+            required
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            className="w-full"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input
-              type="text"
-              name="youtube"
-              placeholder="URL o ID de YouTube"
-              required
-              className="w-full border rounded p-2"
-            />
-            <input
-              type="text"
               name="caption"
               placeholder="Caption (opcional)"
               className="w-full border rounded p-2"
             />
             <input
-              type="text"
               name="credit"
               placeholder="Crédito (opcional)"
               className="w-full border rounded p-2"
             />
           </div>
-          <button className="px-4 py-2 rounded bg-black text-white">Agregar</button>
+          <button className="px-4 py-2 rounded bg-black text-white">Subir imagen</button>
         </form>
       </section>
-    </div>
+    </main>
   );
 }
