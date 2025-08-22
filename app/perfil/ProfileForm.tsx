@@ -1,71 +1,80 @@
-'use client'
+"use client";
 
-import { useState, useTransition } from 'react'
-import { updateProfileAction } from './actions'
+import { useState, useTransition } from "react";
+import { updateProfileAction } from "./actions";
 
-export default function ProfileForm({ profile }: { profile: any }) {
-  const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-  const [ok, setOk] = useState(false)
+type Props = {
+  initialName?: string | null;
+  initialBio?: string | null;
+};
+
+type ActionResp = { ok: boolean; error?: string };
+
+export default function ProfileForm({ initialName, initialBio }: Props) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
 
   return (
     <form
-      action={(fd) => {
-        setError(null); setOk(false)
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget as HTMLFormElement;
+        const fd = new FormData(form);
+
+        setError(null);
+        setOk(false);
+
         startTransition(async () => {
-          const res = await updateProfileAction(fd)
-          if (!res.ok) setError(res.error || 'No se pudo guardar')
-          else setOk(true)
-        })
+          try {
+            const res = (await updateProfileAction(fd)) as ActionResp;
+            if (!res.ok) {
+              setError(res.error ?? "No se pudo guardar");
+            } else {
+              setOk(true);
+            }
+          } catch {
+            setError("No se pudo guardar");
+          }
+        });
       }}
-      className="space-y-4 max-w-lg"
     >
       <div>
-        <label className="block text-sm text-muted mb-1">Correo</label>
-        <input
-          disabled
-          defaultValue={profile?.email ?? ''}
-          className="w-full border rounded px-3 py-2 bg-black/5"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-muted mb-1">Nombre</label>
+        <label className="block text-sm font-medium mb-1">Nombre</label>
         <input
           name="full_name"
-          defaultValue={profile?.full_name ?? ''}
-          className="w-full border rounded px-3 py-2"
+          defaultValue={initialName ?? ""}
           placeholder="Tu nombre"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+          minLength={2}
+          required
         />
       </div>
 
       <div>
-        <label className="block text-sm text-muted mb-1">Usuario</label>
-        <input
-          name="username"
-          defaultValue={profile?.username ?? ''}
-          className="w-full border rounded px-3 py-2"
-          placeholder="tu_usuario"
-        />
-        <p className="text-xs text-muted mt-1">Debe ser único. Se guarda en minúsculas.</p>
-      </div>
-
-      <div>
-        <label className="block text-sm text-muted mb-1">Celular</label>
-        <input
-          name="phone"
-          defaultValue={profile?.phone ?? ''}
-          className="w-full border rounded px-3 py-2"
-          placeholder="+57 300 000 0000"
+        <label className="block text-sm font-medium mb-1">Bio</label>
+        <textarea
+          name="bio"
+          defaultValue={initialBio ?? ""}
+          placeholder="Cuéntanos algo sobre ti"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+          rows={4}
         />
       </div>
 
-      <button className="btn btn-primary" disabled={isPending}>
-        {isPending ? 'Guardando…' : 'Guardar cambios'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg border border-[#14110F] bg-[#14110F] px-4 py-2 text-sm text-white disabled:opacity-60"
+        >
+          {isPending ? "Guardando…" : "Guardar cambios"}
+        </button>
 
-      {ok && <p className="text-green-700">Perfil actualizado</p>}
-      {error && <p className="text-red-700">{error}</p>}
+        {ok && <span className="text-sm text-green-700">Guardado</span>}
+        {error && <span className="text-sm text-red-600">{error}</span>}
+      </div>
     </form>
-  )
+  );
 }
