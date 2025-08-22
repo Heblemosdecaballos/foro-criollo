@@ -1,20 +1,32 @@
-// /lib/supabaseClient.ts
+// /lib/supabase/client.ts
 import { createClient } from "@supabase/supabase-js";
 
-/** Cliente de Supabase para el navegador (persistiendo sesión) */
+/**
+ * Cliente de Supabase para el NAVEGADOR
+ * (persistencia de sesión habilitada)
+ */
 export function createSupabaseBrowser() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    }
   );
 }
 
-/** Instancia única por módulo (útil para hooks/SSR cliente) */
-const supabase = createSupabaseBrowser();
-export default supabase;
-
-/** Alias habituales para compatibilidad con imports antiguos */
+/* ===== Alias para compatibilidad con imports antiguos ===== */
+export const createSupabaseBrowserClient = createSupabaseBrowser;
 export const createSupabaseClient = createSupabaseBrowser;
-export const supabaseClient = supabase;
-export const createClientBrowser = createSupabaseBrowser;
+export const createSupabaseBrowserClientReadOnly = createSupabaseBrowser;
+export const createSupabaseBrowserReadOnly = createSupabaseBrowser;
+
+/**
+ * Export default: la FACTORÍA (función), no la instancia,
+ * para que puedas usar: `const supa = createSupabaseBrowser()`
+ */
+export default createSupabaseBrowser;
