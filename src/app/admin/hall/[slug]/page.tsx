@@ -1,16 +1,32 @@
 // /src/app/admin/hall/[slug]/page.tsx
-import createSupabaseServer from "@/lib/supabase/server"; // ⬅️ default export, SIEMPRE existe
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { notFound } from "next/navigation";
 import { addYouTubeAction, uploadImageAction } from "./actions";
 
 type Props = { params: { slug: string } };
 
+/** Cliente Supabase local para Server Components (evita imports frágiles) */
+function createSupabaseServer() {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+}
+
 export default async function AdminHallPage({ params }: Props) {
   const { slug } = params;
-
   const supabase = createSupabaseServer();
 
-  // Cargamos la entrada para validar que existe
+  // Validar que exista la entrada
   const { data: entry, error: entryErr } = await supabase
     .from("hall_entries")
     .select("id, slug, title, andar")
@@ -20,7 +36,7 @@ export default async function AdminHallPage({ params }: Props) {
   if (entryErr) throw entryErr;
   if (!entry) notFound();
 
-  // (Opcional) Traer media existente para mostrar algo en admin
+  // Media existente (simple)
   const { data: media } = await supabase
     .from("hall_media")
     .select("id, kind, storage_path, caption, credit, created_at")
@@ -36,7 +52,7 @@ export default async function AdminHallPage({ params }: Props) {
         </p>
       </header>
 
-      {/* ====== Media existente (simple) ====== */}
+      {/* Galería existente */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Galería</h2>
         {media?.length ? (
@@ -54,7 +70,7 @@ export default async function AdminHallPage({ params }: Props) {
         )}
       </section>
 
-      {/* ====== Form: Agregar YouTube ====== */}
+      {/* Form: YouTube */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Agregar video de YouTube</h2>
         <form action={addYouTubeAction} className="space-y-3">
@@ -81,7 +97,7 @@ export default async function AdminHallPage({ params }: Props) {
         </form>
       </section>
 
-      {/* ====== Form: Subir imagen ====== */}
+      {/* Form: Imagen */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Subir imagen</h2>
         <form action={uploadImageAction} className="space-y-3">
