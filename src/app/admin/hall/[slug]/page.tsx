@@ -6,15 +6,13 @@ import { addYouTubeAction, uploadImageAction } from "./actions";
 
 type Props = { params: { slug: string } };
 
-/** Cliente Supabase local para Server Components (sin alias externos) */
+/** Cliente Supabase local para Server Components */
 function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: { get: (name: string) => cookieStore.get(name)?.value },
-    }
+    { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
   );
 }
 
