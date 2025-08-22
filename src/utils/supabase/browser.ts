@@ -1,5 +1,15 @@
 // /src/utils/supabase/browser.ts
 "use client";
 
-// Reutiliza el cliente del navegador que definimos en src/lib/supabaseClient.ts
-export { supabase as supabaseBrowser } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@supabase/ssr";
+
+/**
+ * Devuelve un cliente de Supabase para el navegador.
+ * Se usa como: const supabase = supabaseBrowser()
+ */
+export function supabaseBrowser() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
