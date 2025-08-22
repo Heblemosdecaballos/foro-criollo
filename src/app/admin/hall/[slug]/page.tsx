@@ -6,7 +6,7 @@ import { addYouTubeAction, uploadImageAction } from "./actions";
 
 type Props = { params: { slug: string } };
 
-/** Cliente Supabase local para Server Components (evita imports frágiles) */
+/** Cliente Supabase local para Server Components (sin alias frágiles) */
 function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(
@@ -26,17 +26,16 @@ export default async function AdminHallPage({ params }: Props) {
   const { slug } = params;
   const supabase = createSupabaseServer();
 
-  // Validar que exista la entrada
+  // Validar entrada
   const { data: entry, error: entryErr } = await supabase
     .from("hall_entries")
     .select("id, slug, title, andar")
     .eq("slug", slug)
     .maybeSingle();
-
   if (entryErr) throw entryErr;
   if (!entry) notFound();
 
-  // Media existente (simple)
+  // Media existente
   const { data: media } = await supabase
     .from("hall_media")
     .select("id, kind, storage_path, caption, credit, created_at")
@@ -52,7 +51,6 @@ export default async function AdminHallPage({ params }: Props) {
         </p>
       </header>
 
-      {/* Galería existente */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Galería</h2>
         {media?.length ? (
@@ -70,56 +68,27 @@ export default async function AdminHallPage({ params }: Props) {
         )}
       </section>
 
-      {/* Form: YouTube */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Agregar video de YouTube</h2>
         <form action={addYouTubeAction} className="space-y-3">
           <input type="hidden" name="slug" value={slug} />
-          <input
-            name="youtube"
-            required
-            placeholder="URL o ID de YouTube"
-            className="w-full border rounded p-2"
-          />
+          <input name="youtube" required placeholder="URL o ID de YouTube" className="w-full border rounded p-2" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input
-              name="caption"
-              placeholder="Caption (opcional)"
-              className="w-full border rounded p-2"
-            />
-            <input
-              name="credit"
-              placeholder="Crédito (opcional)"
-              className="w-full border rounded p-2"
-            />
+            <input name="caption" placeholder="Caption (opcional)" className="w-full border rounded p-2" />
+            <input name="credit" placeholder="Crédito (opcional)" className="w-full border rounded p-2" />
           </div>
           <button className="px-4 py-2 rounded bg-black text-white">Agregar video</button>
         </form>
       </section>
 
-      {/* Form: Imagen */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">Subir imagen</h2>
         <form action={uploadImageAction} className="space-y-3">
           <input type="hidden" name="slug" value={slug} />
-          <input
-            type="file"
-            name="file"
-            required
-            accept="image/jpeg,image/png,image/webp,image/avif"
-            className="w-full"
-          />
+          <input type="file" name="file" required accept="image/jpeg,image/png,image/webp,image/avif" className="w-full" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input
-              name="caption"
-              placeholder="Caption (opcional)"
-              className="w-full border rounded p-2"
-            />
-            <input
-              name="credit"
-              placeholder="Crédito (opcional)"
-              className="w-full border rounded p-2"
-            />
+            <input name="caption" placeholder="Caption (opcional)" className="w-full border rounded p-2" />
+            <input name="credit" placeholder="Crédito (opcional)" className="w-full border rounded p-2" />
           </div>
           <button className="px-4 py-2 rounded bg-black text-white">Subir imagen</button>
         </form>
