@@ -6,7 +6,6 @@ import { addYouTubeAction, uploadImageAction } from "./actions";
 
 type Props = { params: { slug: string } };
 
-/** Cliente Supabase local para Server Components */
 function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(
@@ -61,6 +60,7 @@ export default async function AdminHallPage({ params }: Props) {
         )}
       </div>
 
+      {/* Agregar YouTube */}
       <div className="space-y-3">
         <h2 className="text-xl font-semibold">Agregar video de YouTube</h2>
         <form action={addYouTubeAction} className="space-y-3">
@@ -81,9 +81,14 @@ export default async function AdminHallPage({ params }: Props) {
         </form>
       </div>
 
+      {/* Subir Imagen (con encType) */}
       <div className="space-y-3">
         <h2 className="text-xl font-semibold">Subir imagen</h2>
-        <form action={uploadImageAction} className="space-y-3">
+        <form
+          action={uploadImageAction}
+          encType="multipart/form-data"
+          className="space-y-3"
+        >
           <input type="hidden" name="slug" value={slug} />
           <input
             type="file"
