@@ -1,8 +1,9 @@
 /**
- * Devuelve la URL base del sitio (seguro en server y client).
- * Uso: import baseUrl from "@/utils/base-url";
+ * Devuelve la URL base pública del sitio (server y client safe).
+ * Uso:
+ *   import baseUrl, { getBaseUrl, getPublicBaseUrl } from "@/utils/base-url";
  */
-function resolveBaseUrl() {
+function resolveBaseUrl(): string {
   // Cliente
   if (typeof window !== "undefined") return window.location.origin;
 
@@ -17,6 +18,15 @@ function resolveBaseUrl() {
 const BASE_URL = resolveBaseUrl();
 
 export default BASE_URL;
-export function getBaseUrl() {
+
+export function getBaseUrl(): string {
   return BASE_URL;
 }
+
+// Alias con el nombre que usan tus páginas
+export function getPublicBaseUrl(): string {
+  return BASE_URL;
+}
+
+// (opcional) constante pública por si la prefieren como const
+export const PUBLIC_BASE_URL = BASE_URL;
