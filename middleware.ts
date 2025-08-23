@@ -1,29 +1,14 @@
 // middleware.ts
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+import { updateSession } from "@/utils/supabase/middleware";
 
-const APEX = 'hablandodecaballos.com'
-
-export function middleware(req: NextRequest) {
-  const url = new URL(req.url)
-  const host = url.hostname
-  const isProd = process.env.VERCEL_ENV === 'production'
-
-  if (isProd) {
-    // www → apex
-    if (host === `www.${APEX}`) {
-      url.hostname = APEX
-      return NextResponse.redirect(url, 308)
-    }
-    // CUALQUIER subdominio vercel.app → apex (evita despliegues viejos)
-    if (host.endsWith('.vercel.app')) {
-      url.hostname = APEX
-      return NextResponse.redirect(url, 308)
-    }
-  }
-
-  return NextResponse.next()
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  await updateSession(req, res);
+  return res;
 }
 
-// No interceptar assets estáticos
-export const config = { matcher: ['/((?!_next|.*\\..*).*)'] }
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
+};
