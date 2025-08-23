@@ -1,22 +1,19 @@
-// components/SupabaseListener.tsx
-'use client';
-
-import { useEffect } from 'react';
-import { createSupabaseBrowser } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+"use client";
+import { useEffect } from "react";
+import { createSupabaseBrowser } from "@/utils/supabase/client"; // alias ya creado
+import { useRouter } from "next/navigation";
 
 export default function SupabaseListener() {
-  const supabase = createSupabaseBrowser();
   const router = useRouter();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, _session) => {
-      // Cuando cambie el estado de auth, refrescamos la UI
+    const supabase = createSupabaseBrowser();
+    const { data: sub } = supabase.auth.onAuthStateChange((_event) => {
+      // al iniciar/cerrar sesión, refresca la UI
       router.refresh();
     });
-
-    return () => subscription.unsubscribe();
-  }, [supabase, router]);
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
 
   return null;
 }
