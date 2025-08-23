@@ -6,33 +6,23 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  // Permite redirigir a una ruta interna: /, /perfil, etc.
   const next = url.searchParams.get("next");
-  const safePath = next && next.startsWith("/") ? next : "/";
+  const to = next && next.startsWith("/") ? next : "/";
 
   if (code) {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
+    const store = cookies();
+    const supa = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: "", ...options });
-          },
-        } as any, // tolera cambios de tipos menores
+          get(name: string) { return store.get(name)?.value; },
+          set(name: string, value: string, opts: CookieOptions) { store.set({ name, value, ...opts }); },
+          remove(name: string, opts: CookieOptions) { store.set({ name, value: "", ...opts }); },
+        } as any,
       }
     );
-
-    // Canjea el `code` por la sesión y setea cookies en tu dominio
-    await supabase.auth.exchangeCodeForSession(code);
+    await supa.auth.exchangeCodeForSession(code);
   }
-
-  return NextResponse.redirect(new URL(safePath, url.origin));
+  return NextResponse.redirect(new URL(to, url.origin));
 }
