@@ -1,139 +1,79 @@
+// /src/components/chat/ChatClient.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
+import { supabaseBrowser } from "@/utils/supabase/browser";
 
-type Msg = {
-  id: number;
-  room: string;
-  sender_id: string;
-  sender_name: string | null;
-  body: string;
-  created_at: string;
-};
+type Msg = { id: string; content: string; username: string | null; created_at: string };
 
-export default function ChatClient({
-  userId,
-  displayName,
-  room = "general",
-}: {
-  userId: string;
-  displayName: string | null;
-  room?: string;
-}) {
-  const supabase = useMemo(
-    () =>
-      createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: true } }
-      ),
-    []
-  );
-
+export default function ChatClient() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  // Cargar últimos 100 mensajes
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
+    const supabase = supabaseBrowser();
+
+    async function load() {
+      const { data } = await supabase
         .from("chat_messages")
-        .select("*")
-        .eq("room", room)
+        .select("id, content, username, created_at")
         .order("created_at", { ascending: true })
-        .limit(100);
+        .limit(200);
+      setMessages(data ?? []);
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    load();
 
-      if (!cancelled && !error && data) setMessages(data as Msg[]);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [room, supabase]);
-
-  // Suscripción Realtime a INSERTs
-  useEffect(() => {
-    const channel = supabase
-      .channel(`chat:${room}`)
+    const ch = supabase
+      .channel("chat")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages", filter: `room=eq.${room}` },
-        (payload) => setMessages((prev) => [...prev, payload.new as Msg])
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload: any) => {
+          setMessages((prev) => [...prev, payload.new as Msg]);
+          endRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ch);
     };
-  }, [room, supabase]);
+  }, []);
 
-  // Autoscroll al final
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault();
-    const body = text.trim();
-    if (!body) return;
-
-    const { error } = await supabase.from("chat_messages").insert({
-      room,
-      sender_id: userId,
-      sender_name: displayName,
-      body,
-    });
-
-    if (!error) setText("");
-    // Si quieres manejar error, puedes mostrar un toast setError(error.message)
+  async function send() {
+    const msg = text.trim();
+    if (!msg) return;
+    const supabase = supabaseBrowser();
+    await supabase.from("chat_messages").insert({ content: msg });
+    setText("");
   }
 
   return (
-    <div className="rounded-xl border bg-white p-3">
-      <div className="h-[60vh] overflow-y-auto space-y-2 px-1">
-        {messages.map((m) => {
-          const mine = m.sender_id === userId;
-          return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={[
-                  "max-w-[80%] rounded-2xl px-3 py-2 text-sm",
-                  mine ? "bg-[#14110F] text-white" : "bg-[#F8F5EC] text-[#14110F]",
-                ].join(" ")}
-              >
-                {!mine && (
-                  <div className="mb-1 text-[11px] font-medium text-[#7A7364]">
-                    {m.sender_name ?? "Usuario"}
-                  </div>
-                )}
-                <div>{m.body}</div>
-                <div className="mt-1 text-[10px] opacity-60">
-                  {new Date(m.created_at).toLocaleTimeString()}
-                </div>
-              </div>
+    <div className="flex h-[60vh] flex-col rounded-xl border border-[#D7D2C7] bg-white">
+      <div className="flex-1 space-y-2 overflow-y-auto p-4">
+        {messages.map((m) => (
+          <div key={m.id} className="rounded-lg border border-[#E7E2D6] bg-[#F8F5EC] p-2">
+            <div className="text-sm">{m.content}</div>
+            <div className="mt-1 text-[11px] text-[#14110F]/60">
+              {m.username ?? "Anónimo"} · {new Date(m.created_at).toLocaleTimeString()}
             </div>
-          );
-        })}
-        <div ref={bottomRef} />
+          </div>
+        ))}
+        <div ref={endRef} />
       </div>
-
-      <form onSubmit={sendMessage} className="mt-3 flex gap-2">
+      <div className="flex items-center gap-2 border-t border-[#E7E2D6] p-3">
         <input
-          className="flex-1 rounded-lg border px-3 py-2 text-sm"
-          placeholder="Escribe un mensaje…"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          maxLength={500}
+          placeholder="Escribe un mensaje…"
+          className="flex-1 rounded-lg border border-[#CFC8B9] bg-[#F8F5EC] px-3 py-2"
         />
-        <button
-          type="submit"
-          className="rounded-lg border border-[#14110F] bg-[#14110F] px-4 py-2 text-sm text-white hover:opacity-90"
-        >
+        <button onClick={send} className="rounded-lg border border-[#14110F] bg-white px-3 py-2 text-sm">
           Enviar
         </button>
-      </form>
+      </div>
     </div>
   );
 }
