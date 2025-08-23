@@ -1,16 +1,11 @@
-// /src/utils/supabase/client.ts
-import { createClient as createJsClient } from "@supabase/supabase-js";
+// src/utils/supabase/client.ts
+import { createBrowserClient } from "@supabase/ssr";
 
-/** Cliente de Supabase para el NAVEGADOR */
 export function createSupabaseBrowserClient() {
-  return createJsClient(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 
-/* ==== Alias para compatibilidad con imports existentes ==== */
-export const createSupabaseClient = createSupabaseBrowserClient;
-export const createSupabaseBrowser = createSupabaseBrowserClient;
-export const createSupabaseBrowserClientReadOnly = createSupabaseBrowserClient;
-export const createSupabaseBrowserReadOnly = createSupabaseBrowserClient;
+export default createSupabaseBrowserClient;
