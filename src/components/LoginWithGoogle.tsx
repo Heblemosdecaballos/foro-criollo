@@ -7,7 +7,8 @@ export default function LoginWithGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/`, // vuelve al home en tu dominio
+        // vuelve a tu callback y luego a "/"
+        redirectTo: `${window.location.origin}/auth/callback?next=/`,
       },
     });
   };
