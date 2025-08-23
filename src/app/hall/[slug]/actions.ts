@@ -2,12 +2,14 @@
 // Firmas soportadas:
 //   addMediaAction(formData)
 //   addMediaAction(slug, storage_path, media_type)
-//
 //   addYoutubeAction(formData)
 //   addYoutubeAction(slug, youtubeUrl)
+//   addHallComment(formData)
+//   addHallComment(slug, content)
 
 export type MediaType = "image" | "video";
 
+/* ----------------------- MEDIA (archivo en Storage) ----------------------- */
 export async function addMediaAction(fd: FormData): Promise<void>;
 export async function addMediaAction(
   slug: string,
@@ -25,14 +27,14 @@ export async function addMediaAction(
     let media_type = String(a.get("media_type") ?? a.get("type") ?? "").trim() as MediaType;
 
     if (!media_type) {
-      // Inferir tipo por extensión si no viene
+      // Inferir tipo simple por extensión si no viene
       media_type = /\.(mp4|mov|webm|mkv)$/i.test(storage_path) ? "video" : "image";
     }
 
     if (!slug || !storage_path || !media_type) {
       throw new Error("Faltan campos (slug, storage_path o media_type)");
     }
-    await post(slug, storage_path, media_type);
+    await postMedia(slug, storage_path, media_type);
   } else {
     const slug = String(a).trim();
     const storage_path = String(b ?? "").trim();
@@ -41,10 +43,28 @@ export async function addMediaAction(
     if (!slug || !storage_path || !media_type) {
       throw new Error("Faltan campos (slug, storage_path o media_type)");
     }
-    await post(slug, storage_path, media_type);
+    await postMedia(slug, storage_path, media_type);
   }
 }
 
+async function postMedia(slug: string, storage_path: string, media_type: MediaType) {
+  const res = await fetch(`/api/hall/${encodeURIComponent(slug)}/media`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ storage_path, media_type }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let msg = "No se pudo registrar el archivo";
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {}
+    throw new Error(msg);
+  }
+}
+
+/* ----------------------- MEDIA (YouTube URL externa) ---------------------- */
 export async function addYoutubeAction(fd: FormData): Promise<void>;
 export async function addYoutubeAction(slug: string, youtubeUrl: string): Promise<void>;
 export async function addYoutubeAction(a: FormData | string, b?: string): Promise<void> {
@@ -61,24 +81,41 @@ export async function addYoutubeAction(a: FormData | string, b?: string): Promis
 
   if (!slug || !url) throw new Error("Faltan campos (slug o youtubeUrl)");
 
-  // Validación mínima de YouTube:
-  const isYoutube = /^(https?:)?\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(url);
+  const isYoutube = /^(https?:)?\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(
+    url
+  );
   if (!isYoutube) throw new Error("URL no válida de YouTube");
 
-  // Guardamos la URL externa directamente como storage_path y media_type 'video'
-  await post(slug, url, "video");
+  // Guardamos la URL externa como storage_path con media_type "video"
+  await postMedia(slug, url, "video");
 }
 
-async function post(slug: string, storage_path: string, media_type: MediaType) {
-  const res = await fetch(`/api/hall/${encodeURIComponent(slug)}/media`, {
+/* ------------------------------ COMENTARIOS ------------------------------- */
+export async function addHallComment(fd: FormData): Promise<void>;
+export async function addHallComment(slug: string, content: string): Promise<void>;
+export async function addHallComment(a: FormData | string, b?: string): Promise<void> {
+  let slug = "";
+  let content = "";
+
+  if (a instanceof FormData) {
+    slug = String(a.get("slug") ?? a.get("hall_slug") ?? "").trim();
+    content = String(a.get("content") ?? a.get("text") ?? "").trim();
+  } else {
+    slug = String(a).trim();
+    content = String(b ?? "").trim();
+  }
+
+  if (!slug || !content) throw new Error("Faltan campos (slug o content)");
+
+  const res = await fetch(`/api/hall/${encodeURIComponent(slug)}/comments`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ storage_path, media_type }),
+    body: JSON.stringify({ content }),
     cache: "no-store",
   });
 
   if (!res.ok) {
-    let msg = "No se pudo registrar el archivo";
+    let msg = "No se pudo publicar el comentario";
     try {
       const data = await res.json();
       if (data?.error) msg = data.error;
