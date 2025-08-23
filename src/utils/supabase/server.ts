@@ -1,15 +1,16 @@
-// src/utils/supabase/server.ts
-// Adaptador compatible con los imports existentes del proyecto.
-// Expone clientes "read/write" y "read-only" para Supabase en el App Router.
+// src/lib/supabase/server.ts
+// Cliente de Supabase para Next App Router (Server Components / Server Actions).
+// Incluye los exports que tu proyecto espera: `supabaseServer`,
+// `createSupabaseServerClient`, `createSupabaseServerClientReadOnly` y `createClient`.
 
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /**
- * Cliente de Supabase para uso en Server Components / Server Actions.
- * Lee y ACTUALIZA cookies de sesión (read/write).
+ * Cliente de lectura/escritura (mantiene la sesión actualizando cookies).
+ * Uso común en Server Actions.
  */
-export function createSupabaseServerClient() {
+export function supabaseServer() {
   const cookieStore = cookies();
 
   return createServerClient(
@@ -21,7 +22,6 @@ export function createSupabaseServerClient() {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Actualiza las cookies en la respuesta (persistencia de sesión)
           cookieStore.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
@@ -33,8 +33,13 @@ export function createSupabaseServerClient() {
 }
 
 /**
- * Cliente de Supabase de SOLO LECTURA (no muta cookies).
- * Útil cuando quieres consultar datos sin tocar la sesión.
+ * Alias explícito (muchos archivos lo usan con este nombre).
+ */
+export const createSupabaseServerClient = supabaseServer;
+
+/**
+ * Variante SOLO LECTURA: no modifica cookies/sesión.
+ * Útil para lecturas donde no quieres mutar la respuesta.
  */
 export function createSupabaseServerClientReadOnly() {
   const cookieStore = cookies();
@@ -47,7 +52,7 @@ export function createSupabaseServerClientReadOnly() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        // No-ops para no modificar cookies:
+        // No-ops para no tocar la sesión
         set(_name: string, _value: string, _options: CookieOptions) {},
         remove(_name: string, _options: CookieOptions) {},
       },
@@ -55,8 +60,10 @@ export function createSupabaseServerClientReadOnly() {
   );
 }
 
-// Compatibilidad: muchos archivos usan "createClient". Lo exponemos también.
-export const createClient = createSupabaseServerClient;
+/**
+ * Compatibilidad adicional: algunos módulos importan `createClient`.
+ */
+export const createClient = supabaseServer;
 
-// Export default opcional (por si algún archivo usa default import)
-export default createSupabaseServerClient;
+// Export default opcional por si algún sitio lo usa así.
+export default supabaseServer;
