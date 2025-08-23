@@ -1,121 +1,40 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import StoryCard, { Story } from "../../components/stories/StoryCard";
-import Pagination from "../../components/ui/Pagination";
-import Link from "next/link";
+import StoryForm from "@/components/StoryForm";
+import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 
-const PAGE_SIZE = 12;
+export const dynamic = "force-dynamic";
 
-function mapRow(row: any): Story {
-  // mapeo flexible por si tus campos están en español
-  return {
-    id: row.id,
-    title: row.title ?? row.titulo ?? null,
-    text: row.text ?? row.contenido ?? null,
-    media: row.media ?? row.medios ?? null,
-    created_at: row.created_at ?? row.fecha ?? null,
-    author: row.author ?? row.perfil ?? {
-      name: row.author_name ?? row.autor_nombre ?? null,
-      avatar_url: row.author_avatar ?? row.autor_avatar ?? null,
-    },
-  };
-}
+export default async function HistoriasPage() {
+  const base = process.env.NEXT_PUBLIC_SITE_URL;
+  const supa = createSupabaseServerClientReadOnly();
+  const { data: { user } } = await supa.auth.getUser();
 
-async function fetchStories(page: number, q?: string) {
-  const c = cookies();
-  const supa = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n) => c.get(n)?.value,
-        set: () => {},
-        remove: () => {},
-      },
-    }
-  );
-
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
-
-  // 1) intenta 'stories'
-  let query = supa
-    .from("stories")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  if (q) {
-    query = query.or(`title.ilike.%${q}%,text.ilike.%${q}%`);
-  }
-
-  let { data, count, error } = await query;
-
-  // 2) fallback a 'historias' si 'stories' falla (tabla diferente)
-  if (error) {
-    let q2 = supa
-      .from("historias")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(from, to);
-    if (q) q2 = q2.or(`titulo.ilike.%${q}%,contenido.ilike.%${q}%`);
-    const r2 = await q2;
-    data = r2.data as any[];
-    count = r2.count ?? 0;
-  }
-
-  const stories: Story[] = (data ?? []).map(mapRow);
-  const pageCount = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
-  return { stories, pageCount };
-}
-
-export default async function HistoriasPage({
-  searchParams,
-}: {
-  searchParams: { page?: string; q?: string };
-}) {
-  const page = Math.max(1, Number(searchParams.page ?? "1"));
-  const q = (searchParams.q ?? "").trim() || undefined;
-
-  const { stories, pageCount } = await fetchStories(page, q);
+  const res = await fetch(`${base}/api/historias`, { cache: "no-store" });
+  const { posts } = res.ok ? await res.json() : { posts: [] as any[] };
 
   return (
-    <main className="container-page py-8">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1>Historias</h1>
-        <div className="flex items-center gap-2">
-          <form action="/historias" className="flex items-center gap-2">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar historias…"
-              className="rounded-xl border px-3 py-2"
-            />
-            <input type="hidden" name="page" value="1" />
-            <button className="btn-outline">Buscar</button>
-          </form>
-          <Link href="/historias/nueva" className="btn-accent">+ Publicar</Link>
-        </div>
+    <main className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Historias</h1>
+        {!user && <a href="/login" className="underline">Inicia sesión para publicar</a>}
       </div>
 
-      {stories.length === 0 ? (
-        <div className="card p-8 text-center text-black/70 dark:text-white/70">
-          No hay historias todavía.
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {stories.map((s) => (
-            <StoryCard key={s.id} story={s} />
-          ))}
-        </div>
-      )}
+      {user && <StoryForm />}
 
-      <Pagination
-        page={page}
-        pageCount={pageCount}
-        basePath="/historias"
-        q={q}
-      />
+      <ul className="space-y-3">
+        {posts.map((p: any) => (
+          <li key={p.id} className="border rounded p-3">
+            <h3 className="font-medium">{p.title}</h3>
+            {p.media_path?.match(/^https?:\/\//i)
+              ? <video src={p.media_path} controls className="w-full h-auto rounded mt-2" />
+              : p.media_path
+                ? <img src={p.media_path} alt="" className="w-full h-auto rounded mt-2" />
+                : null}
+            {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
+            <div className="text-xs opacity-60 mt-1">{new Date(p.created_at).toLocaleString()}</div>
+          </li>
+        ))}
+        {!posts.length && <p className="opacity-70">Aún no hay historias.</p>}
+      </ul>
     </main>
   );
 }
