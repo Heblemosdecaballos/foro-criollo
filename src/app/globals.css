@@ -1,43 +1,16 @@
+/* /src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ====== Paleta ====== */
-:root{
-  --bg:            #fbf9f1;  /* fondo crema */
-  --fg:            #1b1b1b;  /* texto principal */
-  --surface:       #ffffff;  /* tarjetas / fondos */
-  --muted:         #6c6257;  /* texto secundario */
-  --brand-amber:   #b8860b;  /* botones principales */
-  --brand-green:   #1f6f54;  /* acción secundaria */
-  --brand-brown:   #5c4630;  /* enlaces, acentos */
-  --ring:          rgba(0,0,0,.08);
+html, body { height: 100%; }
+
+:root {
+  --bg: #F8F5EC;
+  --text: #14110F;
 }
 
-/* Tipografías cargadas vía next/font en el layout:
-   --font-serif (Lora) y --font-sans (Inter) */
-html, body { font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-h1,h2,h3,h4,h5,h6 { font-family: var(--font-serif), Georgia, 'Times New Roman', serif; }
-
-/* ✅ Clases de compatibilidad (NO usan @apply) */
-.font-heading { font-family: var(--font-serif), Georgia, 'Times New Roman', serif; }
-.font-body    { font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-
-/* Tarjetas y contenedores */
-@layer components{
-  .card { @apply bg-white rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,.08)] border border-black/5; }
-  .container { @apply max-w-6xl mx-auto px-4; }
+body {
+  background: var(--bg);
+  color: var(--text);
 }
-
-/* Botones */
-@layer components{
-  .btn { @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2; }
-  .btn-primary { @apply text-white bg-[var(--brand-amber)] hover:opacity-90 focus:ring-[var(--ring)]; }
-  .btn-secondary { @apply text-white bg-[var(--brand-green)] hover:opacity-90 focus:ring-[var(--ring)]; }
-  .btn-ghost { @apply border border-black/10 hover:bg-black/5; }
-  .link { @apply text-[var(--brand-brown)] hover:underline; }
-}
-
-/* Utilidades varias */
-.prose { color: var(--fg); }
-.text-muted { color: var(--muted); }
