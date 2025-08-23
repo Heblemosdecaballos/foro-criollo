@@ -1,6 +1,6 @@
 /**
- * Devuelve la URL base del sitio (server y client safe).
- * Importar como: import baseUrl from "@/utils/base-url";
+ * Devuelve la URL base del sitio (seguro en server y client).
+ * Uso: import baseUrl from "@/utils/base-url";
  */
 function resolveBaseUrl() {
   // Cliente
@@ -16,7 +16,7 @@ function resolveBaseUrl() {
 
 const BASE_URL = resolveBaseUrl();
 
-export default BASE_URL;           // default import
-export function getBaseUrl() {     // named import opcional
+export default BASE_URL;
+export function getBaseUrl() {
   return BASE_URL;
 }
