@@ -3,10 +3,10 @@ import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /**
- * Cliente de Supabase para componentes/acciones del servidor.
- * Funciona con cualquier versión de @supabase/ssr gracias al cast final.
+ * Construye un cliente de Supabase para Server Components / acciones del servidor.
+ * Compatible con distintas versiones de @supabase/ssr (se usa un cast en cookies).
  */
-export function supabaseServer() {
+export function createSupabaseServer() {
   const store = cookies();
 
   const cookieMethods = {
@@ -15,15 +15,13 @@ export function supabaseServer() {
     },
     set(name: string, value: string, options: CookieOptions) {
       try {
-        // En Server Components next/headers solo expone set() (no delete).
         store.set({ name, value, ...options });
       } catch {
-        /* no-op en edge/SSR sin mutación de cookies */
+        /* no-op (entornos que no permiten mutar cookies) */
       }
     },
     remove(name: string, options: CookieOptions) {
       try {
-        // Remover en Next Server se hace como set con value vacío.
         store.set({ name, value: "", ...options });
       } catch {
         /* no-op */
@@ -35,8 +33,15 @@ export function supabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      // Cast para evitar incompatibilidades de tipos entre versiones.
-      cookies: cookieMethods as any,
+      cookies: cookieMethods as any, // cast para evitar desajustes de tipos entre versiones
     }
   );
 }
+
+/** Alias cómodo si quieres llamarlo como función */
+export function supabaseServer() {
+  return createSupabaseServer();
+}
+
+/** Export default para que los index barrels puedan reexportar `default` */
+export default supabaseServer;
