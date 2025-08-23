@@ -2,15 +2,7 @@
 import SupabaseUploader from "@/components/SupabaseUploader";
 import { getPublicUrl } from "@/utils/supabase/publicUrl";
 
-async function addMedia(slug: string, storage_path: string, media_type: "image" | "video") {
-  "use server";
-  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/hall/${slug}/media`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ storage_path, media_type }),
-    cache: "no-store",
-  });
-}
+export const dynamic = "force-dynamic";
 
 export default async function AdminHallPage({ params }: { params: { slug: string } }) {
   const base = `${process.env.NEXT_PUBLIC_SITE_URL}/api/hall/${params.slug}`;
@@ -24,16 +16,13 @@ export default async function AdminHallPage({ params }: { params: { slug: string
         <SupabaseUploader
           bucket="hall"
           folder={params.slug}
-          onDone={async ({ storagePath, mediaType }) => {
-            "use server";
-            await addMedia(params.slug, storagePath, mediaType);
-          }}
+          postUrl={`/api/hall/${params.slug}/media`}
         />
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {media?.map((m: any) => {
-          const url = getPublicUrl(m.storage_path);
+          const url = getPublicUrl(m.storage_path); // "bucket/path" soportado
           return (
             <div key={m.id} className="border rounded-lg overflow-hidden">
               {m.media_type === "image" ? (
