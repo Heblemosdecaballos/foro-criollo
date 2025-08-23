@@ -1,11 +1,9 @@
 // src/app/hall/[slug]/actions.ts
 // Firmas soportadas:
-//   addMediaAction(formData)
-//   addMediaAction(slug, storage_path, media_type)
-//   addYoutubeAction(formData)
-//   addYoutubeAction(slug, youtubeUrl)
-//   addHallComment(formData)
-//   addHallComment(slug, content)
+//   addMediaAction(formData) | addMediaAction(slug, storage_path, media_type)
+//   addYoutubeAction(formData) | addYoutubeAction(slug, youtubeUrl)
+//   addHallComment(formData) | addHallComment(slug, content)
+//   toggleVote(formData) | toggleVote(slug)
 
 export type MediaType = "image" | "video";
 
@@ -27,10 +25,8 @@ export async function addMediaAction(
     let media_type = String(a.get("media_type") ?? a.get("type") ?? "").trim() as MediaType;
 
     if (!media_type) {
-      // Inferir tipo simple por extensión si no viene
       media_type = /\.(mp4|mov|webm|mkv)$/i.test(storage_path) ? "video" : "image";
     }
-
     if (!slug || !storage_path || !media_type) {
       throw new Error("Faltan campos (slug, storage_path o media_type)");
     }
@@ -39,14 +35,12 @@ export async function addMediaAction(
     const slug = String(a).trim();
     const storage_path = String(b ?? "").trim();
     const media_type = c as MediaType;
-
     if (!slug || !storage_path || !media_type) {
       throw new Error("Faltan campos (slug, storage_path o media_type)");
     }
     await postMedia(slug, storage_path, media_type);
   }
 }
-
 async function postMedia(slug: string, storage_path: string, media_type: MediaType) {
   const res = await fetch(`/api/hall/${encodeURIComponent(slug)}/media`, {
     method: "POST",
@@ -86,7 +80,6 @@ export async function addYoutubeAction(a: FormData | string, b?: string): Promis
   );
   if (!isYoutube) throw new Error("URL no válida de YouTube");
 
-  // Guardamos la URL externa como storage_path con media_type "video"
   await postMedia(slug, url, "video");
 }
 
@@ -122,4 +115,35 @@ export async function addHallComment(a: FormData | string, b?: string): Promise<
     } catch {}
     throw new Error(msg);
   }
+}
+
+/* --------------------------------- VOTOS ---------------------------------- */
+export type ToggleVoteResult = { voted: boolean; count: number };
+
+export async function toggleVote(fd: FormData): Promise<ToggleVoteResult>;
+export async function toggleVote(slug: string): Promise<ToggleVoteResult>;
+export async function toggleVote(a: FormData | string): Promise<ToggleVoteResult> {
+  const slug =
+    a instanceof FormData
+      ? String(a.get("slug") ?? a.get("hall_slug") ?? "").trim()
+      : String(a).trim();
+
+  if (!slug) throw new Error("Falta slug");
+
+  const res = await fetch(`/api/hall/${encodeURIComponent(slug)}/vote`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ toggle: true }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    let msg = "No se pudo votar";
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
 }
