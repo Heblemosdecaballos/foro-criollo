@@ -1,11 +1,14 @@
+// src/lib/supabase/server.ts
+// Cliente de Supabase para Next App Router (Server Components / Server Actions).
+// Exporta: supabaseServer, createSupabaseServerClient, createSupabaseServerClientReadOnly, createClient (alias) y default.
+
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /**
- * Cliente de Supabase para uso en Server Components / acciones de servidor.
- * Maneja cookies de sesión de forma compatible con Next App Router.
+ * Cliente lectura/escritura (actualiza cookies de sesión).
  */
-export function createClient() {
+export function supabaseServer() {
   const cookieStore = cookies();
 
   return createServerClient(
@@ -26,3 +29,33 @@ export function createClient() {
     }
   );
 }
+
+/** Alias común en el proyecto */
+export const createSupabaseServerClient = supabaseServer;
+/** Compatibilidad adicional */
+export const createClient = supabaseServer;
+
+/**
+ * Cliente SOLO LECTURA (no modifica cookies).
+ */
+export function createSupabaseServerClientReadOnly() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        // no-ops: no tocar cookies/sesión
+        set(_name: string, _value: string, _options: CookieOptions) {},
+        remove(_name: string, _options: CookieOptions) {},
+      },
+    }
+  );
+}
+
+/** Default export por si algún módulo lo usa de esta forma */
+export default supabaseServer;
