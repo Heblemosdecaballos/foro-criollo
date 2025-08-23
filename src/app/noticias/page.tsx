@@ -4,11 +4,10 @@ import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 export const dynamic = "force-dynamic";
 
 export default async function NoticiasPage() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL;
   const supa = createSupabaseServerClientReadOnly();
   const { data: { user } } = await supa.auth.getUser();
 
-  const res = await fetch(`${base}/api/noticias`, { cache: "no-store" });
+  const res = await fetch("/api/noticias", { cache: "no-store" });
   const { posts } = res.ok ? await res.json() : { posts: [] as any[] };
 
   return (
@@ -24,9 +23,14 @@ export default async function NoticiasPage() {
         {posts.map((p: any) => (
           <li key={p.id} className="border rounded p-3">
             <h3 className="font-medium">{p.title}</h3>
-            {p.cover_path && <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />}
+            {p.cover_path && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />
+            )}
             {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs opacity-60 mt-1">{new Date(p.created_at).toLocaleString()}</div>
+            <div className="text-xs opacity-60 mt-1">
+              {new Date(p.created_at).toLocaleString()}
+            </div>
           </li>
         ))}
         {!posts.length && <p className="opacity-70">Aún no hay noticias.</p>}
