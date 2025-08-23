@@ -1,114 +1,131 @@
-// /src/app/admin/hall/[slug]/actions.ts
-"use server";
+// app/admin/hall/[slug]/actions.ts
+'use server'
 
-import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { randomUUID } from "crypto";
-import path from "node:path";
+import { createSupabaseServerClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache'
 
-function supa() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
-  );
+async function requireAdmin() {
+  const supabase = createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('no-auth')
+
+  const { data: me } = await supabase
+    .from('profiles').select('is_admin').eq('id', user.id).single()
+
+  if (!me?.is_admin) throw new Error('no-admin')
+  return { supabase, user }
 }
 
-async function assertAdmin() {
-  const s = supa();
-  const { data: auth } = await s.auth.getUser();
-  if (!auth?.user) throw new Error("No autenticado.");
-  const { data: p, error } = await s.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
-  if (error) throw error;
-  if (!p?.is_admin) throw new Error("Acceso denegado.");
+export async function updateProfile(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const profileId = String(formData.get('profileId') || '')
+  const title = String(formData.get('title') || '')
+  const year = formData.get('year') ? Number(formData.get('year')) : null
+  const gait = String(formData.get('gait') || '')
+  const status = String(formData.get('status') || '')
+
+  await supabase
+    .from('hall_profiles')
+    .update({ title, year, gait, status })
+    .eq('id', profileId)
+
+  // revalida admin y público
+  const { data: p } = await supabase.from('hall_profiles').select('slug').eq('id', profileId).single()
+  revalidatePath(`/admin/hall/${p?.slug}`)
+  revalidatePath(`/hall/${p?.slug}`)
 }
 
-async function getEntryId(slug: string) {
-  const s = supa();
-  const { data, error } = await s.from("hall_entries").select("id").eq("slug", slug).maybeSingle();
-  if (error) throw error;
-  if (!data?.id) throw new Error("No existe el Hall.");
-  return data.id as string;
+export async function uploadCover(formData: FormData) {
+  const { supabase, user } = await requireAdmin()
+  const profileId = String(formData.get('profileId') || '')
+  const file = formData.get('cover') as File | null
+  if (!file || file.size === 0) return
+
+  const ext = file.name.split('.').pop()
+  const path = `profiles/${profileId}/cover/${Date.now()}.${ext}`
+
+  const { error: upErr } = await supabase.storage.from('hall').upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file.type || 'image/*',
+  })
+  if (upErr) throw upErr
+
+  const { data: pub } = await supabase.storage.from('hall').getPublicUrl(path)
+  const image_url = pub?.publicUrl
+
+  await supabase.from('hall_profiles').update({ image_url }).eq('id', profileId)
+
+  const { data: p } = await supabase.from('hall_profiles').select('slug').eq('id', profileId).single()
+  revalidatePath(`/admin/hall/${p?.slug}`)
+  revalidatePath(`/hall/${p?.slug}`)
 }
 
-const YT = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/)|youtu\.be\/)?([A-Za-z0-9_-]{6,})/i;
+export async function addMediaAdmin(formData: FormData) {
+  const { supabase, user } = await requireAdmin()
+  const profileId = String(formData.get('profileId') || '')
+  const caption = String(formData.get('caption') || '')
+  const youtube_id = String(formData.get('youtube_id') || '')
+  const file = formData.get('file') as File | null
 
-export async function addYouTubeAction(fd: FormData) {
-  try {
-    await assertAdmin();
-    const s = supa();
+  let kind: 'image' | 'youtube' = 'image'
+  let url: string | null = null
 
-    const slug = String(fd.get("slug") || "");
-    const urlOrId = String(fd.get("youtube") || "");
-    const caption = ((fd.get("caption") as string) || "").trim() || null;
-    const credit = ((fd.get("credit") as string) || "").trim() || null;
-    if (!slug || !urlOrId) throw new Error("slug y YouTube requeridos");
+  if (youtube_id) {
+    kind = 'youtube'
+  } else if (file && file.size > 0) {
+    const ext = file.name.split('.').pop()
+    const path = `profiles/${profileId}/media/${Date.now()}.${ext}`
 
-    const entryId = await getEntryId(slug);
-    const m = urlOrId.match(YT);
-    const id = (m ? m[1] : urlOrId).trim();
-    if (!/^[A-Za-z0-9_-]{6,}$/.test(id)) throw new Error("YouTube ID inválido");
+    const { error: upErr } = await supabase.storage.from('hall').upload(path, file, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: file.type || 'image/*',
+    })
+    if (upErr) throw upErr
 
-    const { error } = await s.from("hall_media").insert({
-      entry_id: entryId,
-      storage_path: `youtube:${id}`,
-      kind: "youtube",
-      caption,
-      credit,
-    });
-    if (error) throw error;
-
-    revalidatePath(`/hall/${slug}`);
-    revalidatePath(`/admin/hall/${slug}`);
-    return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Error agregando video" };
+    const { data: pub } = await supabase.storage.from('hall').getPublicUrl(path)
+    url = pub?.publicUrl ?? null
+  } else {
+    return
   }
+
+  await supabase.from('hall_media').insert({
+    profile_id: profileId,
+    kind,
+    url,
+    youtube_id: youtube_id || null,
+    caption: caption || null,
+    added_by: user.id,
+  })
+
+  const { data: p } = await supabase.from('hall_profiles').select('slug').eq('id', profileId).single()
+  revalidatePath(`/admin/hall/${p?.slug}`)
+  revalidatePath(`/hall/${p?.slug}`)
 }
 
-export async function uploadImageAction(fd: FormData) {
-  try {
-    await assertAdmin();
-    const s = supa();
+export async function updateMediaCaption(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const mediaId = String(formData.get('mediaId') || '')
+  const caption = String(formData.get('caption') || '')
+  await supabase.from('hall_media').update({ caption: caption || null }).eq('id', mediaId)
 
-    const slug = String(fd.get("slug") || "");
-    const file = fd.get("file") as File | null;
-    const caption = ((fd.get("caption") as string) || "").trim() || null;
-    const credit = ((fd.get("credit") as string) || "").trim() || null;
+  // obtener slug para revalidar
+  const { data: m } = await supabase.from('hall_media').select('profile_id').eq('id', mediaId).single()
+  const { data: p } = await supabase.from('hall_profiles').select('slug').eq('id', m?.profile_id).single()
 
-    if (!slug || !file) throw new Error("slug y archivo requeridos");
-    const okTypes = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-    if (!okTypes.includes(file.type)) throw new Error("Formato no permitido");
-    if (file.size > 8 * 1024 * 1024) throw new Error("Máximo 8MB");
+  revalidatePath(`/admin/hall/${p?.slug}`)
+  revalidatePath(`/hall/${p?.slug}`)
+}
 
-    const entryId = await getEntryId(slug);
-    const ext = file.name.split(".").pop() || "jpg";
-    const base = path.parse(file.name).name.replace(/[^\w\-]+/g, "_").slice(0, 48);
-    const filename = `${base}_${randomUUID().slice(0, 8)}.${ext}`;
-    const storagePath = `${slug}/${filename}`;
+export async function deleteMedia(formData: FormData) {
+  const { supabase } = await requireAdmin()
+  const mediaId = String(formData.get('mediaId') || '')
+  const { data: m } = await supabase.from('hall_media').select('profile_id').eq('id', mediaId).single()
 
-    const { error: upErr } = await s.storage.from("hall").upload(storagePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type,
-    });
-    if (upErr) throw upErr;
+  await supabase.from('hall_media').delete().eq('id', mediaId)
 
-    const { error: insErr } = await s.from("hall_media").insert({
-      entry_id: entryId,
-      storage_path: `hall/${storagePath}`,
-      kind: "image",
-      caption,
-      credit,
-    });
-    if (insErr) throw insErr;
-
-    revalidatePath(`/hall/${slug}`);
-    revalidatePath(`/admin/hall/${slug}`);
-    return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "Error subiendo imagen" };
-  }
+  const { data: p } = await supabase.from('hall_profiles').select('slug').eq('id', m?.profile_id).single()
+  revalidatePath(`/admin/hall/${p?.slug}`)
+  revalidatePath(`/hall/${p?.slug}`)
 }

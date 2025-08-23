@@ -1,0 +1,112 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/login');
+        return;
+      }
+      // traer perfil
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('username, phone')
+        .eq('id', user.id)
+        .single();
+
+      if (prof?.username) {
+        router.replace('/'); // ya tiene username -> fuera
+        return;
+      }
+
+      setPhone(prof?.phone ?? '');
+      setLoading(false);
+    })();
+  }, [router]);
+
+  async function save() {
+    try {
+      setMsg(null);
+      setLoading(true);
+
+      // validar username único
+      if (!username.trim()) throw new Error('El usuario es obligatorio');
+      const { data: exists } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', username.trim())
+        .limit(1);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No hay sesión');
+
+      if (exists && exists.length > 0 && exists[0].id !== user.id) {
+        throw new Error('Ese usuario ya está tomado');
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          username: username.trim(),
+          phone: phone.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      router.replace('/');
+    } catch (e: any) {
+      setMsg(e.message ?? 'No se pudo guardar');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return <main className="max-w-xl mx-auto p-6">Cargando…</main>;
+
+  return (
+    <main className="max-w-xl mx-auto p-6 space-y-4">
+      <h1 className="text-2xl font-semibold">Completa tu perfil</h1>
+      {msg && <p className="text-red-600">{msg}</p>}
+
+      <label className="block">
+        <span className="text-sm">Usuario</span>
+        <input
+          className="mt-1 w-full rounded border p-2"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="tu_usuario"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm">Teléfono</span>
+        <input
+          className="mt-1 w-full rounded border p-2"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+57 3xx xxx xxxx"
+        />
+      </label>
+
+      <button
+        className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+        disabled={loading}
+        onClick={save}
+      >
+        Guardar
+      </button>
+    </main>
+  );
+}

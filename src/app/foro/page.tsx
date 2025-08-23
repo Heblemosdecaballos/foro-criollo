@@ -1,39 +1,42 @@
-// /src/app/foro/page.tsx
-import Link from "next/link";
-import NewThreadDialog from "@/components/foro/NewThreadDialog";
-import { supabaseServer } from "@/lib/supabase/server";
+// app/foro/page.tsx
+import Link from 'next/link'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
 
-export const revalidate = 30;
+export const revalidate = 0
 
 export default async function ForoPage() {
-  const supabase = supabaseServer();
+  const supabase = createSupabaseServerClientReadOnly()
+  const { data, error } = await supabase
+    .from('threads')
+    .select('id, title, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50)
 
-  const { data: threads } = await supabase
-    .from("threads")
-    .select("id, title, category, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  if (error) {
+    return <div className="container p-6 text-red-700">Error: {error.message}</div>
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Foro</h1>
-        <NewThreadDialog />
+    <div className="container p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-bold">Foro</h1>
+        <Link href="/foro/nuevo" className="btn btn-primary">+ Nuevo hilo</Link>
       </div>
 
-      <ul className="divide-y divide-[#E7E2D6] rounded-xl border border-[#D7D2C7] bg-white">
-        {(threads ?? []).map((t) => (
-          <li key={t.id} className="p-4">
-            <Link href={`/foro/${t.id}`} className="font-semibold hover:underline">
-              {t.title}
-            </Link>
-            <div className="mt-1 text-xs text-[#14110F]/60">
-              {t.category} · {new Date(t.created_at).toLocaleString()}
-            </div>
-          </li>
-        ))}
-        {!threads?.length && <li className="p-4 text-sm text-[#14110F]/70">Aún no hay hilos.</li>}
-      </ul>
+      {!data?.length ? (
+        <p>No hay hilos todavía.</p>
+      ) : (
+        <ul className="space-y-3">
+          {data.map(t => (
+            <li key={t.id} className="card p-3">
+              <Link href={`/foro/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
+              <div className="text-sm text-muted">
+                {new Date(t.created_at as any).toLocaleString('es-CO')}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
-  );
+  )
 }

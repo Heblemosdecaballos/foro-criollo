@@ -1,10 +1,33 @@
-export default function NuevoForoPage() {
+// app/foro/nuevo/page.tsx
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
+import NewThreadForm from './NewThreadForm'
+import BackButton from '@/components/common/BackButton'
+
+export const revalidate = 0
+
+export default async function NewThreadPage() {
+  // ⚠️ Cliente SOLO LECTURA: NO escribe cookies en el render
+  const supabase = createSupabaseServerClientReadOnly()
+  const { data: { session } } = await supabase.auth.getSession()
+
+  if (!session) {
+    // Redirige a login y vuelve luego a /foro/nuevo
+    redirect('/auth?next=/foro/nuevo')
+  }
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 space-y-4">
-      <h1 className="text-2xl font-bold">Nuevo Foro</h1>
-      <p className="text-neutral-600">
-        Aquí irá el formulario para crear un nuevo foro. De momento es un placeholder.
-      </p>
+    <div className="container py-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-bold">Nuevo hilo</h1>
+        <BackButton />
+      </div>
+
+      <NewThreadForm />
+
+      <div>
+        <a href="/foro" className="link">← Volver al foro</a>
+      </div>
     </div>
-  );
+  )
 }
