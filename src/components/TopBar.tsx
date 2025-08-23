@@ -1,3 +1,4 @@
+// /src/components/TopBar.tsx
 "use client";
 
 import Link from "next/link";
@@ -9,7 +10,7 @@ const NAV = [
   { href: "/foro", label: "Foro" },
   { href: "/hall", label: "Hall de la Fama" },
   { href: "/en-vivo", label: "En Vivo" },
-  { href: "/chat", label: "Chat" }
+  { href: "/chat", label: "Chat" },
 ];
 
 export default function TopBar() {
