@@ -1,17 +1,16 @@
-/* /src/app/globals.css */
+/* src/app/globals.css */
+/* Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body { height: 100%; }
-
-:root {
-  --bg: #F8F5EC;
-  --text: #14110F;
+/* Opcional: mínimos estilos base para que no se vea “crudo” si aún no hay tu theme */
+html, body {
+  height: 100%;
 }
-
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-feature-settings: "rlig" 1, "calt" 1;
+  @apply bg-white text-neutral-900 antialiased;
+}
+a {
+  @apply text-blue-600 hover:underline;
 }
