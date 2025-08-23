@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ====== Paleta (ajústala si quieres otros tonos) ====== */
+:root{
+  --bg:            #fbf9f1;  /* fondo crema */
+  --fg:            #1b1b1b;  /* texto principal */
+  --surface:       #ffffff;  /* tarjetas / fondos */
+  --muted:         #6c6257;  /* texto secundario */
+  --brand-amber:   #b8860b;  /* botones principales (ámbar) */
+  --brand-green:   #1f6f54;  /* acción secundaria (verde) */
+  --brand-brown:   #5c4630;  /* enlaces, acentos */
+  --ring:          rgba(0,0,0,.08);
+}
+
+/* Tipos */
+html, body { font-family: var(--font-sans), system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+h1,h2,h3,h4,h5,h6 { font-family: var(--font-serif), Georgia, 'Times New Roman', serif; }
+
+/* Tarjetas y contenedores */
+@layer components{
+  .card { @apply bg-white rounded-2xl shadow-[0_12px_36px_rgba(0,0,0,.08)] border border-black/5; }
+  .container { @apply max-w-6xl mx-auto px-4; }
+}
+
+/* Botones */
+@layer components{
+  .btn { @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition focus:outline-none focus:ring-2; }
+  .btn-primary { @apply text-white bg-[var(--brand-amber)] hover:opacity-90 focus:ring-[var(--ring)]; }
+  .btn-secondary { @apply text-white bg-[var(--brand-green)] hover:opacity-90 focus:ring-[var(--ring)]; }
+  .btn-ghost { @apply border border-black/10 hover:bg-black/5; }
+  .link { @apply text-[var(--brand-brown)] hover:underline; }
+}
+
+/* Utilidades varias */
+.prose { color: var(--fg); }
+.text-muted { color: var(--muted); }

@@ -1,0 +1,111 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
+
+export default function SettingsPage() {
+  const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setMsg(null);
+      try {
+        const { data: auth } = await supabase.auth.getUser();
+        const user = auth?.user;
+        if (!user) {
+          setMsg('Debes iniciar sesión.');
+          return;
+        }
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data) {
+          setUsername(data.username ?? '');
+          setAvatarUrl(data.avatar_url ?? '');
+        }
+      } catch (e: any) {
+        setMsg(e.message ?? 'No se pudo cargar tu perfil.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  async function handleSave() {
+    try {
+      setSaving(true);
+      setMsg(null);
+      const { data: auth } = await supabase.auth.getUser();
+      const user = auth?.user;
+      if (!user) throw new Error('Sesión no válida.');
+
+      // upsert respeta la unique index de username que creamos en SQL
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, username: username.trim(), avatar_url: avatarUrl.trim() });
+
+      if (error) throw error;
+      setMsg('Perfil actualizado correctamente.');
+    } catch (e: any) {
+      setMsg(e.message ?? 'Error guardando el perfil.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="max-w-3xl mx-auto p-6">
+      <div className="mb-4">
+        <Link href="/" className="underline">Volver</Link>
+      </div>
+
+      <h1 className="text-2xl font-semibold mb-4">Ajustes de perfil</h1>
+
+      {loading ? <p>Cargando…</p> : null}
+      {msg && <p className="mb-4 text-sm text-red-600">{msg}</p>}
+
+      {!loading && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Usuario público (único)</label>
+            <input
+              className="w-full rounded border p-2"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="p.ej. juanperez"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Avatar URL (opcional)</label>
+            <input
+              className="w-full rounded border p-2"
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="https://…"
+            />
+          </div>
+
+          <div>
+            <button
+              onClick={handleSave}
+              disabled={saving || !username.trim()}
+              className="rounded bg-black text-white px-3 py-1 disabled:opacity-50"
+            >
+              {saving ? 'Guardando…' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

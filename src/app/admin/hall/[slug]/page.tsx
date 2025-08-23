@@ -1,92 +1,145 @@
-// /src/app/admin/hall/[slug]/page.tsx
-export const runtime = "nodejs";
+// app/admin/hall/[slug]/page.tsx
+import { createClient } from '@/utils/supabase/server';
+import { getPublicUrl } from '@/utils/supabase/publicUrl';
 
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import { notFound } from "next/navigation";
-import { addYouTubeAction, uploadImageAction } from "./actions";
+type MediaRow = {
+  id: string;
+  media_type: 'image' | 'video';
+  storage_path: string;
+  caption: string | null;
+};
 
-type Props = { params: { slug: string } };
+type Profile = {
+  id: string;
+  slug: string;
+  title: string;
+  gait: string | null;
+  year: number | null;
+  status: string;
+};
 
-function supa() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
-  );
-}
+export const revalidate = 0;
 
-export default async function AdminHallPage({ params }: Props) {
-  const { slug } = params;
-  const s = supa();
-
-  const { data: entry, error: entryErr } = await s
-    .from("hall_entries")
-    .select("id, slug, title, andar")
-    .eq("slug", slug)
+async function getProfileBySlug(slug: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('hall_profiles')
+    .select('*')
+    .eq('slug', slug)
     .maybeSingle();
 
-  if (entryErr) throw entryErr;
-  if (!entry) notFound();
+  if (error) throw error;
+  return data as Profile | null;
+}
 
-  const { data: media } = await s
-    .from("hall_media")
-    .select("id, kind, storage_path, caption, credit, created_at")
-    .eq("entry_id", entry.id)
-    .order("created_at", { ascending: false });
+async function getMedia(profileId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('hall_media')
+    .select('*')
+    .eq('profile_id', profileId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as MediaRow[];
+}
+
+export default async function AdminHallProfilePage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const profile = await getProfileBySlug(params.slug);
+
+  if (!profile) {
+    return (
+      <main className="container py-8">
+        <h1 className="text-2xl font-bold">Editor del Hall</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No se encontró el perfil.
+        </p>
+      </main>
+    );
+  }
+
+  const media = await getMedia(profile.id);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10 space-y-10">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold">Admin: {entry.title}</h1>
-        <p className="text-sm text-neutral-600">
-          Andar: {entry.andar ?? "—"} · slug: <code>{entry.slug}</code>
+    <main className="container py-8 space-y-8">
+      {/* Encabezado Admin */}
+      <header className="space-y-2">
+        <h1 className="text-2xl font-bold">Editor del Hall</h1>
+        <p className="text-sm text-muted-foreground">
+          Editando: <span className="font-medium">{profile.title}</span>
         </p>
-      </div>
+      </header>
 
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold">Galería</h2>
-        {Array.isArray(media) && media.length > 0 ? (
-          <ul className="divide-y border rounded">
-            {media.map((m: any) => (
-              <li key={m.id} className="p-3 text-sm flex items-center gap-3">
-                <span className="px-2 py-0.5 rounded bg-neutral-100">{m.kind}</span>
-                <span className="truncate">{m.storage_path}</span>
-                {m.caption ? <span className="text-neutral-500">· {m.caption}</span> : null}
-              </li>
-            ))}
+      {/* ====== GALERÍA (Imágenes + Videos YouTube) ====== */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Medios</h2>
+
+        {media.length > 0 ? (
+          <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+            {await Promise.all(
+              media.map(async (m) => {
+                if (m.media_type === 'image') {
+                  const url = await getPublicUrl(m.storage_path);
+                  return (
+                    <li key={m.id} className="rounded-xl overflow-hidden">
+                      <img
+                        src={url}
+                        alt={m.caption ?? ''}
+                        className="w-full h-auto object-contain bg-[#f6f3ee]"
+                        loading="lazy"
+                      />
+                      {m.caption && (
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          {m.caption}
+                        </p>
+                      )}
+                    </li>
+                  );
+                }
+
+                if (
+                  m.media_type === 'video' &&
+                  typeof m.storage_path === 'string' &&
+                  m.storage_path.startsWith('youtube:')
+                ) {
+                  const youtubeId = m.storage_path.split(':')[1];
+                  return (
+                    <li key={m.id} className="rounded-xl overflow-hidden">
+                      <div className="aspect-video w-full">
+                        <iframe
+                          className="w-full h-full rounded-xl"
+                          src={`https://www.youtube.com/embed/${youtubeId}`}
+                          title="YouTube video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
+                      {m.caption && (
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          {m.caption}
+                        </p>
+                      )}
+                    </li>
+                  );
+                }
+
+                return null;
+              })
+            )}
           </ul>
         ) : (
-          <p className="text-neutral-600">Sin media aún.</p>
+          <p className="text-sm text-muted-foreground">Aún no hay archivos.</p>
         )}
-      </div>
+      </section>
 
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold">Agregar video de YouTube</h2>
-        <form action={addYouTubeAction} className="space-y-3">
-          <input type="hidden" name="slug" value={slug} />
-          <input name="youtube" required placeholder="URL o ID de YouTube" className="w-full border rounded p-2" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input name="caption" placeholder="Caption (opcional)" className="w-full border rounded p-2" />
-            <input name="credit" placeholder="Crédito (opcional)" className="w-full border rounded p-2" />
-          </div>
-          <button className="px-4 py-2 rounded bg-black text-white" type="submit">Agregar video</button>
-        </form>
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="text-xl font-semibold">Subir imagen</h2>
-        <form action={uploadImageAction} encType="multipart/form-data" className="space-y-3">
-          <input type="hidden" name="slug" value={slug} />
-          <input type="file" name="file" required accept="image/jpeg,image/png,image/webp,image/avif" className="w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input name="caption" placeholder="Caption (opcional)" className="w-full border rounded p-2" />
-            <input name="credit" placeholder="Crédito (opcional)" className="w-full border rounded p-2" />
-          </div>
-          <button className="px-4 py-2 rounded bg-black text-white" type="submit">Subir imagen</button>
-        </form>
-      </div>
-    </div>
+      {/* Aquí debajo puedes dejar tus formularios de admin (subir imagen, agregar video, etc.) */}
+      {/* <AddMediaForm profileId={profile.id} /> */}
+      {/* <AddVideoForm profileId={profile.id} /> */}
+      {/* ... */}
+    </main>
   );
 }

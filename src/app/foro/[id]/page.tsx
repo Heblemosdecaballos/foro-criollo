@@ -1,51 +1,84 @@
-// /src/app/foro/[id]/page.tsx
-import CommentForm from "@/components/foro/CommentForm";
-import { supabaseServer } from "@/lib/supabase/server";
+// app/foro/[id]/page.tsx
+import { notFound } from 'next/navigation'
+import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
+import CommentForm from './CommentForm'
 
-export default async function ThreadPage({ params }: { params: { id: string } }) {
-  const supabase = supabaseServer();
+export const revalidate = 0
 
-  const [{ data: thread }, { data: comments }] = await Promise.all([
-    supabase.from("threads").select("id, title, body, category, created_at").eq("id", params.id).maybeSingle(),
-    supabase
-      .from("comments")
-      .select("id, body, created_at")
-      .eq("thread_id", params.id)
-      .order("created_at", { ascending: true }),
-  ]);
+export default async function ThreadDetail({ params }: { params: { id: string } }) {
+  const supabase = createSupabaseServerClientReadOnly()
 
-  if (!thread) {
-    return <div className="text-sm text-[#14110F]/70">Hilo no encontrado.</div>;
+  const { data: thread, error } = await supabase
+    .from('threads')
+    .select('*')
+    .eq('id', params.id)
+    .maybeSingle()
+
+  if (error) return <div className="container p-6 text-red-700">Error: {error.message}</div>
+  if (!thread) return notFound()
+
+  const content =
+    (thread as any).content ?? (thread as any).body ?? (thread as any).text ?? (thread as any).description ?? ''
+
+  // Comentarios + autor desde profiles
+  const { data: comments } = await supabase
+    .from('thread_comments')
+    .select('id, content, created_at, author:profiles(id, username, full_name)')
+    .eq('thread_id', params.id)
+    .order('created_at', { ascending: true })
+
+  // Quien comenta (para mostrar el “comentando como …”)
+  const { data: { session } } = await supabase.auth.getSession()
+  let viewerName: string | null = null
+  if (session) {
+    const { data: prof } = await supabase
+      .from('profiles').select('full_name, username').eq('id', session.user.id).maybeSingle()
+    viewerName = prof?.full_name || prof?.username || 'Usuario'
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-[#D7D2C7] bg-white p-4">
-        <h1 className="text-2xl font-bold">{thread.title}</h1>
-        <div className="mt-1 text-xs text-[#14110F]/60">
-          {thread.category} · {new Date(thread.created_at).toLocaleString()}
+    <div className="container p-6 space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">{(thread as any).title}</h1>
+        <div className="text-sm text-muted mb-4">
+          {new Date((thread as any).created_at as any).toLocaleString('es-CO')}
         </div>
-        {thread.body && <p className="mt-4 whitespace-pre-wrap">{thread.body}</p>}
+        <article className="prose max-w-none whitespace-pre-wrap">
+          {content || <em>Sin contenido.</em>}
+        </article>
       </div>
 
-      <div className="rounded-xl border border-[#D7D2C7] bg-white p-4">
-        <h2 className="mb-3 text-lg font-semibold">Comentarios</h2>
-        <ul className="space-y-3">
-          {(comments ?? []).map((c) => (
-            <li key={c.id} className="rounded-lg border border-[#E7E2D6] bg-[#F8F5EC] p-3">
-              <div className="text-sm whitespace-pre-wrap">{c.body}</div>
-              <div className="mt-1 text-[11px] text-[#14110F]/60">
-                {new Date(c.created_at).toLocaleString()}
-              </div>
-            </li>
-          ))}
-          {!comments?.length && <li className="text-sm text-[#14110F]/70">Aún no hay comentarios.</li>}
-        </ul>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Comentarios</h2>
 
-        <div className="mt-4">
-          <CommentForm threadId={params.id} />
-        </div>
-      </div>
+        {!comments?.length ? (
+          <p className="text-gray-600">Sé el primero en comentar.</p>
+        ) : (
+          <ul className="space-y-3">
+            {comments!.map((c) => {
+              const authorName =
+                (c as any).author?.full_name ||
+                (c as any).author?.username ||
+                'Autor'
+              return (
+                <li key={(c as any).id} className="card p-3">
+                  <div className="flex items-center justify-between text-sm text-muted mb-1">
+                    <span>{authorName}</span>
+                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {session ? (
+          <CommentForm threadId={params.id} viewerName={viewerName} />
+        ) : (
+          <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
+        )}
+      </section>
     </div>
-  );
+  )
 }
