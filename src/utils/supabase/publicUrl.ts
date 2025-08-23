@@ -1,53 +1,28 @@
-/**
- * Construye una URL pública para un archivo en Supabase Storage.
- *
- * Soporta dos firmas:
- * 1) publicUrl(bucket, path)
- * 2) publicUrl(storagePath)                       // ej: "hall-of-fame/imagenes/foto.png"
- *
- * Ejemplos:
- *   import publicUrl, { getPublicUrl } from "@/utils/supabase/publicUrl";
- *   const a = publicUrl("hall-of-fame", "imagenes/foto.png");
- *   const b = publicUrl("hall-of-fame/imagenes/foto.png"); // también válido
- *   const c = getPublicUrl("hall-of-fame", "imagenes/foto.png");
- *   const d = getPublicUrl("hall-of-fame/imagenes/foto.png");
- */
-
 export function publicUrl(bucket: string, path: string): string;
 export function publicUrl(storagePath: string): string;
 export function publicUrl(a: string, b?: string): string {
   if (!a) return "";
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!supabaseUrl) return "";
 
-  let bucket = "";
-  let path = "";
-
+  let bucket = "", p = "";
   if (typeof b === "string") {
-    // Forma (bucket, path)
     bucket = a;
-    path = b;
+    p = b;
   } else {
-    // Forma (storagePath) -> "bucket/ruta/archivo.ext"
-    const clean = String(a).replace(/^\/+/, ""); // quita "/" inicial
+    const clean = String(a).replace(/^\/+/, "");
     const parts = clean.split("/");
     bucket = parts.shift() || "";
-    path = parts.join("/");
+    p = parts.join("/");
   }
+  if (!bucket || !p) return "";
 
-  if (!bucket || !path) return "";
-
-  const cleanBase = supabaseUrl.replace(/\/+$/, "");
-  const cleanPath = String(path).replace(/^\/+/, "");
-  return `${cleanBase}/storage/v1/object/public/${bucket}/${cleanPath}`;
+  const base = supabaseUrl.replace(/\/+$/, "");
+  const cleanPath = String(p).replace(/^\/+/, "");
+  return `${base}/storage/v1/object/public/${bucket}/${cleanPath}`;
 }
-
-// Alias con el nombre que usan tus páginas
-export function getPublicUrl(a: string, b?: string): string {
-  // delega a la función principal (mismas firmas)
-  // @ts-expect-error – usamos la sobrecarga de arriba
+export function getPublicUrl(a: string, b?: string) {
+  // @ts-expect-error intencional por overload
   return publicUrl(a, b);
 }
-
 export default publicUrl;
