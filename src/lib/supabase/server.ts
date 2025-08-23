@@ -1,6 +1,7 @@
 // src/lib/supabase/server.ts
 // Cliente de Supabase para Next App Router (Server Components / Server Actions).
-// Exporta: supabaseServer, createSupabaseServerClient, createSupabaseServerClientReadOnly, createClient (alias) y default.
+// Exporta: supabaseServer, createSupabaseServer, createSupabaseServerClient,
+// createSupabaseServerClientReadOnly, createClient (alias) y default.
 
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
@@ -30,9 +31,9 @@ export function supabaseServer() {
   );
 }
 
-/** Alias común en el proyecto */
+/** Aliases comunes en el proyecto */
 export const createSupabaseServerClient = supabaseServer;
-/** Compatibilidad adicional */
+export const createSupabaseServer = supabaseServer; // ⬅️ alias que faltaba
 export const createClient = supabaseServer;
 
 /**
