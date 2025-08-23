@@ -1,149 +1,66 @@
-// app/hall/[slug]/page.tsx
-import { createClient } from '@/utils/supabase/server';
-import { getPublicUrl } from '@/utils/supabase/publicUrl';
+// src/app/hall/[slug]/page.tsx
+import { getPublicUrl } from "@/utils/supabase/publicUrl";
+import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
+import HallCommentForm from "@/components/HallCommentForm";
 
-type MediaRow = {
-  id: string;
-  media_type: 'image' | 'video';
-  storage_path: string;
-  caption: string | null;
-};
+export const dynamic = "force-dynamic";
 
-type Profile = {
-  id: string;
-  slug: string;
-  title: string;
-  gait: string | null;
-  year: number | null;
-  status: string;
-};
+export default async function HallDetail({ params }: { params: { slug: string } }) {
+  const supa = createSupabaseServerClientReadOnly();
 
-export const revalidate = 0; // desactivar cache si lo prefieres
+  // Puedes seguir usando tu API interna si prefieres:
+  // const base = `${process.env.NEXT_PUBLIC_SITE_URL}/api/hall/${params.slug}`;
+  // const res = await fetch(base, { cache: "no-store" });
+  // const { item, media, comments } = res.ok ? await res.json() : { item: null, media: [], comments: [] };
 
-async function getProfileBySlug(slug: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('hall_profiles')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
+  // O traer directo desde Supabase (read-only):
+  const { data: item } = await supa.from("hall_items").select("*").eq("slug", params.slug).single();
+  if (!item) return <p className="p-6">No encontrado</p>;
 
-  if (error) throw error;
-  return data as Profile | null;
-}
-
-async function getMedia(profileId: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('hall_media')
-    .select('*')
-    .eq('profile_id', profileId)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as MediaRow[];
-}
-
-export default async function HallProfilePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const profile = await getProfileBySlug(params.slug);
-
-  if (!profile) {
-    return (
-      <main className="container py-8">
-        <h1 className="text-2xl font-bold">Hall de la Fama</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          No se encontró el perfil.
-        </p>
-      </main>
-    );
-  }
-
-  const media = await getMedia(profile.id);
+  const [{ data: media }, { data: comments }] = await Promise.all([
+    supa.from("hall_media").select("*").eq("hall_id", item.id).order("created_at", { ascending: false }),
+    supa.from("hall_comments").select("*").eq("hall_id", item.id).order("created_at", { ascending: false }),
+  ]);
 
   return (
-    <main className="container py-8 space-y-8">
-      {/* Encabezado */}
-      <header className="space-y-2">
-        <p className="text-xs uppercase text-muted-foreground">
-          {profile.gait ?? 'Andar desconocido'} {profile.year ? ` · ${profile.year}` : ''}
-        </p>
-        <h1 className="text-3xl font-bold">{profile.title}</h1>
-        <p className="text-sm">
-          Estado: <span className="font-medium">{profile.status}</span>
-        </p>
+    <main className="max-w-4xl mx-auto p-4 space-y-6">
+      <header>
+        <h1 className="text-3xl font-semibold">{item.title}</h1>
+        {item.description && <p className="opacity-80 mt-2">{item.description}</p>}
       </header>
 
-      {/* ====== GALERÍA (Imágenes + Videos YouTube) ====== */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Galería</h2>
-
-        {media.length > 0 ? (
-          <ul className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-            {await Promise.all(
-              media.map(async (m) => {
-                // IMAGEN -> usamos URL pública
-                if (m.media_type === 'image') {
-                  const url = await getPublicUrl(m.storage_path);
-                  return (
-                    <li key={m.id} className="rounded-xl overflow-hidden">
-                      <img
-                        src={url}
-                        alt={m.caption ?? ''}
-                        className="w-full h-auto object-contain bg-[#f6f3ee]"
-                        loading="lazy"
-                      />
-                      {m.caption && (
-                        <p className="text-xs mt-1 text-muted-foreground">
-                          {m.caption}
-                        </p>
-                      )}
-                    </li>
-                  );
-                }
-
-                // VIDEO (YouTube) -> storage_path = 'youtube:VIDEO_ID'
-                if (
-                  m.media_type === 'video' &&
-                  typeof m.storage_path === 'string' &&
-                  m.storage_path.startsWith('youtube:')
-                ) {
-                  const youtubeId = m.storage_path.split(':')[1];
-                  return (
-                    <li key={m.id} className="rounded-xl overflow-hidden">
-                      <div className="aspect-video w-full">
-                        <iframe
-                          className="w-full h-full rounded-xl"
-                          src={`https://www.youtube.com/embed/${youtubeId}`}
-                          title="YouTube video"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                        />
-                      </div>
-                      {m.caption && (
-                        <p className="text-xs mt-1 text-muted-foreground">
-                          {m.caption}
-                        </p>
-                      )}
-                    </li>
-                  );
-                }
-
-                // fallback por si aparece otro media_type
-                return null;
-              })
-            )}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">Aún no hay archivos.</p>
-        )}
+      {/* Media */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {media?.length ? media.map((m: any) => {
+          const url = getPublicUrl(m.storage_path); // acepta "bucket/path"
+          return (
+            <div key={m.id} className="border rounded-lg overflow-hidden">
+              {m.media_type === "image" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={url} alt="" className="w-full h-auto" />
+              ) : (
+                <video src={url} controls className="w-full h-auto" />
+              )}
+            </div>
+          );
+        }) : <p className="opacity-70">Sin media aún.</p>}
       </section>
 
-      {/* Aquí puedes dejar comentarios, botón de votar, etc. */}
-      {/* ... */}
+      {/* Comentarios */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-medium">Comentarios</h2>
+        <HallCommentForm slug={params.slug} />
+        <ul className="space-y-3">
+          {comments?.length ? comments.map((c: any) => (
+            <li key={c.id} className="border rounded p-3">
+              <div className="text-sm opacity-60">
+                {new Date(c.created_at).toLocaleString()}
+              </div>
+              <div>{c.content}</div>
+            </li>
+          )) : <p className="opacity-70">Sé el primero en comentar.</p>}
+        </ul>
+      </section>
     </main>
   );
 }
