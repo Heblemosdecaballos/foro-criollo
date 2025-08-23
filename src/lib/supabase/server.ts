@@ -1,7 +1,10 @@
-// src/lib/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+/**
+ * Cliente de Supabase para uso en Server Components / acciones de servidor.
+ * Maneja cookies de sesión de forma compatible con Next App Router.
+ */
 export function createClient() {
   const cookieStore = cookies();
 
