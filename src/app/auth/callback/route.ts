@@ -1,21 +1,38 @@
-// app/auth/callback/route.ts
-import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/utils/supabase/server'
+// src/app/auth/callback/route.ts
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url)
-  const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') || '/'
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  // Permite redirigir a una ruta interna: /, /perfil, etc.
+  const next = url.searchParams.get("next");
+  const safePath = next && next.startsWith("/") ? next : "/";
 
   if (code) {
-    const supabase = createSupabaseServerClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) {
-      const back = new URL(`/auth?error=${encodeURIComponent(error.message)}`, url.origin)
-      return NextResponse.redirect(back)
-    }
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: "", ...options });
+          },
+        } as any, // tolera cambios de tipos menores
+      }
+    );
+
+    // Canjea el `code` por la sesión y setea cookies en tu dominio
+    await supabase.auth.exchangeCodeForSession(code);
   }
 
-  const redirectTo = new URL(next, process.env.NEXT_PUBLIC_SITE_URL || 'https://hablandodecaballos.com')
-  return NextResponse.redirect(redirectTo)
+  return NextResponse.redirect(new URL(safePath, url.origin));
 }
