@@ -3,7 +3,7 @@
 //   addMediaAction(formData) | addMediaAction(slug, storage_path, media_type)
 //   addYoutubeAction(formData) | addYoutubeAction(slug, youtubeUrl)
 //   addHallComment(formData) | addHallComment(slug, content)
-//   toggleVote(formData) | toggleVote(slug)
+//   toggleVote(formData) | toggleVote(slug) | toggleVote(profileId, slug)
 
 export type MediaType = "image" | "video";
 
@@ -118,15 +118,27 @@ export async function addHallComment(a: FormData | string, b?: string): Promise<
 }
 
 /* --------------------------------- VOTOS ---------------------------------- */
-export type ToggleVoteResult = { voted: boolean; count: number };
+export type ToggleVoteResult = { ok: true; votes: number; voted?: boolean };
 
 export async function toggleVote(fd: FormData): Promise<ToggleVoteResult>;
 export async function toggleVote(slug: string): Promise<ToggleVoteResult>;
-export async function toggleVote(a: FormData | string): Promise<ToggleVoteResult> {
-  const slug =
-    a instanceof FormData
-      ? String(a.get("slug") ?? a.get("hall_slug") ?? "").trim()
-      : String(a).trim();
+export async function toggleVote(profileId: string, slug: string): Promise<ToggleVoteResult>;
+export async function toggleVote(a: FormData | string, b?: string): Promise<ToggleVoteResult> {
+  // Soporta:
+  // - toggleVote(formData) -> slug en "slug" o "hall_slug"
+  // - toggleVote(slug)
+  // - toggleVote(profileId, slug)  (profileId se ignora; la API usa auth)
+  let slug = "";
+
+  if (a instanceof FormData) {
+    slug = String(a.get("slug") ?? a.get("hall_slug") ?? "").trim();
+  } else if (typeof b === "string" && b) {
+    // Recibimos (profileId, slug) -> tomamos "b" como slug
+    slug = String(b).trim();
+  } else {
+    // Recibimos (slug)
+    slug = String(a).trim();
+  }
 
   if (!slug) throw new Error("Falta slug");
 
@@ -145,5 +157,13 @@ export async function toggleVote(a: FormData | string): Promise<ToggleVoteResult
     } catch {}
     throw new Error(msg);
   }
-  return res.json();
+
+  // Normalizamos la respuesta:
+  // endpoint actual devuelve { voted, count }
+  // algunos componentes esperan { ok, votes }
+  const data = await res.json().catch(() => ({} as any));
+  const votes = typeof data?.count === "number" ? data.count : (data?.votes ?? 0);
+  const voted = typeof data?.voted === "boolean" ? data.voted : undefined;
+
+  return { ok: true as const, votes, voted };
 }
