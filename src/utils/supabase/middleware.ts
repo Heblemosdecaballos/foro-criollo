@@ -14,6 +14,5 @@ export async function updateSession(req: NextRequest, res: NextResponse) {
       } as any,
     }
   );
-  // Llama a getUser para forzar refresh si caducó
-  await supa.auth.getUser();
+  await supa.auth.getUser(); // fuerza refresh si caducó
 }
