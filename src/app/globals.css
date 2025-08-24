@@ -58,3 +58,14 @@
   body { @apply bg-background text-foreground antialiased; }
   a { @apply text-primary hover:underline; }
 }
+/* Asegura contraste por defecto */
+@layer base {
+  body { color: hsl(var(--foreground)); background: hsl(var(--background)); }
+  p, li, div { color: hsl(var(--foreground)); }
+  a { color: hsl(var(--primary)); }
+}
+
+/* Utilidad para fechas/metadata */
+.muted-date { color: rgb(82 82 82); }              /* neutral-600 */
+.dark .muted-date { color: rgb(163 163 163); }     /* neutral-400 */
+
