@@ -1,4 +1,3 @@
-// src/app/auth/callback/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
@@ -22,9 +21,7 @@ export async function GET(req: Request) {
         } as any,
       }
     );
-
     await supa.auth.exchangeCodeForSession(code);
   }
-
   return NextResponse.redirect(new URL(to, url.origin));
 }
