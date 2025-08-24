@@ -97,3 +97,32 @@
   object-fit: contain;
   background: rgba(255,255,255,0.08); /* sutil, por si tarda en cargar */
 }
+/* === Marca HDC (marrón / verde oliva) === */
+:root{
+  --brand-green:#556B2F;           /* verde oliva */
+  --brand-green-10:#EEF3E8;        /* verde muy claro para "pill" activo */
+  --brand-brown:#5B4636;           /* marrón para enlaces/acción */
+  --hero-strip-bg: var(--brand-green);
+  --hero-strip-fg: #ffffff;
+  --hero-strip-h: 120px;           /* altura de la franja (ajústala si quieres) */
+}
+
+/* Franja del hero */
+.hero-strip{ background:var(--hero-strip-bg); color:var(--hero-strip-fg); }
+.hero-strip .inner{ height:var(--hero-strip-h); display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.hero-strip .hero-img{ height:calc(var(--hero-strip-h) - 16px); width:auto; object-fit:contain; border-radius:.75rem; background:rgba(255,255,255,.08); }
+
+/* Header de navegación (blanco, enlaces marrón/verde) */
+.site-header{ background:#fff; border-bottom:1px solid hsl(var(--border)); }
+.site-brand{ color:var(--brand-green); }
+.nav-link{ color:rgba(0,0,0,.75); padding:.375rem .75rem; border-radius:.5rem; }
+.nav-link:hover{ color:#111; }
+.nav-link.active{ background:var(--brand-green-10); color:var(--brand-green); }
+.header-actions a{ padding:.5rem .75rem; border-radius:.5rem; }
+.header-actions .link-outline{ border:1px solid var(--brand-brown); color:var(--brand-brown); }
+.header-actions .link-fill{ background:var(--brand-green); color:#fff; border:1px solid var(--brand-green); }
+
+/* Fechas/metadata legibles en claro y oscuro */
+.muted-date{ color: rgb(82 82 82); }            /* neutral-600 */
+.dark .muted-date{ color: rgb(163 163 163); }   /* neutral-400 */
+
