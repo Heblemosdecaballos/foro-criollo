@@ -14,14 +14,14 @@ const links = [
 export default function NavLinks() {
   const pathname = usePathname();
   return (
-    <nav className="hidden md:flex items-center gap-4">
+    <nav className="hidden md:flex items-center gap-2">
       {links.map((l) => {
         const active = pathname === l.href || pathname.startsWith(l.href + "/");
         return (
           <Link
             key={l.href}
             href={l.href}
-            className={`px-3 py-2 rounded-md ${active ? "bg-secondary text-secondary-foreground" : "text-foreground/80 hover:text-foreground"}`}
+            className={`nav-link ${active ? "active" : ""}`}
           >
             {l.label}
           </Link>
