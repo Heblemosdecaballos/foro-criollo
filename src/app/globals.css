@@ -68,4 +68,32 @@
 /* Utilidad para fechas/metadata */
 .muted-date { color: rgb(82 82 82); }              /* neutral-600 */
 .dark .muted-date { color: rgb(163 163 163); }     /* neutral-400 */
+/* === Franja (Hero) — controla color y altura por variables === */
+:root {
+  /* Verde oliva (ajusta al tono exacto que usabas) */
+  --hero-strip-bg: #556B2F;        /* ← tu verde oliva */
+  --hero-strip-fg: #ffffff;        /* texto sobre la franja */
+  --hero-strip-h: 120px;           /* ← altura más alta (ajusta si quieres) */
+}
 
+/* Estilos de la franja */
+.hero-strip {
+  background: var(--hero-strip-bg);
+  color: var(--hero-strip-fg);
+}
+.hero-strip .inner {
+  height: var(--hero-strip-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Imagen del hero, se ajusta a la altura sin tocar la franja */
+.hero-strip .hero-img {
+  height: calc(var(--hero-strip-h) - 16px);
+  width: auto;
+  border-radius: 0.75rem;
+  object-fit: contain;
+  background: rgba(255,255,255,0.08); /* sutil, por si tarda en cargar */
+}
