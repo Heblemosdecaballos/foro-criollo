@@ -1,21 +1,25 @@
+// src/app/page.tsx
 import Link from "next/link";
 import HeroBanner from "@/components/HeroBanner";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // Trae datos pero sin romper el SSR si algún endpoint falla
   const [nRes, tRes] = await Promise.allSettled([
     fetch("/api/noticias", { cache: "no-store" }),
-    fetch("/api/threads", { cache: "no-store" }),
+    fetch("/api/threads",  { cache: "no-store" }),
   ]);
 
-  const news = nRes.status === "fulfilled" && nRes.value.ok
-    ? (await nRes.value.json()).posts ?? []
-    : [];
+  const news =
+    nRes.status === "fulfilled" && nRes.value.ok
+      ? (await nRes.value.json()).posts ?? []
+      : [];
 
-  const threads = tRes.status === "fulfilled" && tRes.value.ok
-    ? (await tRes.value.json()).threads ?? []
-    : [];
+  const threads =
+    tRes.status === "fulfilled" && tRes.value.ok
+      ? (await tRes.value.json()).threads ?? []
+      : [];
 
   return (
     <>
@@ -30,13 +34,19 @@ export default async function Home() {
               Ver todas
             </Link>
           </div>
+
           <ul className="grid md:grid-cols-2 gap-4">
             {news.slice(0, 4).map((p: any) => (
               <li key={p.id} className="border rounded p-4">
                 <h3 className="font-medium">{p.title}</h3>
-                {p.cover_path && <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />}
-                {p.content && <p className="mt-2 opacity-80 line-clamp-3">{p.content}</p>}
-                <div className="text-xs muted-date mt-1">{new Date(p.created_at).toLocaleString()}</div>
+                {p.cover_path && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />
+                )}
+                {p.content && <p className="mt-2 opacity-80">{p.content}</p>}
+                <div className="text-xs muted-date mt-1">
+                  {new Date(p.created_at).toLocaleString()}
+                </div>
               </li>
             ))}
             {!news.length && <p className="opacity-70">Aún no hay noticias.</p>}
@@ -51,11 +61,16 @@ export default async function Home() {
               Ver todos
             </Link>
           </div>
+
           <ul className="space-y-3">
             {threads.slice(0, 5).map((t: any) => (
               <li key={t.id} className="border rounded p-3">
-                <Link href={`/threads/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
-                <div className="text-xs muted-date mt-1">{new Date(t.created_at).toLocaleString()}</div>
+                <Link href={`/threads/${t.id}`} className="font-medium hover:underline">
+                  {t.title}
+                </Link>
+                <div className="text-xs muted-date mt-1">
+                  {new Date(t.created_at).toLocaleString()}
+                </div>
               </li>
             ))}
             {!threads.length && <p className="opacity-70">Aún no hay hilos.</p>}
