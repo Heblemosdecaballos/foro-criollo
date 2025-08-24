@@ -1,4 +1,3 @@
-// src/utils/supabase/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
@@ -14,5 +13,5 @@ export async function updateSession(req: NextRequest, res: NextResponse) {
       } as any,
     }
   );
-  await supa.auth.getUser(); // fuerza refresh si caducó
+  await supa.auth.getUser();
 }
