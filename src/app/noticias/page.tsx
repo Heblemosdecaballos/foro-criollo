@@ -1,3 +1,4 @@
+// src/app/noticias/page.tsx
 import NewsForm from "@/components/NewsForm";
 import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 
@@ -28,7 +29,9 @@ export default async function NoticiasPage() {
             <h3 className="font-medium">{p.title}</h3>
             {p.cover_path && <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />}
             {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs muted-date mt-1">{new Date(p.created_at).toLocaleString()}</div>
+            <div className="text-xs muted-date mt-1">
+              {new Date(p.created_at).toLocaleString()}
+            </div>
           </li>
         ))}
         {!posts.length && <p className="opacity-70">Aún no hay noticias.</p>}
