@@ -18,7 +18,14 @@ export default async function Header() {
           <NavLinks />
         </div>
         <div className="flex items-center gap-2">
-          {user ? <LogoutButton /> : <LoginWithGoogle />}
+          {user ? (
+            <LogoutButton />
+          ) : (
+            <>
+              <LoginWithGoogle />
+              <Link href="/login" className="px-3 py-2 rounded-md border">Crear cuenta</Link>
+            </>
+          )}
         </div>
       </div>
     </header>
