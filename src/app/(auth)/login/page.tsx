@@ -1,4 +1,3 @@
-// src/app/(auth)/login/page.tsx
 import LoginWithGoogle from "@/components/LoginWithGoogle";
 import EmailAuthForm from "@/components/EmailAuthForm";
 import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
@@ -7,7 +6,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
-  // Si ya hay sesión, no mostramos el formulario
   const supa = createSupabaseServerClientReadOnly();
   const { data: { user } } = await supa.auth.getUser();
 
@@ -26,14 +24,9 @@ export default async function LoginPage() {
   return (
     <main className="container py-10 space-y-6 max-w-md">
       <h1 className="text-2xl font-semibold">Acceder</h1>
-
-      {/* Botón de Google (redirige a /auth/callback?next=/ ) */}
-      <LoginWithGoogle />
-
-      <div className="text-sm text-muted-foreground">o con correo</div>
-
-      {/* Formulario email/contraseña (ingresar y registrarse) */}
       <EmailAuthForm />
+      <div className="text-sm text-muted-foreground">o continuar con</div>
+      <LoginWithGoogle /> {/* Google solo aquí */}
     </main>
   );
 }
