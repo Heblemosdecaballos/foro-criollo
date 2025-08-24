@@ -6,15 +6,8 @@ export default function LoginWithGoogle() {
     const supa = createSupabaseBrowserClient();
     await supa.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
     });
   };
-
-  return (
-    <button onClick={onClick} className="px-3 py-2 border rounded">
-      Google
-    </button>
-  );
+  return <button onClick={onClick} className="px-3 py-2 border rounded">Google</button>;
 }
