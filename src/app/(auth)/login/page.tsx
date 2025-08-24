@@ -26,7 +26,7 @@ export default async function LoginPage() {
       <h1 className="text-2xl font-semibold">Acceder</h1>
       <EmailAuthForm />
       <div className="text-sm text-muted-foreground">o continuar con</div>
-      <LoginWithGoogle /> {/* Google solo aquí */}
+      <LoginWithGoogle />
     </main>
   );
 }
