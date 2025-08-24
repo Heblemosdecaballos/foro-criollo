@@ -1,33 +1,35 @@
-// app/foro/nuevo/page.tsx
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
-import NewThreadForm from './NewThreadForm'
-import BackButton from '@/components/common/BackButton'
+// src/app/foro/nuevo/page.tsx
+import { createForum } from "./server-actions";
+import { categories } from "@/constants/forums";
 
-export const revalidate = 0
+export const dynamic = "force-dynamic";
 
-export default async function NewThreadPage() {
-  // ⚠️ Cliente SOLO LECTURA: NO escribe cookies en el render
-  const supabase = createSupabaseServerClientReadOnly()
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    // Redirige a login y vuelve luego a /foro/nuevo
-    redirect('/auth?next=/foro/nuevo')
-  }
-
+export default function NewForumPage() {
   return (
-    <div className="container py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold">Nuevo hilo</h1>
-        <BackButton />
-      </div>
+    <main className="container py-6 max-w-2xl space-y-6">
+      <h1 className="text-2xl font-semibold">Crear foro</h1>
 
-      <NewThreadForm />
+      <form action={createForum} className="space-y-3 bg-white/70 p-4 rounded border">
+        <label className="block">
+          <span className="text-sm">Título</span>
+          <input name="title" required className="w-full border rounded px-3 py-2" />
+        </label>
 
-      <div>
-        <a href="/foro" className="link">← Volver al foro</a>
-      </div>
-    </div>
-  )
+        <label className="block">
+          <span className="text-sm">Categoría</span>
+          <select name="category" required className="w-full border rounded px-3 py-2">
+            <option value="">Selecciona…</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="text-sm">Descripción</span>
+          <textarea name="content" rows={8} className="w-full border rounded px-3 py-2" />
+        </label>
+
+        <button className="px-3 py-2 rounded bg-[var(--brand-brown)] text-white">Publicar foro</button>
+      </form>
+    </main>
+  );
 }
