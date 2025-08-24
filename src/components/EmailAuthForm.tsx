@@ -28,52 +28,39 @@ export default function EmailAuthForm({ defaultMode = "login" as Mode }) {
 
   const signUp = async () => {
     setLoading(true);
-    const { error } = await supa.auth.signUp({
+    const { error, data } = await supa.auth.signUp({
       email,
       password: pass,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/` },
     });
     setLoading(false);
     if (error) return alert(error.message);
-    alert("Cuenta creada. Revisa tu correo si se requiere confirmación.");
-    router.push("/");
+    // Si tienes "Confirm email" activado en Supabase, no habrá sesión inmediata:
+    if (!data.session) {
+      alert("Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.");
+      router.push("/");
+    } else {
+      router.push("/");
+    }
   };
 
   return (
     <div className="space-y-3">
       <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => setMode("login")}
-          className={`px-2 py-1 rounded ${mode === "login" ? "bg-gray-200" : ""}`}
-        >
+        <button type="button" onClick={() => setMode("login")}
+          className={`px-2 py-1 rounded ${mode === "login" ? "bg-gray-200" : ""}`}>
           Iniciar sesión
         </button>
-        <button
-          type="button"
-          onClick={() => setMode("signup")}
-          className={`px-2 py-1 rounded ${mode === "signup" ? "bg-gray-200" : ""}`}
-        >
+        <button type="button" onClick={() => setMode("signup")}
+          className={`px-2 py-1 rounded ${mode === "signup" ? "bg-gray-200" : ""}`}>
           Crear cuenta
         </button>
       </div>
 
-      <input
-        className="w-full border rounded px-3 py-2"
-        placeholder="Correo"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        className="w-full border rounded px-3 py-2"
-        placeholder="Contraseña"
-        type="password"
-        value={pass}
-        onChange={(e) => setPass(e.target.value)}
-        required
-      />
+      <input className="w-full border rounded px-3 py-2" placeholder="Correo" type="email"
+        value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <input className="w-full border rounded px-3 py-2" placeholder="Contraseña" type="password"
+        value={pass} onChange={(e) => setPass(e.target.value)} required />
 
       <button
         onClick={mode === "login" ? signIn : signUp}
