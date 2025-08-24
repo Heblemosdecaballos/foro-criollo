@@ -125,4 +125,11 @@
 /* Fechas/metadata legibles en claro y oscuro */
 .muted-date{ color: rgb(82 82 82); }            /* neutral-600 */
 .dark .muted-date{ color: rgb(163 163 163); }   /* neutral-400 */
+/* === Fondo del sitio === */
+:root{
+  /* Beige derivado de F0E8D6 (RGB 240,232,214) */
+  --site-bg: #F0E8D6;
+}
 
+html, body {
+  background: var(--site-bg);
