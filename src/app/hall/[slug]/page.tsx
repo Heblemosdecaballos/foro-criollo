@@ -8,16 +8,16 @@ export const dynamic = "force-dynamic";
 export default async function HallDetail({ params }: { params: { slug: string } }) {
   const supa = createSupabaseServerClientReadOnly();
 
-  // Trae item + media + comentarios directamente de Supabase (read-only)
+  // Item de Hall
   const { data: item } = await supa
     .from("hall_items")
     .select("*")
     .eq("slug", params.slug)
     .single();
-
   if (!item) return <p className="p-6">No encontrado</p>;
 
-  const [{ data: media }, { data: comments }] = await Promise.all([
+  // Media + comentarios + usuario (para mostrar formulario)
+  const [{ data: media }, { data: comments }, { data: { user } }] = await Promise.all([
     supa
       .from("hall_media")
       .select("*")
@@ -28,6 +28,7 @@ export default async function HallDetail({ params }: { params: { slug: string } 
       .select("*")
       .eq("hall_id", item.id)
       .order("created_at", { ascending: false }),
+    supa.auth.getUser(),
   ]);
 
   return (
@@ -37,17 +38,15 @@ export default async function HallDetail({ params }: { params: { slug: string } 
         {item.description && <p className="opacity-80 mt-2">{item.description}</p>}
       </header>
 
-      {/* Media (Soporte YouTube + archivos de Supabase) */}
+      {/* Media (imágenes, videos o YouTube embebido) */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {media?.length ? (
           media.map((m: any) => {
             const raw = String(m.storage_path || "");
-            const url = getPublicUrl(raw); // si es http(s) lo deja igual, si es 'bucket/path' lo convierte
+            const url = getPublicUrl(raw); // http(s) pasa tal cual; "bucket/path" → URL pública
             const isYouTube = /^(https?:)?\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(
               raw
             );
-
-            // Extraer ID de YouTube (v=..., youtu.be/..., embed/..., shorts/...)
             const ytId = isYouTube
               ? raw.match(/[?&]v=([^&]+)/)?.[1] ||
                 raw.match(/youtu\.be\/([^?&/]+)/)?.[1] ||
@@ -89,12 +88,20 @@ export default async function HallDetail({ params }: { params: { slug: string } 
       {/* Comentarios */}
       <section className="space-y-3">
         <h2 className="text-xl font-medium">Comentarios</h2>
-        <HallCommentForm slug={params.slug} />
+
+        {user ? (
+          <HallCommentForm slug={params.slug} />
+        ) : (
+          <a href="/login" className="underline">
+            Inicia sesión para comentar
+          </a>
+        )}
+
         <ul className="space-y-3">
           {comments?.length ? (
             comments.map((c: any) => (
               <li key={c.id} className="border rounded p-3">
-                <div className="text-sm opacity-60">
+                <div className="text-xs text-neutral-600 dark:text-neutral-400">
                   {new Date(c.created_at).toLocaleString()}
                 </div>
                 <div>{c.content}</div>
