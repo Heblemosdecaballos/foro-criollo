@@ -1,19 +1,30 @@
 // src/app/foro/page.tsx
 import Link from "next/link";
+import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function ForoPage() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL;
+  const supa = createSupabaseServerClientReadOnly();
+  const { data: { user } } = await supa.auth.getUser();
+
   const [sRes, tRes] = await Promise.all([
-    fetch(`${base}/api/sections`, { cache: "no-store" }),
-    fetch(`${base}/api/threads`, { cache: "no-store" }),
+    fetch("/api/sections", { cache: "no-store" }),
+    fetch("/api/threads",  { cache: "no-store" }),
   ]);
 
-  const { sections } = await sRes.json();
-  const { threads } = await tRes.json();
+  const { sections } = sRes.ok ? await sRes.json() : { sections: [] as any[] };
+  const { threads }  = tRes.ok ? await tRes.json() : { threads:  [] as any[] };
 
   return (
-    <main className="max-w-5xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-semibold">Foro</h1>
+    <main className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Foros actuales</h1>
+        {user
+          ? <Link href="/new-thread" className="px-3 py-2 rounded-md bg-primary text-primary-foreground">Nuevo foro</Link>
+          : <Link href="/login" className="underline">Inicia sesión para publicar</Link>
+        }
+      </div>
 
       <div className="flex gap-2 flex-wrap">
         {sections?.map((s: any) => (
@@ -28,8 +39,12 @@ export default async function ForoPage() {
           <li key={t.id} className="border rounded p-3">
             <div className="text-sm opacity-70">{t.sections?.title}</div>
             <Link href={`/threads/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
+            <div className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
+              {new Date(t.created_at).toLocaleString()}
+            </div>
           </li>
         ))}
+        {!threads?.length && <p className="opacity-70">Aún no hay hilos.</p>}
       </ul>
     </main>
   );
