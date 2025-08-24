@@ -23,9 +23,9 @@ export default async function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link href="/foro" className="border rounded p-4 hover:shadow-sm transition">
               <h3 className="font-semibold">Foro</h3>
-              <p className="opacity-80 text-sm">Participa en los hilos de la comunidad.</p>
+              <p className="opacity-80 text-sm">Participa en los foros de la comunidad.</p>
               <div className="text-xs muted-date mt-2">
-                {threads.length ? `Último: ${new Date(threads[0].created_at).toLocaleString()}` : "Aún no hay hilos."}
+                {threads.length ? `Último: ${new Date(threads[0].created_at).toLocaleString()}` : "Aún no hay foros."}
               </div>
             </Link>
 
@@ -39,12 +39,12 @@ export default async function Home() {
 
             <Link href="/historias" className="border rounded p-4 hover:shadow-sm transition">
               <h3 className="font-semibold">Historias</h3>
-              <p className="opacity-80 text-sm">Comparte tus experiencias, fotos y videos.</p>
+              <p className="opacity-80 text-sm">Grandes historias y momentos del caballo criollo.</p>
             </Link>
 
             <Link href="/hall" className="border rounded p-4 hover:shadow-sm transition">
               <h3 className="font-semibold">Hall of Fame</h3>
-              <p className="opacity-80 text-sm">Los mejores andares y momentos.</p>
+              <p className="opacity-80 text-sm">Un reconocimiento a los ejemplares que han hecho grande la historia del Caballo Criollo Colombiano.</p>
             </Link>
 
             <Link href="/en-vivo" className="border rounded p-4 hover:shadow-sm transition">
@@ -85,7 +85,7 @@ export default async function Home() {
                 <div className="text-xs muted-date mt-1">{new Date(t.created_at).toLocaleString()}</div>
               </li>
             ))}
-            {!threads.length && <p className="opacity-70">Aún no hay hilos.</p>}
+            {!threads.length && <p className="opacity-70">Aún no hay foros.</p>}
           </ul>
         </section>
       </div>
