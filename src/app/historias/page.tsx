@@ -11,7 +11,7 @@ export default async function HistoriasPage() {
   const { posts } = res.ok ? await res.json() : { posts: [] as any[] };
 
   return (
-    <main className="max-w-4xl mx-auto p-4 space-y-6">
+    <main className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Historias</h1>
         {!user && <a href="/login" className="underline">Inicia sesión para publicar</a>}
@@ -26,11 +26,10 @@ export default async function HistoriasPage() {
             {p.media_path?.match(/^https?:\/\//i)
               ? <video src={p.media_path} controls className="w-full h-auto rounded mt-2" />
               : p.media_path
-                ? // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.media_path} alt="" className="w-full h-auto rounded mt-2" />
+                ? <img src={p.media_path} alt="" className="w-full h-auto rounded mt-2" />
                 : null}
             {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs opacity-60 mt-1">
+            <div className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
               {new Date(p.created_at).toLocaleString()}
             </div>
           </li>
