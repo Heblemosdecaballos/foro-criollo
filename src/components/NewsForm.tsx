@@ -1,59 +1,56 @@
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { createNews } from "@/app/noticias/nueva/actions";
 
 export default function NewsForm() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [cover, setCover] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch("/api/noticias", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title, content, cover_path: cover || null }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j?.error || "No se pudo publicar");
-      setTitle(""); setContent(""); setCover("");
-      window.location.reload();
-    } catch (err: any) {
-      alert(err?.message || "Error publicando");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [mode, setMode] = useState<"url"|"upload">("upload");
+  const [pending, start] = useTransition();
 
   return (
-    <form onSubmit={submit} className="space-y-3 border rounded p-4">
-      <h3 className="font-medium">Publicar noticia</h3>
-      <input
-        className="w-full border rounded px-3 py-2"
-        placeholder="Título"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        required
-      />
-      <textarea
-        className="w-full border rounded px-3 py-2"
-        placeholder="Contenido"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-      <input
-        className="w-full border rounded px-3 py-2"
-        placeholder="Cover (URL opcional)"
-        value={cover}
-        onChange={(e) => setCover(e.target.value)}
-      />
-      <button
-        className="bg-black text-white rounded px-4 py-2 disabled:opacity-60"
-        disabled={loading}
-      >
-        {loading ? "Publicando..." : "Publicar"}
+    <form
+      className="space-y-3 bg-white/70 p-4 rounded border"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        fd.set("coverMode", mode);
+        start(async ()=>{ await createNews(fd); (e.target as HTMLFormElement).reset(); });
+      }}
+    >
+      <label className="block">
+        <span className="text-sm">Título</span>
+        <input name="title" required className="w-full border rounded px-3 py-2" />
+      </label>
+
+      <label className="block">
+        <span className="text-sm">Contenido</span>
+        <textarea name="content" required rows={16} className="w-full border rounded px-3 py-2" />
+      </label>
+
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-1">
+          <input type="radio" name="coverModeRadio" checked={mode==="upload"} onChange={()=>setMode("upload")} />
+          Subir imagen
+        </label>
+        <label className="flex items-center gap-1">
+          <input type="radio" name="coverModeRadio" checked={mode==="url"} onChange={()=>setMode("url")} />
+          Usar URL
+        </label>
+      </div>
+
+      {mode === "upload" ? (
+        <label className="block">
+          <span className="text-sm">Archivo (PNG/JPG)</span>
+          <input name="coverFile" type="file" accept="image/png,image/jpeg" className="w-full border rounded px-3 py-2" />
+        </label>
+      ) : (
+        <label className="block">
+          <span className="text-sm">URL de la portada</span>
+          <input name="coverUrl" type="url" placeholder="https://..." className="w-full border rounded px-3 py-2" />
+        </label>
+      )}
+
+      <button disabled={pending} className="px-3 py-2 rounded bg-[var(--brand-brown)] text-white">
+        {pending ? "Publicando..." : "Publicar noticia"}
       </button>
     </form>
   );
