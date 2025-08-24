@@ -1,6 +1,5 @@
 import Link from "next/link";
 import NavLinks from "./NavLinks";
-import LoginWithGoogle from "./LoginWithGoogle";
 import LogoutButton from "./LogoutButton";
 import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 
@@ -9,21 +8,25 @@ export default async function Header() {
   const { data: { user } } = await supa.auth.getUser();
 
   return (
-    <header className="border-b bg-card text-card-foreground">
+    <header className="site-header">
       <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="font-semibold text-lg">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="site-brand font-semibold text-lg">
             Hablando de Caballos
           </Link>
           <NavLinks />
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="header-actions flex items-center gap-2">
           {user ? (
-            <LogoutButton />
+            <>
+              <Link href="/perfil" className="link-outline">Mi perfil</Link>
+              <LogoutButton />
+            </>
           ) : (
             <>
-              <LoginWithGoogle />
-              <Link href="/login" className="px-3 py-2 rounded-md border">Crear cuenta</Link>
+              <Link href="/login" className="link-fill">Iniciar sesión</Link>
+              <Link href="/login?signup=1" className="link-outline">Crear cuenta</Link>
             </>
           )}
         </div>
