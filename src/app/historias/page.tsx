@@ -1,3 +1,4 @@
+// src/app/historias/page.tsx
 import StoryForm from "@/components/StoryForm";
 import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 
@@ -32,7 +33,9 @@ export default async function HistoriasPage() {
                 ? <img src={p.media_path} alt="" className="w-full h-auto rounded mt-2" />
                 : null}
             {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs muted-date mt-1">{new Date(p.created_at).toLocaleString()}</div>
+            <div className="text-xs muted-date mt-1">
+              {new Date(p.created_at).toLocaleString()}
+            </div>
           </li>
         ))}
         {!posts.length && <p className="opacity-70">Aún no hay historias.</p>}
