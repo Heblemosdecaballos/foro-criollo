@@ -2,63 +2,63 @@
 
 import * as React from "react";
 import { useTransition, useRef, useState } from "react";
-import { addYoutubeAction } from "./actions";
+import { addMediaAction } from "./actions";
 
-export default function AddVideoForm({
-  profileId,
-  slug,
-}: {
-  profileId: string;
+type Props = {
   slug: string;
-}) {
+  profileId?: string; // opcional por compatibilidad con versiones anteriores
+};
+
+export default function AddVideoForm({ slug }: Props) {
   const [pending, start] = useTransition();
-  const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
     <form
       ref={formRef}
-      action={(formData: FormData) => {
-        setErr(null);
+      className="space-y-2 bg-white/70 p-3 rounded border"
+      onSubmit={(e) => {
+        e.preventDefault();
         setOk(false);
+        const fd = new FormData(e.currentTarget);
+        // Forzamos a que sea un aporte de tipo YouTube
+        fd.set("type", "youtube");
+
         start(() => {
-          void addYoutubeAction(formData)
+          void addMediaAction(slug, fd)
             .then(() => {
               setOk(true);
               formRef.current?.reset();
             })
-            .catch((e: any) => setErr(e?.message ?? "Error al guardar"));
+            .catch((err) => {
+              console.error(err);
+              setOk(false);
+              alert("No se pudo guardar el video de YouTube.");
+            });
         });
       }}
-      className="space-y-3"
     >
-      <input type="hidden" name="slug" value={slug} />
-      <input
-        type="text"
-        name="youtube"
-        placeholder="URL o ID de YouTube"
-        required
-        className="w-full border rounded p-2"
-      />
-      <input
-        type="text"
-        name="caption"
-        placeholder="Caption (opcional)"
-        className="w-full border rounded p-2"
-      />
-      <input
-        type="text"
-        name="credit"
-        placeholder="Crédito (opcional)"
-        className="w-full border rounded p-2"
-      />
-      <button disabled={pending} className="px-4 py-2 rounded bg-black text-white">
-        {pending ? "Guardando..." : "Agregar video"}
+      <label className="block">
+        <span className="text-sm">URL de YouTube</span>
+        <input
+          name="youtubeUrl"
+          type="url"
+          placeholder="https://youtu.be/..."
+          className="w-full border rounded px-3 py-2"
+          required
+        />
+      </label>
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-3 py-2 rounded bg-[var(--brand-brown)] text-white"
+      >
+        {pending ? "Subiendo…" : "Agregar video de YouTube"}
       </button>
 
-      {ok && <p className="text-green-600 text-sm">Video agregado.</p>}
-      {err && <p className="text-red-600 text-sm">{err}</p>}
+      {ok && <p className="text-sm text-green-700">¡Listo! Video agregado.</p>}
     </form>
   );
 }
