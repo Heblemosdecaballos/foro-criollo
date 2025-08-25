@@ -1,15 +1,12 @@
-// src/app/foro/nuevo/server-actions.ts
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
-import { ForumCategory } from "@/constants/forums";
 
 export async function createForum(fd: FormData) {
   const title = String(fd.get("title") || "").trim();
   const category = String(fd.get("category") || "");
-  const content = String(fd.get("content") || "");
-
+  const content = String(fd.get("content") || "").trim();
   if (!title || !category) return;
 
   const supa = createSupabaseServerClient();
@@ -19,10 +16,9 @@ export async function createForum(fd: FormData) {
   const { error } = await supa.from("threads").insert({
     title,
     content,
-    category: category as ForumCategory,
+    category,
     author_id: user.id,
   });
-
   if (error) throw error;
 
   revalidatePath("/foro");
