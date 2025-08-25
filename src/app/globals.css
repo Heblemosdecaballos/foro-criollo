@@ -1,135 +1,22 @@
+/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Paleta por variables (puedes tunear los valores HSL para tu marca) */
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-
-    /* Marca: naranja caballos */
-    --primary: 24 94% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 24 85% 57%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 24 94% 50%;
-
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 5.5%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 5.5%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 24 94% 54%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 24 85% 57%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 24 94% 54%;
-  }
-
-  * { @apply border-border; }
-  html, body { height: 100%; }
-  body { @apply bg-background text-foreground antialiased; }
-  a { @apply text-primary hover:underline; }
-}
-/* Asegura contraste por defecto */
-@layer base {
-  body { color: hsl(var(--foreground)); background: hsl(var(--background)); }
-  p, li, div { color: hsl(var(--foreground)); }
-  a { color: hsl(var(--primary)); }
-}
-
-/* Utilidad para fechas/metadata */
-.muted-date { color: rgb(82 82 82); }              /* neutral-600 */
-.dark .muted-date { color: rgb(163 163 163); }     /* neutral-400 */
-/* === Franja (Hero) — controla color y altura por variables === */
+/* Colores de marca (ajústalos si ya los tienes definidos) */
 :root {
-  /* Verde oliva (ajusta al tono exacto que usabas) */
-  --hero-strip-bg: #556B2F;        /* ← tu verde oliva */
-  --hero-strip-fg: #ffffff;        /* texto sobre la franja */
-  --hero-strip-h: 120px;           /* ← altura más alta (ajusta si quieres) */
+  --brand-green: #556B2F;   /* oliva */
+  --brand-brown: #5A3A29;   /* marrón */
+  --site-bg: #F0E8D6;       /* beige de fondo */
 }
 
-/* Estilos de la franja */
-.hero-strip {
-  background: var(--hero-strip-bg);
-  color: var(--hero-strip-fg);
-}
-.hero-strip .inner {
-  height: var(--hero-strip-h);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
+/* Coloca las reglas base dentro de un layer para evitar conflictos */
+@layer base {
+  html, body {
+    background-color: var(--site-bg);
+    color: #1b1b1b;
+  }
 
-/* Imagen del hero, se ajusta a la altura sin tocar la franja */
-.hero-strip .hero-img {
-  height: calc(var(--hero-strip-h) - 16px);
-  width: auto;
-  border-radius: 0.75rem;
-  object-fit: contain;
-  background: rgba(255,255,255,0.08); /* sutil, por si tarda en cargar */
+  a { color: inherit; text-decoration: none; }
+  * { box-sizing: border-box; }
 }
-/* === Marca HDC (marrón / verde oliva) === */
-:root{
-  --brand-green:#556B2F;           /* verde oliva */
-  --brand-green-10:#EEF3E8;        /* verde muy claro para "pill" activo */
-  --brand-brown:#5B4636;           /* marrón para enlaces/acción */
-  --hero-strip-bg: var(--brand-green);
-  --hero-strip-fg: #ffffff;
-  --hero-strip-h: 120px;           /* altura de la franja (ajústala si quieres) */
-}
-
-/* Franja del hero */
-.hero-strip{ background:var(--hero-strip-bg); color:var(--hero-strip-fg); }
-.hero-strip .inner{ height:var(--hero-strip-h); display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-.hero-strip .hero-img{ height:calc(var(--hero-strip-h) - 16px); width:auto; object-fit:contain; border-radius:.75rem; background:rgba(255,255,255,.08); }
-
-/* Header de navegación (blanco, enlaces marrón/verde) */
-.site-header{ background:#fff; border-bottom:1px solid hsl(var(--border)); }
-.site-brand{ color:var(--brand-green); }
-.nav-link{ color:rgba(0,0,0,.75); padding:.375rem .75rem; border-radius:.5rem; }
-.nav-link:hover{ color:#111; }
-.nav-link.active{ background:var(--brand-green-10); color:var(--brand-green); }
-.header-actions a{ padding:.5rem .75rem; border-radius:.5rem; }
-.header-actions .link-outline{ border:1px solid var(--brand-brown); color:var(--brand-brown); }
-.header-actions .link-fill{ background:var(--brand-green); color:#fff; border:1px solid var(--brand-green); }
-
-/* Fechas/metadata legibles en claro y oscuro */
-.muted-date{ color: rgb(82 82 82); }            /* neutral-600 */
-.dark .muted-date{ color: rgb(163 163 163); }   /* neutral-400 */
-/* === Fondo del sitio === */
-:root{
-  /* Beige derivado de F0E8D6 (RGB 240,232,214) */
-  --site-bg: #F0E8D6;
-}
-
-html, body {
-  background: var(--site-bg);
