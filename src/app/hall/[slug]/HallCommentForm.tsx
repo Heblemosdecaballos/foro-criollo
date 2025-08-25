@@ -6,18 +6,20 @@ import { addHallComment } from "./actions";
 export default function HallCommentForm({ slug }: { slug: string }) {
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        setErr(null);
+        setErr(null); setOkMsg(null);
         const fd = new FormData(e.currentTarget as HTMLFormElement);
         startTransition(async () => {
-          try {
-            await addHallComment(slug, fd);
-          } catch (e) {
-            setErr((e as Error).message);
+          const res = await addHallComment(slug, fd);
+          if (!res.ok) setErr(res.error);
+          else {
+            setOkMsg("Comentario publicado.");
+            (e.currentTarget as HTMLFormElement).reset();
           }
         });
       }}
@@ -40,6 +42,7 @@ export default function HallCommentForm({ slug }: { slug: string }) {
           {pending ? "Publicando..." : "Comentar"}
         </button>
         {err && <span className="text-sm text-red-600">{err}</span>}
+        {okMsg && <span className="text-sm text-green-700">{okMsg}</span>}
       </div>
     </form>
   );
