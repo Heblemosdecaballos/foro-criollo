@@ -4,30 +4,38 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 /**
- * Subir media al Hall (imagen, video o YouTube).
+ * Subir media a un Hall.
  * Uso: addMediaAction(slug, formData)
  */
 export async function addMediaAction(slug: string, fd: FormData) {
   const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) throw new Error("auth");
+  const {
+    data: { user },
+  } = await supa.auth.getUser();
 
-  const type = String(fd.get("type") || "image");
+  if (!user) throw new Error("Unauthorized");
+
+  const file = fd.get("file") as File | null;
+  const type = fd.get("type") as string;
+  const media_url = fd.get("url") as string | null;
+
   let storage_path: string | null = null;
-  let media_url: string | null = null;
 
-  if (type === "youtube") {
-    const y = String(fd.get("youtubeUrl") || "").trim();
-    if (!y) throw new Error("youtube url requerida");
-    media_url = y;
-  } else {
-    const file = fd.get("file") as File | null;
-    if (!file || file.size === 0) throw new Error("archivo requerido");
-    const path = `hall/${slug}/${user.id}/${Date.now()}-${file.name}`;
-    const { error: upErr } = await supa.storage.from("hall").upload(path, file, { upsert: true });
-    if (upErr) throw upErr;
-    const { data } = supa.storage.from("hall").getPublicUrl(path);
-    storage_path = data.publicUrl;
+  if (file) {
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/${Date.now()}.${ext}`;
+
+    const { data, error } = await supa.storage
+      .from("hall")
+      .upload(path, file);
+
+    if (error) throw error;
+
+    const { data: publicUrl } = supa.storage
+      .from("hall")
+      .getPublicUrl(path);
+
+    storage_path = publicUrl.publicUrl;
   }
 
   const { error: insErr } = await supa.from("hall_media").insert({
@@ -37,6 +45,7 @@ export async function addMediaAction(slug: string, fd: FormData) {
     storage_path,
     media_url,
   });
+
   if (insErr) throw insErr;
 
   revalidatePath(`/hall/${slug}`);
@@ -48,84 +57,97 @@ export async function addMediaAction(slug: string, fd: FormData) {
  */
 export async function addHallComment(slug: string, fd: FormData) {
   const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) throw new Error("auth");
+  const {
+    data: { user },
+  } = await supa.auth.getUser();
 
-  const body = String(fd.get("body") || "").trim();
-  if (!body) return;
+  if (!user) throw new Error("Unauthorized");
 
-  const { error } = await supa.from("hall_comments").insert({
+  const text = fd.get("text") as string;
+
+  const { error: insErr } = await supa.from("hall_comments").insert({
     hall_slug: slug,
     author_id: user.id,
-    body,
+    text,
   });
-  if (error) throw error;
+
+  if (insErr) throw insErr;
 
   revalidatePath(`/hall/${slug}`);
 }
 
-/* Shim opcional por compatibilidad: permite usar addYoutubeAction(slug, url) */
+/**
+ * Agregar video de YouTube (shim temporal).
+ * Uso: addYoutubeAction(slug, youtubeUrl)
+ */
 export async function addYoutubeAction(slug: string, youtubeUrl: string) {
-  const fd = new FormData();
-  fd.set("type", "youtube");
-  fd.set("youtubeUrl", youtubeUrl);
-  return addMediaAction(slug, fd);
-}
-// --- VOTOS DEL HALL ---
-// Firma dual para ser compatible con código viejo y nuevo:
-// - toggleVote(slug)
-// - toggleVote(profileId, slug)  ← el 1er arg se ignora, usamos siempre el slug
-export async function toggleVote(slug: string): Promise<{ ok: boolean; votes: number }>;
-export async function toggleVote(profileId: string, slug: string): Promise<{ ok: boolean; votes: number }>;
-export async function toggleVote(a: string, b?: string) {
-  const slug = b ?? a;
-
   const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) throw new Error("auth");
+  const {
+    data: { user },
+  } = await supa.auth.getUser();
 
-  // ¿ya votó?
+  if (!user) throw new Error("Unauthorized");
+
+  const { error: insErr } = await supa.from("hall_media").insert({
+    hall_slug: slug,
+    author_id: user.id,
+    media_type: "youtube",
+    media_url: youtubeUrl,
+  });
+
+  if (insErr) throw insErr;
+
+  revalidatePath(`/hall/${slug}`);
+}
+
+/**
+ * Votar en un Hall.
+ * Uso: toggleVote(slug) o toggleVote(slug, media_id)
+ */
+export async function toggleVote(a: string, b?: string) {
+  const supa = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supa.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  const hall_slug = a;
+  const media_id = b ?? null;
+
   const { data: existing, error: selErr } = await supa
     .from("hall_votes")
-    .select("hall_slug,user_id")
-    .eq("hall_slug", slug)
-    .eq("user_id", user.id)
+    .select("*")
+    .eq("hall_slug", hall_slug)
+    .eq("author_id", user.id)
+    .eq("media_id", media_id)
     .maybeSingle();
 
   if (selErr) throw selErr;
 
   if (existing) {
-    // quitar voto
     const { error: delErr } = await supa
       .from("hall_votes")
       .delete()
-      .eq("hall_slug", slug)
-      .eq("user_id", user.id);
+      .eq("id", existing.id);
+
     if (delErr) throw delErr;
   } else {
-    // poner voto
-    const { error: insErr } = await supa
-      .from("hall_votes")
-      .insert({ hall_slug: slug, user_id: user.id });
+    const { error: insErr } = await supa.from("hall_votes").insert({
+      hall_slug,
+      author_id: user.id,
+      media_id,
+    });
+
     if (insErr) throw insErr;
   }
 
-  // contar votos
   const { count } = await supa
     .from("hall_votes")
-    .select("*", { head: true, count: "exact" })
-    .eq("hall_slug", slug);
+    .select("*", { count: "exact", head: true })
+    .eq("hall_slug", hall_slug)
+    .eq("media_id", media_id);
 
-  // refrescar la página del hall
-  revalidatePath(`/hall/${slug}`);
-
+  revalidatePath(`/hall/${hall_slug}`);
   return { ok: true, votes: count ?? 0 };
 }
-"use server";
-import { revalidatePath } from "next/cache";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
-
-export async function addMediaAction(slug: string, fd: FormData) { /* ...como te pasé... */ }
-export async function addHallComment(slug: string, fd: FormData) { /* ...como te pasé... */ }
-/* opcional */ export async function addYoutubeAction(slug: string, youtubeUrl: string) { /* shim */ }
-export async function toggleVote(/* firma dual */ a: string, b?: string) { /* ...como te pasé... */ }
