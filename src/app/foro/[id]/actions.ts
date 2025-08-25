@@ -24,6 +24,12 @@ export async function addCommentAction(threadId: string, formData: FormData): Pr
   if (userErr) backWithError(threadId, userErr.message);
   if (!user) backWithError(threadId, "Debes iniciar sesión para comentar.");
 
+  // Nombre visible
+  const author_name =
+    (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
+    user.email ||
+    "Usuario";
+
   // Campos
   const textRaw = formData.get("text");
   const text = (typeof textRaw === "string" ? textRaw : "").trim();
@@ -34,7 +40,8 @@ export async function addCommentAction(threadId: string, formData: FormData): Pr
   const { error } = await supa.from("thread_comments").insert({
     thread_id: threadId,
     author_id: user.id,
-    text, // <- IMPORTANT: columna 'text'
+    author_name, // 👈 nuevo
+    text,
   });
 
   if (error) backWithError(threadId, error.message);
