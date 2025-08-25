@@ -1,84 +1,105 @@
-// app/foro/[id]/page.tsx
-import { notFound } from 'next/navigation'
-import { createSupabaseServerClientReadOnly } from '@/utils/supabase/server'
-import CommentForm from './CommentForm'
+// src/app/foro/[id]/page.tsx
+import Link from "next/link";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
+import CommentForm from "./CommentForm";
 
-export const revalidate = 0
+type Thread = {
+  id: string;
+  title: string;
+  category: string;
+  created_at: string;
+  author_id: string | null;
+};
 
-export default async function ThreadDetail({ params }: { params: { id: string } }) {
-  const supabase = createSupabaseServerClientReadOnly()
+type Comment = {
+  id: string;
+  text: string;
+  created_at: string;
+  author_id: string | null;
+};
 
-  const { data: thread, error } = await supabase
-    .from('threads')
-    .select('*')
-    .eq('id', params.id)
-    .maybeSingle()
+export const dynamic = "force-dynamic";
 
-  if (error) return <div className="container p-6 text-red-700">Error: {error.message}</div>
-  if (!thread) return notFound()
+async function getThread(id: string) {
+  const supa = createSupabaseServerClient();
+  const { data, error } = await supa
+    .from("threads")
+    .select("id,title,category,created_at,author_id")
+    .eq("id", id)
+    .maybeSingle<Thread>();
 
-  const content =
-    (thread as any).content ?? (thread as any).body ?? (thread as any).text ?? (thread as any).description ?? ''
+  if (error) throw error;
+  return data;
+}
 
-  // Comentarios + autor desde profiles
-  const { data: comments } = await supabase
-    .from('thread_comments')
-    .select('id, content, created_at, author:profiles(id, username, full_name)')
-    .eq('thread_id', params.id)
-    .order('created_at', { ascending: true })
+async function getComments(threadId: string) {
+  const supa = createSupabaseServerClient();
+  const { data, error } = await supa
+    .from("thread_comments")
+    .select("id,text,created_at,author_id")
+    .eq("thread_id", threadId)
+    .order("created_at", { ascending: true });
 
-  // Quien comenta (para mostrar el “comentando como …”)
-  const { data: { session } } = await supabase.auth.getSession()
-  let viewerName: string | null = null
-  if (session) {
-    const { data: prof } = await supabase
-      .from('profiles').select('full_name, username').eq('id', session.user.id).maybeSingle()
-    viewerName = prof?.full_name || prof?.username || 'Usuario'
+  if (error) throw error;
+  return (data as Comment[]) || [];
+}
+
+export default async function ThreadPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { error?: string };
+}) {
+  const thread = await getThread(params.id);
+  if (!thread) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-8">
+        <p>Hilo no encontrado.</p>
+      </main>
+    );
   }
 
+  const comments = await getComments(thread.id);
+  const initialError = searchParams?.error;
+
   return (
-    <div className="container p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">{(thread as any).title}</h1>
-        <div className="text-sm text-muted mb-4">
-          {new Date((thread as any).created_at as any).toLocaleString('es-CO')}
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <header className="mb-4">
+        <Link href="/foro" className="text-sm opacity-70 hover:underline">
+          ← Volver al foro
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold">{thread.title}</h1>
+        <div className="mt-1 text-sm opacity-70">
+          <span className="rounded bg-black/5 px-1.5 py-0.5">{thread.category}</span>{" "}
+          · {new Date(thread.created_at).toLocaleString()}
         </div>
-        <article className="prose max-w-none whitespace-pre-wrap">
-          {content || <em>Sin contenido.</em>}
-        </article>
-      </div>
+      </header>
 
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Comentarios</h2>
+      {/* (Opcional) contenido inicial si lo guardas como primer comment */}
+      {comments.length === 0 && (
+        <p className="mb-6 text-sm italic opacity-60">Sin contenido.</p>
+      )}
 
-        {!comments?.length ? (
-          <p className="text-gray-600">Sé el primero en comentar.</p>
+      <section className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold">Comentarios</h2>
+        {comments.length === 0 ? (
+          <p className="mb-3 text-sm opacity-70">Sé el primero en comentar.</p>
         ) : (
-          <ul className="space-y-3">
-            {comments!.map((c) => {
-              const authorName =
-                (c as any).author?.full_name ||
-                (c as any).author?.username ||
-                'Autor'
-              return (
-                <li key={(c as any).id} className="card p-3">
-                  <div className="flex items-center justify-between text-sm text-muted mb-1">
-                    <span>{authorName}</span>
-                    <span>{new Date((c as any).created_at as any).toLocaleString('es-CO')}</span>
-                  </div>
-                  <div className="whitespace-pre-wrap">{(c as any).content}</div>
-                </li>
-              )
-            })}
+          <ul className="mb-6 space-y-4">
+            {comments.map((c) => (
+              <li key={c.id} className="rounded-md bg-white p-3">
+                <div className="text-sm">{c.text}</div>
+                <div className="mt-1 text-xs opacity-60">
+                  {new Date(c.created_at).toLocaleString()}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
 
-        {session ? (
-          <CommentForm threadId={params.id} viewerName={viewerName} />
-        ) : (
-          <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
-        )}
+        <CommentForm threadId={thread.id} initialError={initialError} />
       </section>
-    </div>
-  )
+    </main>
+  );
 }
