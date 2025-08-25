@@ -1,7 +1,6 @@
 // src/app/foro/page.tsx
 import Link from "next/link";
 import { Suspense } from "react";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 type Thread = {
   id: string;
@@ -20,31 +19,79 @@ type Thread = {
   pinned_post_id: string | null;
 };
 
-export const dynamic = "force-dynamic"; // sin caché en esta página
+type ThreadsResponse =
+  | { ok: true; threads: Thread[] }
+  | { ok: false; error?: string };
 
-async function getThreads(cat?: string): Promise<{ threads: Thread[]; errorMsg?: string }> {
-  const supa = createSupabaseServerClient();
+export const dynamic = "force-dynamic";
 
-  // SELECT público (RLS) — no requiere sesión
-  let q = supa
-    .from("threads")
-    .select(
-      "id,title,category,tags,author_id,created_at,replies_count,views,hot,open_today,last_activity,status,created_by,pinned_post_id"
-    )
-    // si no tienes last_activity, puedes ordenar por created_at
-    .order("last_activity", { ascending: false, nullsFirst: false });
+function getBaseUrl() {
+  // Prioridad: NEXT_PUBLIC_SITE_URL > VERCEL_URL > localhost
+  // Ejemplos válidos:
+  // NEXT_PUBLIC_SITE_URL = https://hablandodecaballos.com
+  // VERCEL_URL = app-hablandodecaballos.vercel.app (sin protocolo)
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
 
-  if (cat) {
-    q = q.eq("category", cat);
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/\/+$/, "")}`;
+
+  return "http://localhost:3000";
+}
+
+async function fetchThreadsFromApi(cat?: string): Promise<{
+  threads: Thread[];
+  errorMsg?: string;
+  debug?: any;
+}> {
+  const qs = cat ? `?cat=${encodeURIComponent(cat)}` : "";
+  const base = getBaseUrl();
+  const url = `${base}/api/threads${qs}`;
+  const debug: Record<string, any> = { base, url };
+
+  try {
+    // Petición absoluta para evitar problemas de base path en SSR
+    const res = await fetch(url, {
+      cache: "no-store",
+      // Evitamos cualquier revalidación accidental
+      next: { revalidate: 0 },
+      headers: {
+        // Evita caches intermedios
+        "cache-control": "no-store",
+      },
+    });
+
+    debug.status = res.status;
+
+    let json: ThreadsResponse | null = null;
+    try {
+      json = (await res.json()) as ThreadsResponse;
+    } catch (e) {
+      debug.jsonParseError = (e as Error).message;
+      return {
+        threads: [],
+        errorMsg: "No se pudo interpretar la respuesta del servidor.",
+        debug,
+      };
+    }
+
+    debug.json = json;
+
+    if (!res.ok || !json || json.ok !== true) {
+      return {
+        threads: [],
+        errorMsg:
+          (json && "error" in json && json.error) ||
+          `La API respondió con estado ${res.status}.`,
+        debug,
+      };
+    }
+
+    return { threads: json.threads || [], debug };
+  } catch (e) {
+    debug.throw = (e as Error).message;
+    return { threads: [], errorMsg: "No se pudo cargar el foro.", debug };
   }
-
-  const { data, error } = await q;
-
-  if (error) {
-    return { threads: [], errorMsg: "No se pudo cargar el foro." };
-  }
-
-  return { threads: (data as Thread[]) || [] };
 }
 
 export default async function ForoPage({
@@ -53,7 +100,7 @@ export default async function ForoPage({
   searchParams: { cat?: string };
 }) {
   const cat = searchParams?.cat;
-  const { threads, errorMsg } = await getThreads(cat);
+  const { threads, errorMsg, debug } = await fetchThreadsFromApi(cat);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
@@ -67,7 +114,6 @@ export default async function ForoPage({
         </Link>
       </header>
 
-      {/* Filtros rápidos por categoría (ajusta a tus categorías oficiales) */}
       <nav className="mb-5 flex flex-wrap gap-2 text-sm">
         <Link
           href="/foro"
@@ -94,6 +140,14 @@ export default async function ForoPage({
         <section className="rounded-lg bg-black/5 p-6">
           <h2 className="mb-2 text-xl font-semibold">Ocurrió un error cargando el foro</h2>
           <p className="mb-3 text-sm opacity-80">{errorMsg}</p>
+
+          {/* Bloque de depuración visible solo si NEXT_PUBLIC_DEBUG_FORO = "1" */}
+          {process.env.NEXT_PUBLIC_DEBUG_FORO === "1" && (
+            <pre className="mb-4 overflow-auto rounded bg-white p-3 text-xs">
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          )}
+
           <div className="flex gap-2">
             <Link
               href={cat ? `/foro?cat=${encodeURIComponent(cat)}` : "/foro"}
@@ -114,11 +168,16 @@ export default async function ForoPage({
               <li key={t.id} className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <Link href={`/foro/${t.id}`} className="text-base font-semibold hover:underline">
+                    <Link
+                      href={`/foro/${t.id}`}
+                      className="text-base font-semibold hover:underline"
+                    >
                       {t.title}
                     </Link>
                     <div className="mt-1 text-xs opacity-70">
-                      <span className="mr-2 rounded bg-black/5 px-1.5 py-0.5">{t.category}</span>
+                      <span className="mr-2 rounded bg-black/5 px-1.5 py-0.5">
+                        {t.category}
+                      </span>
                       {t.replies_count} respuestas · {t.views} vistas
                     </div>
                   </div>
