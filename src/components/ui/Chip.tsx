@@ -25,11 +25,10 @@ export default function Chip({
     >
       {iconHorse ? (
         <Image
-          src="/brand/horse.png"
+          src="/brand/horse.png"   // <- mismo archivo en /public/brand/horse.png
           alt="caballo"
           width={16}
           height={16}
-          className="inline-block"
         />
       ) : null}
       <span className="truncate">{children}</span>
