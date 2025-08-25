@@ -1,4 +1,6 @@
 // /app/hall/[slug]/page.tsx
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import { createSupabaseServer } from "@/src/lib/supabase/server";
 import AddMediaForm from "@/src/components/hall/AddMediaForm";
 import HallCommentForm from "@/src/components/hall/HallCommentForm";
