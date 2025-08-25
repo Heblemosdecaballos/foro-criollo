@@ -2,50 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Variables de fuentes (se setean en layout.tsx con next/font) */
 :root{
   --font-serif: 'Playfair Display', serif;
   --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
 }
 
-/* Fondo base crema + color de texto marrón */
 html, body {
   @apply bg-cream-50 text-brown-700;
 }
 
-/* Contenedor centrado por defecto */
+/* Contenedor base */
 .container {
   @apply mx-auto max-w-6xl px-4;
 }
-
-/* Pills (chips) */
-.ui-chip {
-  @apply rounded-full border px-4 py-1.5 text-sm transition;
-}
-.ui-chip--active {
-  @apply bg-olive-600 text-white border-olive-600;
-}
-.ui-chip--muted {
-  @apply bg-white text-brown-700 border-brown-700/20 hover:bg-cream-100;
-}
-
-/* Botones base */
-.btn {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition;
-}
-.btn-olive { @apply bg-olive-600 text-white hover:bg-olive-700; }
-.btn-ghost { @apply border border-brown-700/20 text-brown-700 bg-white hover:bg-cream-100; }
 
 /* Cards */
 .card {
   @apply rounded-xl shadow-card bg-white overflow-hidden border border-brown-700/10;
 }
 .card-body { @apply p-4 md:p-5; }
-
-/* Badges */
-.badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-cream-200 text-brown-800; }
-
-/* Gradiente Hero */
-.hero-grad {
-  background: linear-gradient(135deg, #B56E3A 0%, #79553A 100%);
-}
