@@ -1,27 +1,36 @@
 // src/app/api/threads/route.ts
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0; // no cache
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supa = createClient(supabaseUrl, anonKey);
-
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    const url = new URL(req.url);
-    const cat = url.searchParams.get("cat") || "";
+    const { searchParams } = new URL(request.url);
+    const cat = searchParams.get("cat") || undefined;
 
-    let q = supa.from("threads").select("*").order("created_at", { ascending: false });
+    const supa = createSupabaseServerClient();
+
+    let q = supa
+      .from("threads")
+      .select(
+        "id,title,category,tags,author_id,created_at,replies_count,views,hot,open_today,last_activity,status,created_by,pinned_post_id"
+      )
+      .order("last_activity", { ascending: false });
+
     if (cat) q = q.eq("category", cat);
 
     const { data, error } = await q;
+
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ ok: true, threads: data ?? [] });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
+
+    return NextResponse.json({ ok: true, threads: data || [] }, { status: 200 });
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, error: (e as Error).message || "Unexpected error" },
+      { status: 500 }
+    );
   }
 }
