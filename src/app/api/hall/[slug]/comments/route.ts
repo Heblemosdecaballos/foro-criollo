@@ -44,11 +44,12 @@ export async function POST(req: Request) {
         author_id: user.id,
         author_name: author_name ?? user.user_metadata?.full_name ?? user.email,
       })
-      .select()
-      .single();
+      .select(); // array
 
     if (error) return NextResponse.json({ error: "DBError: " + error.message }, { status: 400 });
-    return NextResponse.json(data, { status: 201 });
+
+    const row = Array.isArray(data) ? data[0] : data;
+    return NextResponse.json(row ?? { ok: true }, { status: 201 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? "UnhandledError" }, { status: 500 });
   }
