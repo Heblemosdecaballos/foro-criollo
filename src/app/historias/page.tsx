@@ -1,45 +1,31 @@
 // src/app/historias/page.tsx
-import StoryForm from "@/components/StoryForm";
-import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
-
+import { Card, CardBody } from "@/src/components/ui/Card";
+import Link from "next/link";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default async function HistoriasPage() {
-  const supa = createSupabaseServerClientReadOnly();
-  const { data: { user } } = await supa.auth.getUser();
-
-  let posts: any[] = [];
-  try {
-    const r = await fetch("/api/historias", { cache: "no-store" });
-    if (r.ok) posts = (await r.json()).posts ?? [];
-  } catch {}
-
+export default function HistoriasPage() {
   return (
-    <main className="container py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Historias</h1>
-        {!user && <a href="/login" className="underline">Inicia sesión para publicar</a>}
-      </div>
-
-      {user && <StoryForm />}
-
-      <ul className="space-y-3">
-        {posts.map((p: any) => (
-          <li key={p.id} className="border rounded p-3">
-            <h3 className="font-medium">{p.title}</h3>
-            {p.media_path?.match(/^https?:\/\//i)
-              ? <video src={p.media_path} controls className="w-full h-auto rounded mt-2" />
-              : p.media_path
-                ? <img src={p.media_path} alt="" className="w-full h-auto rounded mt-2" />
-                : null}
-            {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs muted-date mt-1">
-              {new Date(p.created_at).toLocaleString()}
-            </div>
-          </li>
-        ))}
-        {!posts.length && <p className="opacity-70">Aún no hay historias.</p>}
-      </ul>
-    </main>
+    <div className="container py-10">
+      <h1 className="font-serif text-4xl font-bold">📚 Historias del Caballo Criollo</h1>
+      <p className="text-brown-700/80 mt-1">Experiencias reales, tradiciones familiares y aventuras…</p>
+      <Card className="mt-6">
+        <div className="h-48 bg-cream-100" />
+        <CardBody>
+          <div className="flex items-center gap-3">
+            <span className="badge bg-cream-200">Historia Destacada</span>
+            <span className="text-sm text-brown-700/70">📖 5 min</span>
+          </div>
+          <h3 className="font-serif text-2xl mt-2">Mi Primer Caballo Criollo: Una Historia de Amor</h3>
+          <p className="text-brown-700/80 mt-1">
+            Nunca olvidaré el día que conocí a Marengo…
+          </p>
+          <div className="text-sm text-brown-700/70 mt-3">
+            María Elena Rodríguez • 22 de agosto de 2025
+          </div>
+          <Link href="#" className="btn btn-ghost mt-3">Leer Historia Completa</Link>
+        </CardBody>
+      </Card>
+    </div>
   );
 }
