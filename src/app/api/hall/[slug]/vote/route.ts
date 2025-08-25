@@ -1,52 +1,50 @@
-// src/app/api/hall/[slug]/vote/route.ts
+// src/app/api/hall/vote/route.ts
 import { NextResponse } from "next/server";
-import {
-  createSupabaseServerClient,
-  createSupabaseServerClientReadOnly,
-} from "@/utils/supabase/server";
+import { createSupabaseServer } from "@/src/lib/supabase/server";
 
-export async function POST(_req: Request, { params }: { params: { slug: string } }) {
-  const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function POST(req: Request) {
+  try {
+    const supabase = createSupabaseServer();
 
-  // Buscar item del Hall
-  const { data: item, error: e1 } = await supa
-    .from("hall_items")
-    .select("id")
-    .eq("slug", params.slug)
-    .single();
-  if (e1 || !item) return NextResponse.json({ error: "Hall item no encontrado" }, { status: 404 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return new NextResponse("No autenticado", { status: 401 });
 
-  // ¿Ya votó?
-  const { data: existing } = await supa
-    .from("hall_votes")
-    .select("id")
-    .eq("hall_id", item.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+    const body = await req.json();
+    const { hall_slug, media_id = null } = body;
 
-  let voted: boolean;
-  if (existing?.id) {
-    // Quitar voto
-    const { error } = await supa.from("hall_votes").delete().eq("id", existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    voted = false;
-  } else {
-    // Dar voto
-    const { error } = await supa
+    if (!hall_slug) return new NextResponse("Faltan campos", { status: 400 });
+
+    // Toggle: si existe => delete; si no => insert
+    const { data: existing, error: findErr } = await supabase
       .from("hall_votes")
-      .insert({ hall_id: item.id, user_id: user.id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    voted = true;
+      .select("id")
+      .eq("hall_slug", hall_slug)
+      .eq("voter_id", user.id)
+      .is("media_id", media_id) // null => voto global
+      .maybeSingle();
+
+    if (findErr) return new NextResponse(findErr.message, { status: 400 });
+
+    if (existing) {
+      const { error: delErr } = await supabase
+        .from("hall_votes")
+        .delete()
+        .eq("id", existing.id);
+      if (delErr) return new NextResponse(delErr.message, { status: 400 });
+      return NextResponse.json({ toggled: "off" });
+    } else {
+      const { error: insErr } = await supabase.from("hall_votes").insert({
+        hall_slug,
+        media_id, // null = voto global del hall
+        voter_id: user.id,
+        up: true,
+      });
+      if (insErr) return new NextResponse(insErr.message, { status: 400 });
+      return NextResponse.json({ toggled: "on" });
+    }
+  } catch (e: any) {
+    return new NextResponse(e?.message ?? "Error", { status: 500 });
   }
-
-  // Contar
-  const ro = createSupabaseServerClientReadOnly();
-  const { count } = await ro
-    .from("hall_votes")
-    .select("*", { count: "exact", head: true })
-    .eq("hall_id", item.id);
-
-  return NextResponse.json({ voted, count: count ?? 0 });
 }
