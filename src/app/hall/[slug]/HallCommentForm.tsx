@@ -1,58 +1,46 @@
 "use client";
 
-import * as React from "react";
-import { useTransition, useRef, useState } from "react";
+import { useState, useTransition } from "react";
 import { addHallComment } from "./actions";
 
-type Props = {
-  slug: string; // ← pasamos el slug del Hall como prop
-};
-
-export default function HallCommentForm({ slug }: Props) {
-  const [pending, start] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
-  const [ok, setOk] = useState(false);
+export default function HallCommentForm({ slug }: { slug: string }) {
+  const [pending, startTransition] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
 
   return (
     <form
-      ref={formRef}
-      className="space-y-2 bg-white/70 p-3 rounded border"
       onSubmit={(e) => {
         e.preventDefault();
-        setOk(false);
-        const fd = new FormData(e.currentTarget);
-
-        // startTransition NO debe recibir una función async
-        start(() => {
-          void addHallComment(slug, fd)
-            .then(() => {
-              setOk(true);
-              formRef.current?.reset();
-            })
-            .catch((err) => {
-              console.error(err);
-              setOk(false);
-              alert("No se pudo publicar el comentario.");
-            });
+        setErr(null);
+        const fd = new FormData(e.currentTarget as HTMLFormElement);
+        startTransition(async () => {
+          try {
+            await addHallComment(slug, fd);
+          } catch (e) {
+            setErr((e as Error).message);
+          }
         });
       }}
+      className="space-y-3"
     >
       <textarea
-        name="body"
+        name="text"
         rows={4}
-        placeholder="Escribe un comentario…"
-        className="w-full border rounded px-3 py-2"
         required
-      />
-      <button
-        type="submit"
+        placeholder="Escribe tu comentario…"
+        className="w-full rounded border border-black/20 px-3 py-2 text-sm"
         disabled={pending}
-        className="px-3 py-2 rounded bg-[var(--brand-green)] text-white"
-      >
-        {pending ? "Publicando…" : "Comentar"}
-      </button>
-
-      {ok && <p className="text-sm text-green-700">¡Comentario publicado!</p>}
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded border border-black/20 bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
+        >
+          {pending ? "Publicando..." : "Comentar"}
+        </button>
+        {err && <span className="text-sm text-red-600">{err}</span>}
+      </div>
     </form>
   );
 }
