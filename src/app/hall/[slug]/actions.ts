@@ -52,3 +52,11 @@ export async function addHallComment(slug: string, fd: FormData) {
 
   revalidatePath(`/hall/${slug}`);
 }
+// --- Shim de compatibilidad: permite seguir importando addYoutubeAction ---
+export async function addYoutubeAction(slug: string, youtubeUrl: string) {
+  // Reutiliza la action principal con el tipo "youtube"
+  const fd = new FormData();
+  fd.set("type", "youtube");
+  fd.set("youtubeUrl", youtubeUrl);
+  return addMediaAction(slug, fd);
+}
