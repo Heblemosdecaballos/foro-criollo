@@ -1,94 +1,71 @@
+// src/app/page.tsx
 import Link from "next/link";
-import HeroBanner from "@/components/HeroBanner";
+import Image from "next/image";
+import { Card, CardBody } from "@/src/components/ui/Card";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default async function Home() {
-  // Cargas seguras (si fallan, mostramos vacíos sin romper SSR)
-  const [nRes, tRes] = await Promise.allSettled([
-    fetch("/api/noticias", { cache: "no-store" }),
-    fetch("/api/threads",  { cache: "no-store" }),
-  ]);
-
-  const news = nRes.status === "fulfilled" && nRes.value.ok ? (await nRes.value.json()).posts ?? [] : [];
-  const threads = tRes.status === "fulfilled" && tRes.value.ok ? (await tRes.value.json()).threads ?? [] : [];
-
+export default function Home() {
   return (
     <>
-      <HeroBanner />
-
-      <div className="container py-6 space-y-10">
-        {/* Grid de previos de secciones */}
-        <section>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link href="/foro" className="border rounded p-4 hover:shadow-sm transition">
-              <h3 className="font-semibold">Foro</h3>
-              <p className="opacity-80 text-sm">Participa en los foros de la comunidad.</p>
-              <div className="text-xs muted-date mt-2">
-                {threads.length ? `Último: ${new Date(threads[0].created_at).toLocaleString()}` : "Aún no hay foros."}
-              </div>
-            </Link>
-
-            <Link href="/noticias" className="border rounded p-4 hover:shadow-sm transition">
-              <h3 className="font-semibold">Noticias</h3>
-              <p className="opacity-80 text-sm">Lo más reciente del mundo equino.</p>
-              <div className="text-xs muted-date mt-2">
-                {news.length ? `Última: ${new Date(news[0].created_at).toLocaleString()}` : "Aún no hay noticias."}
-              </div>
-            </Link>
-
-            <Link href="/historias" className="border rounded p-4 hover:shadow-sm transition">
-              <h3 className="font-semibold">Historias</h3>
-              <p className="opacity-80 text-sm">Grandes historias y momentos del caballo criollo.</p>
-            </Link>
-
-            <Link href="/hall" className="border rounded p-4 hover:shadow-sm transition">
-              <h3 className="font-semibold">Hall of Fame</h3>
-              <p className="opacity-80 text-sm">Un reconocimiento a los ejemplares que han hecho grande la historia del Caballo Criollo Colombiano.</p>
-            </Link>
-
-            <Link href="/en-vivo" className="border rounded p-4 hover:shadow-sm transition">
-              <h3 className="font-semibold">En vivo</h3>
-              <p className="opacity-80 text-sm">Transmisiones y eventos en directo.</p>
-            </Link>
+      {/* HERO */}
+      <section className="hero-grad text-white">
+        <div className="container py-16 md:py-20">
+          <div className="flex items-center gap-4">
+            <Image src="/brand/horse.png" alt="Caballo" width={48} height={48} />
+            <h1 className="font-serif text-4xl md:text-5xl font-bold">Hablando de Caballos</h1>
           </div>
-        </section>
+          <p className="mt-4 max-w-2xl text-white/90">
+            La comunidad más grande del Caballo Criollo Colombiano
+          </p>
+          <Link href="/foros" className="mt-6 inline-flex btn btn-olive bg-white text-brown-800 hover:bg-cream-200">
+            Crear Nuevo Foro
+          </Link>
+        </div>
+      </section>
 
-        {/* Listado breve de noticias y foros (como antes) */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Noticias</h2>
-            <Link href="/noticias" className="text-sm text-muted-foreground hover:text-foreground">Ver todas</Link>
-          </div>
-          <ul className="grid md:grid-cols-2 gap-4">
-            {news.slice(0,4).map((p:any)=>(
-              <li key={p.id} className="border rounded p-4">
-                <h3 className="font-medium">{p.title}</h3>
-                {p.cover_path && <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />}
-                {p.content && <p className="mt-2 opacity-80 line-clamp-3">{p.content}</p>}
-                <div className="text-xs muted-date mt-1">{new Date(p.created_at).toLocaleString()}</div>
-              </li>
-            ))}
-            {!news.length && <p className="opacity-70">Aún no hay noticias.</p>}
-          </ul>
-        </section>
+      {/* MÉTRICAS */}
+      <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 -mt-8 mb-8">
+        {[
+          { big: "500+", small: "Miembros Activos" },
+          { big: "50+", small: "Foros Especializados" },
+          { big: "24/7", small: "Comunidad Activa" },
+        ].map((m) => (
+          <Card key={m.big} className="bg-white">
+            <CardBody className="text-center">
+              <div className="text-3xl font-bold">{m.big}</div>
+              <div className="text-sm mt-1 text-brown-700/70">{m.small}</div>
+            </CardBody>
+          </Card>
+        ))}
+      </section>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">Foros</h2>
-            <Link href="/foro" className="text-sm text-muted-foreground hover:text-foreground">Ver todos</Link>
-          </div>
-          <ul className="space-y-3">
-            {threads.slice(0,5).map((t:any)=>(
-              <li key={t.id} className="border rounded p-3">
-                <Link href={`/threads/${t.id}`} className="font-medium hover:underline">{t.title}</Link>
-                <div className="text-xs muted-date mt-1">{new Date(t.created_at).toLocaleString()}</div>
-              </li>
-            ))}
-            {!threads.length && <p className="opacity-70">Aún no hay foros.</p>}
-          </ul>
-        </section>
-      </div>
+      {/* TEMAS ESPECIALIZADOS */}
+      <section className="container my-10">
+        <h2 className="font-serif text-2xl font-semibold text-center mb-1">Temas Especializados</h2>
+        <p className="text-center text-brown-700/80 mb-6">
+          Explora nuestras áreas especializadas diseñadas para cada aspecto del caballo criollo
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { title: "Crianza y Genética", href: "/foros?cat=crianza" },
+            { title: "Entrenamiento", href: "/foros?cat=entrenamiento" },
+            { title: "Competencias", href: "/foros?cat=competencias" },
+            { title: "Salud Veterinaria", href: "/foros?cat=salud" },
+            { title: "Historia y Tradición", href: "/foros?cat=historia" },
+            { title: "Comercialización", href: "/foros?cat=comercial" },
+          ].map((t) => (
+            <Card key={t.title} className="hover:shadow-md transition">
+              <CardBody className="text-center">
+                <div className="font-serif font-semibold mb-1">{t.title}</div>
+                <Link href={t.href} className="text-sm underline">Ver</Link>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      </section>
     </>
   );
 }
