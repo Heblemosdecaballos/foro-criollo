@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     const { hall_slug, media_id = null } = body ?? {};
     if (!hall_slug) return NextResponse.json({ error: "Falta hall_slug" }, { status: 400 });
 
-    // Toggle
+    // Toggle “like”
     const { data: existing, error: findErr } = await supabase
       .from("hall_votes")
       .select("id")
