@@ -13,7 +13,7 @@ export default function VoteButton({
   initialVotes: number;
 }) {
   const [pending, startTransition] = useTransition();
-  const [votes, setVotes] = useOptimistic(initialVotes, (v) => v + 1);
+  const [votes, setVotes] = useOptimistic(initialVotes, (v) => v);
 
   return (
     <button
@@ -22,12 +22,10 @@ export default function VoteButton({
       onClick={() => {
         startTransition(async () => {
           const res = await toggleVote(slug, mediaId || undefined);
-          setVotes(res.votes);
+          if (res.ok) setVotes(res.votes);
+          // si falla, podrías mostrar un toast fuera del botón
         });
       }}
       className="rounded border border-black/20 px-3 py-1 text-sm hover:bg-black/5 disabled:opacity-60"
     >
       👍 {votes}
-    </button>
-  );
-}
