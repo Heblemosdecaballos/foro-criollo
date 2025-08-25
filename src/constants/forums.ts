@@ -4,7 +4,7 @@
 export const categories = [
   "Crianza y genética",
   "Entrenamiento",
-  "Competencias",
+  "Ferias",
   "Salud y veterinaria",
   "Historia y tradición",
   "Comercialización",
