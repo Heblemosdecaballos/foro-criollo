@@ -1,24 +1,29 @@
 // src/app/layout.tsx
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import SupabaseListener from "@/components/SupabaseListener";
-import Header from "@/components/Header";
+import type { Metadata } from "next";
+import { Playfair_Display, Inter } from "next/font/google";
+import Header from "@/src/components/site/Header";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const serif = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
+const sans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Hablando de Caballos",
-  description: "Comunidad y contenidos del Caballo Criollo Colombiano",
+  description: "La comunidad más grande del Caballo Criollo Colombiano",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={inter.variable}>
-      <body className="font-sans bg-background text-foreground">
-        <SupabaseListener />
+    <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+      <body>
         <Header />
-        <main className="container py-6">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );
