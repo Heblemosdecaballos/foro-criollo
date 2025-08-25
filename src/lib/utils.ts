@@ -1,8 +1,4 @@
-export const CATEGORIES = [
-  { id: 'aprendizaje', label: 'Aprendizaje' },
-  { id: 'debate', label: 'Debate' },
-  { id: 'negocios', label: 'Negocios' },
-  { id: 'veterinaria', label: 'Veterinaria' },
-  { id: 'entrenamiento', label: 'Entrenamiento' },
-  { id: 'noticias', label: 'Noticias' },
-] as const
+// src/lib/utils.ts
+export function cn(...classes: (string | false | null | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
+}
