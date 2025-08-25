@@ -4,37 +4,91 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-function backWithError(msg: string) {
-  // Redirige a la misma página con mensaje de error en querystring
+type InsertThread = { id: string };
+
+function redirectWithError(msg: string): never {
+  // Redirige a la misma página con el mensaje de error en querystring
   redirect(`/foro/nuevo?error=${encodeURIComponent(msg)}`);
 }
 
 /**
  * Crea un nuevo foro (thread) y redirige.
- * Importante: esta server action NO retorna valor; usa redirect() siempre.
+ * Esta server action NO retorna valor; siempre termina en redirect().
  */
 export async function createForum(formData: FormData): Promise<void> {
   const supa = createSupabaseServerClient();
 
   // 1) Usuario
   const {
-    data: { user },
+    data: userData,
     error: userErr,
   } = await supa.auth.getUser();
 
-  if (userErr) backWithError(userErr.message);
-  if (!user) backWithError("Debes iniciar sesión para crear un foro.");
+  if (userErr) {
+    redirectWithError(userErr.message);
+  }
+
+  const user = userData?.user;
+  if (!user) {
+    redirectWithError("Debes iniciar sesión para crear un foro.");
+  }
 
   // 2) Campos
-  const title = String(formData.get("title") || "").trim();
-  const category = String(formData.get("category") || "").trim();
-  const content = String(formData.get("content") || "").trim(); // opcional
-  const tagsCsv = String(formData.get("tags") || "").trim();
-  const tags = tagsCsv
-    ? tagsCsv
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : [];
+  const titleRaw = formData.get("title");
+  const categoryRaw = formData.get("category");
+  const contentRaw = formData.get("content"); // opcional (primer mensaje)
+  const tagsRaw = formData.get("tags");       // opcional "a,b,c"
 
-  if
+  const title = (typeof titleRaw === "string" ? titleRaw : "").trim();
+  const category = (typeof categoryRaw === "string" ? categoryRaw : "").trim();
+  const content = (typeof contentRaw === "string" ? contentRaw : "").trim();
+  const tagsCsv = (typeof tagsRaw === "string" ? tagsRaw : "").trim();
+
+  const tags =
+    tagsCsv.length > 0
+      ? tagsCsv
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
+
+  if (title.length < 3) {
+    redirectWithError("El título es obligatorio (mínimo 3 caracteres).");
+  }
+  if (!category) {
+    redirectWithError("Debes seleccionar una categoría.");
+  }
+
+  // 3) Insert en threads
+  const { data, error } = await supa
+    .from("threads")
+    .insert({
+      title,
+      category,
+      tags,
+      author_id: user.id,
+      status: "open",
+    })
+    .select("id")
+    .single<InsertThread>();
+
+  if (error) {
+    redirectWithError(error.message);
+  }
+
+  // 4) (Opcional) Crear primer comentario con "content"
+  if (content) {
+    const { error: postErr } = await supa.from("thread_comments").insert({
+      thread_id: data!.id,
+      author_id: user.id,
+      text: content,
+    });
+    if (postErr) {
+      redirectWithError(postErr.message);
+    }
+  }
+
+  // 5) Revalidar y redirigir al listado
+  revalidatePath("/foro");
+  redirect("/foro");
+}
