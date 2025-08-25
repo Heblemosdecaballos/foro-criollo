@@ -1,4 +1,4 @@
-// /src/components/hall/AddMediaForm.tsx
+// src/components/hall/AddMediaForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -29,16 +29,23 @@ export default function AddMediaForm({ hallSlug, authorName }: Props) {
       } else {
         if (!file) throw new Error("Selecciona un archivo");
         const supabase = supabaseBrowser();
-        const ext = file.name.split(".").pop();
+        const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
         const path = `${hallSlug}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("hall").upload(path, file, { upsert: false });
-        if (upErr) throw upErr;
 
+        // 1) Upload a Storage bucket "hall"
+        const { error: upErr } = await supabase.storage.from("hall").upload(path, file, { upsert: false });
+        if (upErr) {
+          // error del SDK (antes de llamar a la API)
+          throw new Error(`StorageError: ${upErr.message}`);
+        }
+
+        // 2) Obtener URL pública
         const { data: publicUrl } = supabase.storage.from("hall").getPublicUrl(path);
         payload.url = publicUrl.publicUrl;
         payload.storage_path = path;
       }
 
+      // 3) Insert en BD (API)
       const res = await fetch("/api/hall/media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,17 +53,28 @@ export default function AddMediaForm({ hallSlug, authorName }: Props) {
       });
 
       if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "Error creando media");
+        // Mostrar mensaje real de error
+        let msg = `HTTP ${res.status}`;
+        try {
+          const txt = await res.text();
+          try {
+            const j = JSON.parse(txt);
+            msg = j?.error || txt || msg;
+          } catch {
+            msg = txt || msg;
+          }
+        } catch {}
+        throw new Error(msg || "Error creando media");
       }
 
-      // listo
+      // OK
       setFile(null);
       setYoutubeUrl("");
       setCaption("");
       router.refresh();
+      alert("¡Publicación creada!");
     } catch (err: any) {
-      alert(err.message ?? "Error");
+      alert(err?.message || "Error creando media");
     } finally {
       setLoading(false);
     }
@@ -65,21 +83,44 @@ export default function AddMediaForm({ hallSlug, authorName }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex gap-2 text-sm">
-        <button type="button" onClick={() => setMode("image")}
-          className={`px-3 py-1 rounded-full border ${mode==="image"?"bg-black text-white":"bg-white"}`}>Imagen</button>
-        <button type="button" onClick={() => setMode("video")}
-          className={`px-3 py-1 rounded-full border ${mode==="video"?"bg-black text-white":"bg-white"}`}>Video</button>
-        <button type="button" onClick={() => setMode("youtube")}
-          className={`px-3 py-1 rounded-full border ${mode==="youtube"?"bg-black text-white":"bg-white"}`}>YouTube</button>
+        <button
+          type="button"
+          onClick={() => setMode("image")}
+          className={`px-3 py-1 rounded-full border ${mode === "image" ? "bg-black text-white" : "bg-white"}`}
+        >
+          Imagen
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("video")}
+          className={`px-3 py-1 rounded-full border ${mode === "video" ? "bg-black text-white" : "bg-white"}`}
+        >
+          Video
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("youtube")}
+          className={`px-3 py-1 rounded-full border ${mode === "youtube" ? "bg-black text-white" : "bg-white"}`}
+        >
+          YouTube
+        </button>
       </div>
 
       {mode !== "youtube" ? (
-        <input type="file" accept={mode==="image" ? "image/*" : "video/*"}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+        <input
+          type="file"
+          accept={mode === "image" ? "image/*" : "video/*"}
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm"
+        />
       ) : (
-        <input type="url" placeholder="https://www.youtube.com/watch?v=..."
-          value={youtubeUrl} onChange={(e)=>setYoutubeUrl(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm" />
+        <input
+          type="url"
+          placeholder="https://www.youtube.com/watch?v=..."
+          value={youtubeUrl}
+          onChange={(e) => setYoutubeUrl(e.target.value)}
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
       )}
 
       <input
