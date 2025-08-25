@@ -1,32 +1,45 @@
-// app/foro/[id]/actions.ts
-'use server'
+"use server";
 
-import { createSupabaseServerClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-type Resp = { ok: true } | { ok: false; error: string }
+function backWithError(id: string, msg: string): never {
+  redirect(`/foro/${id}?error=${encodeURIComponent(msg)}`);
+}
 
-export async function addThreadComment(formData: FormData): Promise<Resp> {
-  const supabase = createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { ok: false, error: 'no-auth' }
+/**
+ * Agrega un comentario a un hilo.
+ * Espera el campo "text" en el FormData (coincide con la columna thread_comments.text).
+ */
+export async function addCommentAction(threadId: string, formData: FormData): Promise<void> {
+  const supa = createSupabaseServerClient();
 
-  const threadId = String(formData.get('thread_id') || '')
-  const content = String(formData.get('content') || '').trim()
-  if (!threadId) return { ok: false, error: 'thread-required' }
-  if (!content) return { ok: false, error: 'content-required' }
+  // Usuario
+  const {
+    data: { user },
+    error: userErr,
+  } = await supa.auth.getUser();
 
-  const payload: Record<string, any> = {
+  if (userErr) backWithError(threadId, userErr.message);
+  if (!user) backWithError(threadId, "Debes iniciar sesión para comentar.");
+
+  // Campos
+  const textRaw = formData.get("text");
+  const text = (typeof textRaw === "string" ? textRaw : "").trim();
+
+  if (text.length === 0) backWithError(threadId, "El comentario no puede estar vacío.");
+
+  // Insert
+  const { error } = await supa.from("thread_comments").insert({
     thread_id: threadId,
     author_id: user.id,
-    content,
-    created_at: new Date().toISOString(),
-  }
+    text, // <- IMPORTANT: columna 'text'
+  });
 
-  // Inserta en thread_comments (con FK a profiles)
-  const { error } = await supabase.from('thread_comments').insert(payload)
-  if (error) return { ok: false, error: error.message }
+  if (error) backWithError(threadId, error.message);
 
-  revalidatePath(`/foro/${threadId}`)
-  return { ok: true }
+  // Revalida y vuelve al hilo
+  revalidatePath(`/foro/${threadId}`);
+  redirect(`/foro/${threadId}`);
 }
