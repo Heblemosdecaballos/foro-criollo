@@ -1,28 +1,42 @@
-// src/app/api/hall/[slug]/media/route.ts
+// src/app/api/hall/media/route.ts
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
+import { createSupabaseServer } from "@/src/lib/supabase/server";
 
-export async function POST(req: Request, { params }: { params: { slug: string } }) {
-  const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function POST(req: Request) {
+  try {
+    const supabase = createSupabaseServer();
 
-  const body = await req.json().catch(() => null);
-  const { storage_path, media_type } = body || {};
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return new NextResponse("No autenticado", { status: 401 });
 
-  if (!storage_path || !media_type) {
-    return NextResponse.json({ error: "Faltan campos" }, { status: 400 });
+    const body = await req.json();
+    const { hall_slug, type, url, storage_path, caption, author_name } = body;
+
+    if (!hall_slug || !type || !url) {
+      return new NextResponse("Faltan campos", { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("hall_media")
+      .insert({
+        hall_slug,
+        type, // "image" | "video" | "youtube"
+        url,  // público o URL de YouTube
+        storage_path: storage_path ?? null, // null para youtube
+        caption: caption ?? null,
+        author_id: user.id,
+        author_name:
+          author_name ?? user.user_metadata?.full_name ?? user.email,
+      })
+      .select()
+      .single();
+
+    if (error) return new NextResponse(error.message, { status: 400 });
+
+    return NextResponse.json(data);
+  } catch (e: any) {
+    return new NextResponse(e?.message ?? "Error", { status: 500 });
   }
-
-  const { data: item } = await supa.from("hall_items").select("id").eq("slug", params.slug).single();
-  if (!item) return NextResponse.json({ error: "Hall item no encontrado" }, { status: 404 });
-
-  const { error } = await supa.from("hall_media").insert({
-    hall_id: item.id,
-    storage_path,       // ej: "hall/2025/08/file.mp4"
-    media_type,         // "image" | "video"
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
 }
