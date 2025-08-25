@@ -20,7 +20,6 @@ export type Thread = {
 };
 
 export default function ThreadCard({ t }: { t: Thread }) {
-  // Usamos helpers para resolver categoría
   const cat: CategoryDef = getCategory(t.category) ?? CATEGORIES.general;
   const label = getCategoryLabel(t.category);
 
@@ -70,7 +69,8 @@ export default function ThreadCard({ t }: { t: Thread }) {
         </div>
 
         <div className="shrink-0">
-          <AvatarText label={t.authorName ?? "admin"} />
+          {/* Cambiado: usar `name` en lugar de `label` */}
+          <AvatarText name={t.authorName ?? "admin"} />
         </div>
       </div>
     </div>
