@@ -1,138 +1,165 @@
 // src/app/hall/[slug]/page.tsx
-import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
+import Link from "next/link";
+import Image from "next/image";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 import AddMediaForm from "./AddMediaForm";
 import HallCommentForm from "./HallCommentForm";
-
-export const dynamic = "force-dynamic";
+import VoteButton from "./VoteButton";
 
 type Media = {
   id: string;
   media_type: "image" | "video" | "youtube";
-  storage_path: string | null;
   media_url: string | null;
+  storage_path: string | null;
+  author_id: string | null;
+  author_name: string | null;
   created_at: string;
 };
 
 type Comment = {
   id: string;
-  body: string;
-  author_id: string;
+  text: string;
   created_at: string;
+  author_id: string | null;
+  author_name: string | null;
 };
 
-function youtubeEmbed(url: string) {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
-    const v = u.searchParams.get("v");
-    return v ? `https://www.youtube.com/embed/${v}` : url;
-  } catch {
-    return url;
-  }
+type VoteAgg = {
+  media_id: string | null;
+  votes: number;
+};
+
+export const dynamic = "force-dynamic";
+
+async function getHallData(slug: string) {
+  const supa = createSupabaseServerClient();
+
+  const { data: media } = await supa
+    .from("hall_media")
+    .select(
+      "id,media_type,media_url,storage_path,author_id,author_name,created_at"
+    )
+    .eq("hall_slug", slug)
+    .order("created_at", { ascending: false });
+
+  const { data: comments } = await supa
+    .from("hall_comments")
+    .select("id,text,created_at,author_id,author_name")
+    .eq("hall_slug", slug)
+    .order("created_at", { ascending: true });
+
+  // votos por media y globales (media_id NULL)
+  const { data: votesAgg } = await supa
+    .from("hall_votes")
+    .select("media_id, hall_slug", { count: "exact", head: false });
+
+  const counts: Record<string, number> = {};
+  (votesAgg as any[] | null)?.forEach((v: any) => {
+    const key = v.media_id ?? "global";
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  return {
+    media: (media as Media[]) || [],
+    comments: (comments as Comment[]) || [],
+    counts,
+  };
 }
 
-export default async function HallSlugPage({ params }: { params: { slug: string } }) {
-  const { slug } = params; // ← aquí obtenemos el slug de la URL
-
-  const supa = createSupabaseServerClientReadOnly();
-
-  const { data: hall } = await supa
-    .from("halls")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  const { data: media = [] } = (await supa
-    .from("hall_media")
-    .select("*")
-    .eq("hall_slug", slug)
-    .order("created_at", { ascending: false })) as unknown as { data: Media[] };
-
-  const { data: comments = [] } = (await supa
-    .from("hall_comments")
-    .select("*")
-    .eq("hall_slug", slug)
-    .order("created_at", { ascending: false })) as unknown as { data: Comment[] };
-
-  const { data: { user } } = await supa.auth.getUser();
+export default async function HallPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+  const { media, comments, counts } = await getHallData(slug);
 
   return (
-    <main className="container py-6 space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{hall?.title || `Hall: ${slug}`}</h1>
-        {hall?.description && <p className="opacity-80">{hall.description}</p>}
+    <main className="mx-auto max-w-4xl px-4 py-8">
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <Link href="/hall" className="text-sm opacity-70 hover:underline">
+            ← Volver
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold capitalize">{slug.replace(/-/g, " ")}</h1>
+        </div>
+
+        <VoteButton slug={slug} initialVotes={counts["global"] ?? 0} />
       </header>
 
-      {/* ← AQUÍ “pasamos el slug” al componente como prop */}
-      {user ? (
-        <section className="space-y-3">
-          <h2 className="text-xl font-medium">Agregar contenido</h2>
-          <AddMediaForm slug={slug} />
-        </section>
-      ) : (
-        <p className="opacity-70">Inicia sesión para subir fotos o videos al Hall.</p>
-      )}
+      {/* Subir media */}
+      <AddMediaForm slug={slug} />
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">Galería</h2>
-        {media.length === 0 && <p className="opacity-70">Aún no hay contenido en este andar.</p>}
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {media.map((m) => {
-            const url = m.storage_path || m.media_url || "";
-            if (m.media_type === "youtube" && url) {
-              return (
-                <li key={m.id} className="bg-white/70 rounded border p-2">
-                  <div className="aspect-video">
-                    <iframe
-                      src={youtubeEmbed(url)}
-                      className="w-full h-full rounded"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      title="YouTube"
-                    />
-                  </div>
-                </li>
-              );
-            }
-            if (m.media_type === "video" && url) {
-              return (
-                <li key={m.id} className="bg-white/70 rounded border p-2">
-                  <video controls className="w-full rounded">
-                    <source src={url} />
-                  </video>
-                </li>
-              );
-            }
-            return (
-              <li key={m.id} className="bg-white/70 rounded border p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full rounded" />
-              </li>
-            );
-          })}
-        </ul>
+      {/* Listado de media */}
+      <section className="mt-8 space-y-4">
+        {media.length === 0 ? (
+          <p className="text-sm opacity-70">Aún no hay media. ¡Sé el primero en subir!</p>
+        ) : (
+          media.map((m) => (
+            <article key={m.id} className="rounded-lg bg-white p-4">
+              <div className="mb-2 flex items-center justify-between text-xs opacity-70">
+                <span>{new Date(m.created_at).toLocaleString()}</span>
+                <span>{m.author_name || "Usuario"}</span>
+              </div>
+
+              {m.media_type === "image" && m.media_url && (
+                <div className="relative h-64 w-full overflow-hidden rounded">
+                  <Image
+                    src={m.media_url}
+                    alt="Imagen del hall"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+
+              {m.media_type === "video" && m.media_url && (
+                <video controls className="w-full rounded">
+                  <source src={m.media_url} />
+                </video>
+              )}
+
+              {m.media_type === "youtube" && m.media_url && (
+                <div className="aspect-video w-full">
+                  <iframe
+                    className="h-full w-full rounded"
+                    src={m.media_url.replace("watch?v=", "embed/")}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="YouTube player"
+                  />
+                </div>
+              )}
+
+              <div className="mt-3">
+                <VoteButton
+                  slug={slug}
+                  mediaId={m.id}
+                  initialVotes={counts[m.id] ?? 0}
+                />
+              </div>
+            </article>
+          ))
+        )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-medium">Comentarios</h2>
-        {user ? (
-          // También pasamos el slug al form de comentarios
-          <HallCommentForm slug={slug} />
+      {/* Comentarios */}
+      <section className="mt-10">
+        <h2 className="mb-3 text-lg font-semibold">Comentarios</h2>
+
+        {comments.length === 0 ? (
+          <p className="mb-3 text-sm opacity-70">Sé el primero en comentar.</p>
         ) : (
-          <p className="opacity-70">Inicia sesión para escribir comentarios.</p>
+          <ul className="mb-6 space-y-4">
+            {comments.map((c) => (
+              <li key={c.id} className="rounded-md bg-white p-3">
+                <div className="text-sm">{c.text}</div>
+                <div className="mt-1 text-xs opacity-60">
+                  {new Date(c.created_at).toLocaleString()} ·{" "}
+                  {c.author_name || "Usuario"}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
 
-        <ul className="space-y-2">
-          {comments.map((c) => (
-            <li key={c.id} className="bg-white/70 rounded border p-3">
-              <div className="text-sm opacity-70">
-                {new Date(c.created_at).toLocaleString()}
-              </div>
-              <div>{c.body}</div>
-            </li>
-          ))}
-          {comments.length === 0 && <p className="opacity-70">Aún no hay comentarios.</p>}
-        </ul>
+        <HallCommentForm slug={slug} />
       </section>
     </main>
   );
