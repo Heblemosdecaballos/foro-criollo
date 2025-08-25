@@ -1,7 +1,8 @@
-// /src/lib/supabase/server.ts
+// src/lib/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+/** Helper principal recomendado */
 export function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(
@@ -22,3 +23,9 @@ export function createSupabaseServer() {
     }
   );
 }
+
+/** Alias para compatibilidad con código existente */
+export const createClient = createSupabaseServer;
+
+/** Opcional: default export para imports por defecto */
+export default createSupabaseServer;
