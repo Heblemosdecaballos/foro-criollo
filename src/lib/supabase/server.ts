@@ -2,7 +2,7 @@
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-/** Helper principal recomendado */
+/** Cliente Server estándar (con cookies) */
 export function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(
@@ -24,8 +24,11 @@ export function createSupabaseServer() {
   );
 }
 
-/** Alias para compatibilidad con código existente */
-export const createClient = createSupabaseServer;
+/** Aliases para compatibilidad con código existente */
+export const createClient = createSupabaseServer;                    // { createClient }
+export const supabaseServer = createSupabaseServer;                  // { supabaseServer }
+export const createSupabaseServerClient = createSupabaseServer;      // { createSupabaseServerClient }
+export const createSupabaseServerClientReadOnly = createSupabaseServer; // { createSupabaseServerClientReadOnly }
 
-/** Opcional: default export para imports por defecto */
+/** Default export permitido para `import supabaseServer from ".../server"` */
 export default createSupabaseServer;
