@@ -1,12 +1,13 @@
 // src/app/foro/page.tsx
 import Link from "next/link";
 import { Suspense } from "react";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 type Thread = {
   id: string;
   title: string;
   category: string;
-  tags: string[];
+  tags: string[] | null;
   author_id: string | null;
   created_at: string;
   replies_count: number;
@@ -19,44 +20,31 @@ type Thread = {
   pinned_post_id: string | null;
 };
 
-type ThreadsResponse = {
-  ok: boolean;
-  threads: Thread[];
-  error?: string;
-};
-
-export const dynamic = "force-dynamic"; // evitamos cache en la página
+export const dynamic = "force-dynamic"; // sin caché en esta página
 
 async function getThreads(cat?: string): Promise<{ threads: Thread[]; errorMsg?: string }> {
-  let errorMsg: string | undefined;
-  let threads: Thread[] = [];
+  const supa = createSupabaseServerClient();
 
-  try {
-    const qs = cat ? `?cat=${encodeURIComponent(cat)}` : "";
+  // SELECT público (RLS) — no requiere sesión
+  let q = supa
+    .from("threads")
+    .select(
+      "id,title,category,tags,author_id,created_at,replies_count,views,hot,open_today,last_activity,status,created_by,pinned_post_id"
+    )
+    // si no tienes last_activity, puedes ordenar por created_at
+    .order("last_activity", { ascending: false, nullsFirst: false });
 
-    // ⭐ FIX: endpoint correcto (una sola "s")
-    const res = await fetch(`/api/threads${qs}`, { cache: "no-store" });
-
-    let json: ThreadsResponse | undefined;
-    try {
-      json = (await res.json()) as ThreadsResponse;
-    } catch {
-      // Si la API devolvió algo que no es JSON o vació
-      errorMsg = "No se pudo interpretar la respuesta del servidor.";
-      return { threads, errorMsg };
-    }
-
-    if (!res.ok || !json?.ok) {
-      errorMsg = json?.error || "No se pudo cargar el foro.";
-      return { threads, errorMsg };
-    }
-
-    threads = json.threads || [];
-  } catch (e) {
-    errorMsg = "No se pudo cargar el foro.";
+  if (cat) {
+    q = q.eq("category", cat);
   }
 
-  return { threads, errorMsg };
+  const { data, error } = await q;
+
+  if (error) {
+    return { threads: [], errorMsg: "No se pudo cargar el foro." };
+  }
+
+  return { threads: (data as Thread[]) || [] };
 }
 
 export default async function ForoPage({
@@ -75,11 +63,11 @@ export default async function ForoPage({
           href="/foro/nuevo"
           className="rounded-md border border-black/20 px-3 py-2 text-sm hover:bg-black/5"
         >
-          + Nuevo hilo
+          + Nuevo foro
         </Link>
       </header>
 
-      {/* Filtro por categoría (si lo usas) */}
+      {/* Filtros rápidos por categoría (ajusta a tus categorías oficiales) */}
       <nav className="mb-5 flex flex-wrap gap-2 text-sm">
         <Link
           href="/foro"
@@ -99,7 +87,7 @@ export default async function ForoPage({
         >
           Historia
         </Link>
-        {/* Agrega aquí más categorías si están en src/constants/forums.ts */}
+        {/* Agrega más categorías si están en src/constants/forums.ts */}
       </nav>
 
       {errorMsg ? (
