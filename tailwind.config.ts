@@ -1,48 +1,45 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
   ],
   theme: {
-    container: { center: true, padding: "1rem", screens: { "2xl": "1280px" } },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        // paleta tomada de las capturas (tonos crema, marrón y oliva)
+        cream: {
+          50:  "#F9F4EB",
+          100: "#F3ECDF",
+          200: "#EDE4D3",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+        sand: {
+          100: "#F2E9DC",
+          200: "#E9DFC9",
         },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+        brown: {
+          700: "#5F422F", // títulos / texto principal
+          800: "#4B3325",
+        },
+        olive: {
+          600: "#718255", // botones
+          700: "#5E6D45",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          500: "#C1702E", // acentos cálidos (gradiente hero)
         },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
+      },
+      boxShadow: {
+        card: "0 10px 24px rgba(0,0,0,0.06)",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl2: "1.25rem",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)"],
+        sans: ["var(--font-sans)"],
       },
     },
   },
