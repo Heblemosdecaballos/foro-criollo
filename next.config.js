@@ -1,14 +1,12 @@
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'bjowdmfaybftlunrdgpe.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-    ],
+  // ❌ IMPORTANTÍSIMO: NO uses `output: "export"` si quieres API Routes
+  // output: "export",
+
+  reactStrictMode: true,
+  experimental: {
+    // App Router ya es estable, pero mantenemos explícito si tu repo venía así
+    appDir: true,
   },
 };
 
