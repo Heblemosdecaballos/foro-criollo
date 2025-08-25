@@ -1,4 +1,8 @@
-// components/ui/Card.tsx
-export default function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`card ${className}`}>{children}</div>;
+// src/components/ui/Card.tsx
+import { cn } from "@/src/lib/utils";
+export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("card", className)} {...props} />;
+}
+export function CardBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("card-body", className)} {...props} />;
 }
