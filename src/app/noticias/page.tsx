@@ -1,41 +1,38 @@
 // src/app/noticias/page.tsx
-import NewsForm from "@/components/NewsForm";
-import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
+import { Card, CardBody } from "@/src/components/ui/Card";
+import Badge from "@/src/components/ui/Badge";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-export default async function NoticiasPage() {
-  const supa = createSupabaseServerClientReadOnly();
-  const { data: { user } } = await supa.auth.getUser();
-
-  let posts: any[] = [];
-  try {
-    const r = await fetch("/api/noticias", { cache: "no-store" });
-    if (r.ok) posts = (await r.json()).posts ?? [];
-  } catch {}
-
+export default function NewsPage() {
   return (
-    <main className="container py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Noticias</h1>
-        {!user && <a href="/login" className="underline">Inicia sesión para publicar</a>}
-      </div>
+    <div className="container py-10">
+      <h1 className="font-serif text-4xl font-bold">📰 Noticias del Caballo Criollo</h1>
+      <p className="text-brown-700/80 mt-1">Mantente informado sobre las últimas noticias del mundo ecuestre colombiano</p>
 
-      {user && <NewsForm />}
-
-      <ul className="space-y-3">
-        {posts.map((p: any) => (
-          <li key={p.id} className="border rounded p-3">
-            <h3 className="font-medium">{p.title}</h3>
-            {p.cover_path && <img src={p.cover_path} alt="" className="w-full h-auto rounded mt-2" />}
-            {p.content && <p className="mt-2 opacity-80 whitespace-pre-wrap">{p.content}</p>}
-            <div className="text-xs muted-date mt-1">
-              {new Date(p.created_at).toLocaleString()}
-            </div>
-          </li>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+        {[1,2,3].map((i)=>(
+          <Card key={i}>
+            <div className="h-40 bg-cream-100" />
+            <CardBody>
+              <Badge>Competencias</Badge>
+              <h3 className="font-serif text-xl mt-2">Campeonato Nacional de Caballo Criollo Colombiano 2025</h3>
+              <p className="text-brown-700/80 mt-1">
+                El próximo mes se realizará el campeonato más importante del año…
+              </p>
+              <div className="flex items-center gap-4 text-sm text-brown-700/70 mt-3">
+                <span>Redacción Hablando de Caballos</span>
+                <span>• 23 de agosto de 2025</span>
+                <span>❤️ 42</span>
+                <span>💬 15</span>
+              </div>
+              <Link href="#" className="btn btn-ghost mt-3">Leer más →</Link>
+            </CardBody>
+          </Card>
         ))}
-        {!posts.length && <p className="opacity-70">Aún no hay noticias.</p>}
-      </ul>
-    </main>
+      </div>
+    </div>
   );
 }
