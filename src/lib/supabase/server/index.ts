@@ -1,8 +1,9 @@
-// /src/lib/supabase/server/index.ts
+// src/lib/supabase/server/index.ts
+export { default } from "../server";
 export {
-  default,
+  createSupabaseServer,
+  createClient,
   supabaseServer,
   createSupabaseServerClient,
   createSupabaseServerClientReadOnly,
-  createClient,
 } from "../server";
