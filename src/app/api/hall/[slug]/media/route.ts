@@ -17,6 +17,7 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
+  // Handler de diagnóstico simple: NO toca la base
   return NextResponse.json({ ok: true, route: "/api/hall/media" });
 }
 
@@ -29,12 +30,8 @@ export async function POST(req: Request) {
       error: authErr,
     } = await supabase.auth.getUser();
 
-    if (authErr) {
-      return NextResponse.json({ error: "AuthError: " + authErr.message }, { status: 401 });
-    }
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+    if (authErr) return NextResponse.json({ error: "AuthError: " + authErr.message }, { status: 401 });
+    if (!user)   return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
     const body = await req.json();
     const { hall_slug, type, url, storage_path, caption, author_name } = body ?? {};
@@ -42,7 +39,7 @@ export async function POST(req: Request) {
     if (!type)     return NextResponse.json({ error: "Falta type (image|video|youtube)" }, { status: 400 });
     if (!url)      return NextResponse.json({ error: "Falta url" }, { status: 400 });
 
-    // Validar hall existente para feedback claro
+    // Validar que el hall exista (feedback claro)
     const { data: hall, error: hallErr } = await supabase
       .from("halls")
       .select("slug")
@@ -53,7 +50,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Hall no encontrado para slug=${hall_slug}` }, { status: 400 });
     }
 
-    // Insert + select (sin .single() para evitar el error de coerce)
+    // Insert SIN .single() para evitar el error “coerce”
     const { data, error } = await supabase
       .from("hall_media")
       .insert({
@@ -65,13 +62,10 @@ export async function POST(req: Request) {
         author_id: user.id,
         author_name: author_name ?? user.user_metadata?.full_name ?? user.email,
       })
-      .select(); // devuelve array
+      .select(); // array
 
-    if (error) {
-      return NextResponse.json({ error: "DBError: " + error.message }, { status: 400 });
-    }
+    if (error) return NextResponse.json({ error: "DBError: " + error.message }, { status: 400 });
 
-    // data suele ser array; tomamos la primera si existe
     const row = Array.isArray(data) ? data[0] : data;
     return NextResponse.json(row ?? { ok: true }, { status: 201 });
   } catch (e: any) {
