@@ -3,40 +3,66 @@ import { NextResponse } from "next/server";
 import { createSupabaseServer } from "@/src/lib/supabase/server";
 
 export async function POST(req: Request) {
-  try {
-    const supabase = createSupabaseServer();
+  const supabase = createSupabaseServer();
 
+  try {
+    // 1) Auth
     const {
       data: { user },
+      error: authErr,
     } = await supabase.auth.getUser();
-    if (!user) return new NextResponse("No autenticado", { status: 401 });
 
-    const body = await req.json();
-    const { hall_slug, type, url, storage_path, caption, author_name } = body;
-
-    if (!hall_slug || !type || !url) {
-      return new NextResponse("Faltan campos", { status: 400 });
+    if (authErr) {
+      console.error("[media] auth.getUser error:", authErr);
+      return NextResponse.json({ error: "AuthError: " + authErr.message }, { status: 401 });
+    }
+    if (!user) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    // 2) Body
+    const body = await req.json();
+    const { hall_slug, type, url, storage_path, caption, author_name } = body ?? {};
+
+    if (!hall_slug) return NextResponse.json({ error: "Falta hall_slug" }, { status: 400 });
+    if (!type)     return NextResponse.json({ error: "Falta type (image|video|youtube)" }, { status: 400 });
+    if (!url)      return NextResponse.json({ error: "Falta url" }, { status: 400 });
+
+    // 3) Validar hall (evita FK fallando)
+    const { data: hall, error: hallErr } = await supabase
+      .from("halls")
+      .select("slug")
+      .eq("slug", hall_slug)
+      .single();
+
+    if (hallErr || !hall) {
+      console.error("[media] hall not found:", hallErr);
+      return NextResponse.json({ error: `Hall no encontrado para slug=${hall_slug}` }, { status: 400 });
+    }
+
+    // 4) Insert
     const { data, error } = await supabase
       .from("hall_media")
       .insert({
         hall_slug,
-        type, // "image" | "video" | "youtube"
-        url,  // público o URL de YouTube
-        storage_path: storage_path ?? null, // null para youtube
+        type,                       // 'image' | 'video' | 'youtube'
+        url,                        // URL público o de YouTube
+        storage_path: storage_path ?? null,
         caption: caption ?? null,
-        author_id: user.id,
-        author_name:
-          author_name ?? user.user_metadata?.full_name ?? user.email,
+        author_id: user.id,         // RLS: debe permitir auth.uid() = author_id
+        author_name: author_name ?? user.user_metadata?.full_name ?? user.email,
       })
       .select()
       .single();
 
-    if (error) return new NextResponse(error.message, { status: 400 });
+    if (error) {
+      console.error("[media] insert error:", error);
+      return NextResponse.json({ error: "DBError: " + error.message }, { status: 400 });
+    }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { status: 201 });
   } catch (e: any) {
-    return new NextResponse(e?.message ?? "Error", { status: 500 });
+    console.error("[media] unhandled error:", e);
+    return NextResponse.json({ error: e?.message ?? "UnhandledError" }, { status: 500 });
   }
 }
