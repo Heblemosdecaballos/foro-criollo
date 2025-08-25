@@ -1,29 +1,39 @@
-// src/app/api/hall/[slug]/comments/route.ts
+// src/app/api/hall/comment/route.ts
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
+import { createSupabaseServer } from "@/src/lib/supabase/server";
 
-export async function POST(req: Request, { params }: { params: { slug: string } }) {
-  const supa = createSupabaseServerClient();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+export async function POST(req: Request) {
+  try {
+    const supabase = createSupabaseServer();
 
-  const { content } = await req.json().catch(() => ({}));
-  if (!content || !content.trim()) {
-    return NextResponse.json({ error: "Contenido vacío" }, { status: 400 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return new NextResponse("No autenticado", { status: 401 });
+
+    const body = await req.json();
+    const { hall_slug, content, author_name } = body;
+
+    if (!hall_slug || !content?.trim()) {
+      return new NextResponse("Faltan campos", { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("hall_comments")
+      .insert({
+        hall_slug,
+        content,
+        author_id: user.id,
+        author_name:
+          author_name ?? user.user_metadata?.full_name ?? user.email,
+      })
+      .select()
+      .single();
+
+    if (error) return new NextResponse(error.message, { status: 400 });
+
+    return NextResponse.json(data);
+  } catch (e: any) {
+    return new NextResponse(e?.message ?? "Error", { status: 500 });
   }
-
-  // asegurar profile
-  await supa.from("profiles").upsert({ id: user.id, email: user.email ?? null });
-
-  const { data: item } = await supa.from("hall_items").select("id").eq("slug", params.slug).single();
-  if (!item) return NextResponse.json({ error: "Hall item no encontrado" }, { status: 404 });
-
-  const { error } = await supa.from("hall_comments").insert({
-    hall_id: item.id,
-    author_id: user.id,
-    content,
-  });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
 }
