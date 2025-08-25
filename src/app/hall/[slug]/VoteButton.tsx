@@ -1,35 +1,35 @@
-'use client';
-
-import { useState, useTransition } from 'react';
-import { toggleVote } from './actions';
+"use client";
+import { useState, useTransition } from "react";
+import { toggleVote } from "./actions";
 
 type Props = {
-  profileId: string;
   slug: string;
-  initialCount: number;
+  initialCount?: number;
 };
 
-export default function VoteButton({ profileId, slug, initialCount }: Props) {
+export default function VoteButton({ slug, initialCount = 0 }: Props) {
+  const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
-  const [count, setCount] = useState<number>(initialCount ?? 0);
 
   const onClick = () => {
     startTransition(async () => {
-      const res = await toggleVote(profileId, slug);
-      if (res?.ok && typeof res.votes === 'number') {
-        setCount(res.votes);
+      try {
+        const res = await toggleVote(slug);
+        if (res?.ok && typeof res.votes === "number") setCount(res.votes);
+      } catch (e) {
+        console.error(e);
+        alert("No se pudo registrar tu voto.");
       }
     });
   };
 
   return (
     <button
-      type="button"
-      className="btn btn-success"
-      disabled={pending}
       onClick={onClick}
+      disabled={pending}
+      className="px-3 py-2 rounded bg-[var(--brand-green)] text-white disabled:opacity-60"
     >
-      {pending ? 'Votando…' : `Votar (${count})`}
+      👍 {pending ? "..." : count}
     </button>
   );
 }
