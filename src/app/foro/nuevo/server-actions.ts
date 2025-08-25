@@ -7,7 +7,6 @@ import { createSupabaseServerClient } from "@/utils/supabase/server";
 type InsertThread = { id: string };
 
 function redirectWithError(msg: string): never {
-  // Redirige a la misma página con el mensaje de error en querystring
   redirect(`/foro/nuevo?error=${encodeURIComponent(msg)}`);
 }
 
@@ -59,6 +58,12 @@ export async function createForum(formData: FormData): Promise<void> {
     redirectWithError("Debes seleccionar una categoría.");
   }
 
+  // Nombre visible del autor (user_metadata.full_name > email > 'Usuario')
+  const author_name =
+    (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
+    user.email ||
+    "Usuario";
+
   // 3) Insert en threads
   const { data, error } = await supa
     .from("threads")
@@ -67,6 +72,7 @@ export async function createForum(formData: FormData): Promise<void> {
       category,
       tags,
       author_id: user.id,
+      author_name, // 👈 nuevo
       status: "open",
     })
     .select("id")
@@ -81,6 +87,7 @@ export async function createForum(formData: FormData): Promise<void> {
     const { error: postErr } = await supa.from("thread_comments").insert({
       thread_id: data!.id,
       author_id: user.id,
+      author_name, // 👈 nuevo
       text: content,
     });
     if (postErr) {
