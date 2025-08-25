@@ -1,21 +1,36 @@
-import type { ReactNode } from 'react';
+// src/components/UI.tsx
+import { cn } from "@/src/lib/utils";
 
-export function Dialog(
-  { children, onClose }: { children?: ReactNode; onClose?: () => void }
-) {
-  return null; // temporal
+function getInitials(input?: string) {
+  if (!input) return "U";
+  const parts = input.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase()).join("") || "U";
 }
 
-export function AvatarText(
-  { name, text, className = '' }:
-  { name?: string; text?: string; className?: string }
-) {
-  const base = (name ?? text ?? '').trim();
-  const initials = base
-    ? base.split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase() ?? '').join('')
-    : '??';
+export function AvatarText({
+  name,
+  text,
+  label, // compat: si alguien pasa label, lo usamos
+  className,
+}: {
+  name?: string;
+  text?: string;
+  label?: string; // compat
+  className?: string;
+}) {
+  const content = name ?? text ?? label ?? "Usuario";
+  const initials = getInitials(content);
+
   return (
-    <div className={`inline-flex size-7 items-center justify-center rounded-full bg-neutral-300 text-[10px] font-medium text-neutral-800 ${className}`}>
+    <div
+      className={cn(
+        "inline-flex items-center justify-center rounded-full bg-cream-200 text-brown-800",
+        "w-10 h-10 text-sm font-semibold select-none",
+        className
+      )}
+      title={content}
+      aria-label={content}
+    >
       {initials}
     </div>
   );
