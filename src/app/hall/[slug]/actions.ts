@@ -71,3 +71,53 @@ export async function addYoutubeAction(slug: string, youtubeUrl: string) {
   fd.set("youtubeUrl", youtubeUrl);
   return addMediaAction(slug, fd);
 }
+// --- VOTOS DEL HALL ---
+// Firma dual para ser compatible con código viejo y nuevo:
+// - toggleVote(slug)
+// - toggleVote(profileId, slug)  ← el 1er arg se ignora, usamos siempre el slug
+export async function toggleVote(slug: string): Promise<{ ok: boolean; votes: number }>;
+export async function toggleVote(profileId: string, slug: string): Promise<{ ok: boolean; votes: number }>;
+export async function toggleVote(a: string, b?: string) {
+  const slug = b ?? a;
+
+  const supa = createSupabaseServerClient();
+  const { data: { user } } = await supa.auth.getUser();
+  if (!user) throw new Error("auth");
+
+  // ¿ya votó?
+  const { data: existing, error: selErr } = await supa
+    .from("hall_votes")
+    .select("hall_slug,user_id")
+    .eq("hall_slug", slug)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (selErr) throw selErr;
+
+  if (existing) {
+    // quitar voto
+    const { error: delErr } = await supa
+      .from("hall_votes")
+      .delete()
+      .eq("hall_slug", slug)
+      .eq("user_id", user.id);
+    if (delErr) throw delErr;
+  } else {
+    // poner voto
+    const { error: insErr } = await supa
+      .from("hall_votes")
+      .insert({ hall_slug: slug, user_id: user.id });
+    if (insErr) throw insErr;
+  }
+
+  // contar votos
+  const { count } = await supa
+    .from("hall_votes")
+    .select("*", { head: true, count: "exact" })
+    .eq("hall_slug", slug);
+
+  // refrescar la página del hall
+  revalidatePath(`/hall/${slug}`);
+
+  return { ok: true, votes: count ?? 0 };
+}
