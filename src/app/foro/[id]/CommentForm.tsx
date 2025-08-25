@@ -1,64 +1,44 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addThreadComment } from "./actions";
+import { addCommentAction } from "./actions";
 
-type Props = {
-  threadId: string;
-  /** Nombre del usuario que comenta; sólo para mostrar en el UI. */
-  viewerName?: string | null;
-};
-
-type ActionResp = { ok: boolean; error?: string };
-
-export default function CommentForm({ threadId, viewerName }: Props) {
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+export default function CommentForm({ threadId, initialError }: { threadId: string; initialError?: string }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | undefined>(initialError);
 
   return (
     <form
-      className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        const form = e.currentTarget as HTMLFormElement;
-        const fd = new FormData(form);
-        fd.set("thread_id", threadId);
-
-        setError(null);
-        start(() => {
-          addThreadComment(fd)
-            .then((res) => {
-              const r = res as ActionResp;
-              if (!r.ok) {
-                setError(r.error ?? "No se pudo comentar");
-                return;
-              }
-              form.reset();
-            })
-            .catch(() => setError("No se pudo comentar"));
+        setError(undefined);
+        const fd = new FormData(e.currentTarget as HTMLFormElement);
+        startTransition(async () => {
+          try {
+            await addCommentAction(threadId, fd);
+          } catch (err) {
+            // Por si llegara a lanzar en cliente (normalmente redirect corta en el server)
+            setError((err as Error).message);
+          }
         });
       }}
+      className="space-y-3"
     >
-      {viewerName ? (
-        <div className="text-xs text-neutral-600">Comentando como <strong>{viewerName}</strong></div>
-      ) : null}
-
       <textarea
-        name="body"
+        name="text" // 👈 nombre correcto del campo
+        rows={4}
+        placeholder="Escribe tu comentario..."
+        className="w-full rounded-md border border-black/20 px-3 py-2 text-sm outline-none focus:ring-2"
+        disabled={pending}
         required
-        minLength={2}
-        rows={3}
-        placeholder={viewerName ? `Escribe tu mensaje, ${viewerName}…` : "Escribe tu mensaje…"}
-        className="w-full rounded-lg border px-3 py-2 text-sm"
       />
-
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg border border-[#14110F] bg-[#14110F] px-4 py-2 text-sm text-white disabled:opacity-60"
+          className="rounded-md border border-black/20 bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
         >
-          {pending ? "Enviando…" : "Comentar"}
+          {pending ? "Publicando..." : "Comentar"}
         </button>
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
