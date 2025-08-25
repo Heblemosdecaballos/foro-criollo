@@ -2,73 +2,107 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createStoryAction } from "./actions";
-
-type ActionResp = { ok: boolean; id?: string; error?: string };
+import { createStoryAction, type ActionResp } from "./actions";
 
 export default function NewStoryForm() {
-  const router = useRouter();
+  const [mode, setMode] = useState<"upload" | "url">("upload");
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const router = useRouter();
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-3 bg-white/70 p-4 rounded border"
       onSubmit={(e) => {
         e.preventDefault();
-        const form = e.currentTarget as HTMLFormElement;
-        const fd = new FormData(form);
+        setMsg(null);
+        const fd = new FormData(e.currentTarget);
+        fd.set("coverMode", mode);
 
-        setError(null);
-        start(() => {
-          createStoryAction(fd)
-            .then((res) => {
-              const r = res as ActionResp; // <- tipo plano: ok + id? + error?
-              if (r.ok) {
-                // Si tu action devuelve id de la historia nueva, navega a ella;
-                // si no, regresa al listado.
-                if (r.id) router.push(`/historias/${r.id}`);
-                else router.push("/historias");
-              } else {
-                setError(r.error ?? "No se pudo guardar");
-              }
-            })
-            .catch(() => setError("No se pudo guardar"));
+        start(async () => {
+          const res: ActionResp = await createStoryAction(fd);
+          if (res.ok) {
+            setMsg("¡Historia publicada!");
+            router.push("/historias");
+          } else {
+            setMsg(res.error || "No se pudo publicar la historia.");
+          }
         });
       }}
     >
-      <div>
-        <label className="block text-sm font-medium mb-1">Título</label>
+      <label className="block">
+        <span className="text-sm">Título</span>
         <input
           name="title"
           required
-          minLength={3}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
+          className="w-full border rounded px-3 py-2"
           placeholder="Título de la historia"
         />
-      </div>
+      </label>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Contenido</label>
+      <label className="block">
+        <span className="text-sm">Contenido</span>
         <textarea
-          name="body"
+          name="content"
           required
-          rows={6}
-          className="w-full rounded-lg border px-3 py-2 text-sm"
-          placeholder="Escribe tu historia…"
+          rows={16}
+          className="w-full border rounded px-3 py-2"
+          placeholder="Escribe aquí tu historia…"
         />
+      </label>
+
+      <div className="flex items-center gap-3 text-sm">
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="coverModeRadio"
+            checked={mode === "upload"}
+            onChange={() => setMode("upload")}
+          />
+          Subir imagen (PNG/JPG)
+        </label>
+        <label className="flex items-center gap-1">
+          <input
+            type="radio"
+            name="coverModeRadio"
+            checked={mode === "url"}
+            onChange={() => setMode("url")}
+          />
+          Usar URL
+        </label>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-lg border border-[#14110F] bg-[#14110F] px-4 py-2 text-sm text-white disabled:opacity-60"
-        >
-          {pending ? "Guardando…" : "Publicar historia"}
-        </button>
-        {error && <span className="text-sm text-red-600">{error}</span>}
-      </div>
+      {mode === "upload" ? (
+        <label className="block">
+          <span className="text-sm">Archivo</span>
+          <input
+            name="coverFile"
+            type="file"
+            accept="image/png,image/jpeg"
+            className="w-full border rounded px-3 py-2"
+          />
+        </label>
+      ) : (
+        <label className="block">
+          <span className="text-sm">URL de portada</span>
+          <input
+            name="coverUrl"
+            type="url"
+            placeholder="https://..."
+            className="w-full border rounded px-3 py-2"
+          />
+        </label>
+      )}
+
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-3 py-2 rounded bg-[var(--brand-brown)] text-white disabled:opacity-60"
+      >
+        {pending ? "Publicando…" : "Publicar historia"}
+      </button>
+
+      {msg && <p className="text-sm text-amber-700">{msg}</p>}
     </form>
   );
 }
