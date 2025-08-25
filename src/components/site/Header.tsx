@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const nav = [
+const NAV = [
   { href: "/foros", label: "Foros" },
   { href: "/noticias", label: "Noticias" },
   { href: "/historias", label: "Historias" },
@@ -19,29 +19,25 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="w-full sticky top-0 z-40 bg-cream-50/90 backdrop-blur border-b border-brown-700/10">
-      <div className="container h-16 flex items-center gap-3">
-        {/* Logo marca + símbolo caballo */}
+    <header className="w-full sticky top-0 z-40 bg-cream-50/95 backdrop-blur border-b border-brown-700/10">
+      <div className="container h-16 flex items-center gap-4">
+        {/* LOGO (símbolo + marca) */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="relative inline-flex items-center justify-center">
-            {/* símbolo caballo exacto (PNG sin fondo) */}
-            <Image
-              src="/brand/horse.png"
-              alt="Símbolo Caballo"
-              width={28}
-              height={28}
-              className="block"
-              priority
-            />
-          </div>
-          <span className="font-serif text-lg md:text-xl font-semibold leading-none text-brown-700">
+          <Image
+            src="/brand/horse.png"         // <— Asegúrate del archivo en /public/brand/horse.png
+            alt="Caballo"
+            width={28}
+            height={28}
+            priority
+          />
+          <span className="font-serif text-[18px] md:text-[20px] leading-none font-semibold text-brown-700">
             Hablando de Caballos
           </span>
         </Link>
 
-        {/* Navegación */}
-        <nav className="hidden lg:flex items-center gap-1 ml-6">
-          {nav.map((item) => {
+        {/* NAV (no se monta sobre la franja, tipografía algo menor) */}
+        <nav className="hidden lg:flex items-center gap-1">
+          {NAV.map((item) => {
             const active =
               pathname === item.href ||
               (item.href !== "/" && pathname?.startsWith(item.href));
@@ -50,7 +46,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 className={[
-                  "px-3 py-2 rounded-lg text-sm transition",
+                  "px-3 py-2 rounded-lg text-[14px] transition",
                   active
                     ? "bg-cream-200 text-brown-800 border border-brown-700/10"
                     : "text-brown-700 hover:bg-cream-100",
