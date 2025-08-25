@@ -1,7 +1,7 @@
 // src/app/hall/[slug]/page.tsx
 import { createSupabaseServerClientReadOnly } from "@/utils/supabase/server";
 import AddMediaForm from "./AddMediaForm";
-import { addHallComment } from "./actions";
+import HallCommentForm from "./HallCommentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +31,8 @@ function youtubeEmbed(url: string) {
   }
 }
 
-export default async function HallSlugPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const { slug } = params;
+export default async function HallSlugPage({ params }: { params: { slug: string } }) {
+  const { slug } = params; // ← aquí obtenemos el slug de la URL
 
   const supa = createSupabaseServerClientReadOnly();
 
@@ -56,13 +52,9 @@ export default async function HallSlugPage({
     .from("hall_comments")
     .select("*")
     .eq("hall_slug", slug)
-    .order("created_at", { ascending: false })) as unknown as {
-    data: Comment[];
-  };
+    .order("created_at", { ascending: false })) as unknown as { data: Comment[] };
 
-  const {
-    data: { user },
-  } = await supa.auth.getUser();
+  const { data: { user } } = await supa.auth.getUser();
 
   return (
     <main className="container py-6 space-y-6">
@@ -71,10 +63,10 @@ export default async function HallSlugPage({
         {hall?.description && <p className="opacity-80">{hall.description}</p>}
       </header>
 
-      {/* AQUÍ es donde “pasamos el slug” al form */}
+      {/* ← AQUÍ “pasamos el slug” al componente como prop */}
       {user ? (
-        <section>
-          <h2 className="text-xl font-medium mb-2">Agregar contenido</h2>
+        <section className="space-y-3">
+          <h2 className="text-xl font-medium">Agregar contenido</h2>
           <AddMediaForm slug={slug} />
         </section>
       ) : (
@@ -124,20 +116,8 @@ export default async function HallSlugPage({
       <section className="space-y-3">
         <h2 className="text-xl font-medium">Comentarios</h2>
         {user ? (
-          <form
-            action={(fd) => addHallComment(slug, fd)}
-            className="space-y-2 bg-white/70 p-3 rounded border"
-          >
-            <textarea
-              name="body"
-              rows={4}
-              placeholder="Escribe un comentario…"
-              className="w-full border rounded px-3 py-2"
-            />
-            <button className="px-3 py-2 rounded bg-[var(--brand-green)] text-white">
-              Comentar
-            </button>
-          </form>
+          // También pasamos el slug al form de comentarios
+          <HallCommentForm slug={slug} />
         ) : (
           <p className="opacity-70">Inicia sesión para escribir comentarios.</p>
         )}
