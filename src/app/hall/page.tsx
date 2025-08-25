@@ -14,8 +14,7 @@ const CATS = [
 ];
 
 export default async function HallLanding() {
-  // aquí iría tu fetch real; para el layout clonamos la UI
-  const error = false; // muestra la caja rosa si lo pones true
+  const error = false;
 
   return (
     <div className="container py-10">
@@ -26,14 +25,16 @@ export default async function HallLanding() {
         Un reconocimiento a los ejemplares que han hecho grande la historia del Caballo Criollo Colombiano
       </p>
 
-      {/* Filtros + Orden */}
+      {/* Filtros + Orden (chips con icono caballo) */}
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {CATS.map((c, i) => (
-          <Chip key={c.key} active={i===0}>{c.label}</Chip>
+          <Chip key={c.key} active={i === 0} iconHorse>
+            {c.label}
+          </Chip>
         ))}
         <div className="ml-auto">
           <label className="text-sm mr-2">Ordenar por</label>
-          <select className="ui-chip ui-chip--muted">
+          <select className="inline-flex items-center rounded-full border px-4 py-1.5 text-sm bg-white text-brown-700 border-brown-700/20">
             <option>Más Recientes</option>
             <option>Más Votados</option>
           </select>
@@ -49,12 +50,11 @@ export default async function HallLanding() {
         </div>
       ) : null}
 
-      {/* Grid de tarjetas demo (idéntico estilo a tus cards) */}
+      {/* Grid demo */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1,2,3].map((i) => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="card">
             <div className="h-48 bg-white grid place-items-center text-brown-700/40">
-              {/* placeholder de imagen/video */}
               <div className="text-5xl">🖼️</div>
             </div>
             <div className="card-body">
