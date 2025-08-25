@@ -9,6 +9,7 @@ export default function AddMediaForm({ slug }: { slug: string }) {
   const [yt, setYt] = useState("");
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   return (
     <section className="rounded-lg bg-white p-4">
@@ -16,14 +17,14 @@ export default function AddMediaForm({ slug }: { slug: string }) {
         <button
           type="button"
           className={`rounded px-2 py-1 ${tab === "file" ? "bg-black text-white" : "bg-black/5"}`}
-          onClick={() => setTab("file")}
+          onClick={() => { setTab("file"); setErr(null); setOkMsg(null); }}
         >
           Archivo
         </button>
         <button
           type="button"
           className={`rounded px-2 py-1 ${tab === "youtube" ? "bg-black text-white" : "bg-black/5"}`}
-          onClick={() => setTab("youtube")}
+          onClick={() => { setTab("youtube"); setErr(null); setOkMsg(null); }}
         >
           YouTube URL
         </button>
@@ -33,15 +34,13 @@ export default function AddMediaForm({ slug }: { slug: string }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            setErr(null);
+            setErr(null); setOkMsg(null);
             const fd = new FormData(e.currentTarget as HTMLFormElement);
             fd.set("type", type);
             startTransition(async () => {
-              try {
-                await addMediaAction(slug, fd);
-              } catch (e) {
-                setErr((e as Error).message);
-              }
+              const res = await addMediaAction(slug, fd);
+              if (!res.ok) setErr(res.error);
+              else setOkMsg("Archivo subido.");
             });
           }}
           className="space-y-3"
@@ -49,19 +48,15 @@ export default function AddMediaForm({ slug }: { slug: string }) {
           <div className="flex gap-2 text-sm">
             <label className="flex items-center gap-1">
               <input
-                type="radio"
-                name="rtype"
-                checked={type === "image"}
-                onChange={() => setType("image")}
+                type="radio" name="rtype"
+                checked={type === "image"} onChange={() => setType("image")}
               />
               Imagen
             </label>
             <label className="flex items-center gap-1">
               <input
-                type="radio"
-                name="rtype"
-                checked={type === "video"}
-                onChange={() => setType("video")}
+                type="radio" name="rtype"
+                checked={type === "video"} onChange={() => setType("video")}
               />
               Video
             </label>
@@ -83,18 +78,17 @@ export default function AddMediaForm({ slug }: { slug: string }) {
             {pending ? "Subiendo..." : "Subir"}
           </button>
           {err && <p className="text-sm text-red-600">{err}</p>}
+          {okMsg && <p className="text-sm text-green-700">{okMsg}</p>}
         </form>
       ) : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            setErr(null);
+            setErr(null); setOkMsg(null);
             startTransition(async () => {
-              try {
-                await addYoutubeAction(slug, yt.trim());
-              } catch (e) {
-                setErr((e as Error).message);
-              }
+              const res = await addYoutubeAction(slug, yt.trim());
+              if (!res.ok) setErr(res.error);
+              else { setOkMsg("YouTube agregado."); setYt(""); }
             });
           }}
           className="space-y-3"
@@ -115,6 +109,7 @@ export default function AddMediaForm({ slug }: { slug: string }) {
             {pending ? "Agregando..." : "Agregar YouTube"}
           </button>
           {err && <p className="text-sm text-red-600">{err}</p>}
+          {okMsg && <p className="text-sm text-green-700">{okMsg}</p>}
         </form>
       )}
     </section>
