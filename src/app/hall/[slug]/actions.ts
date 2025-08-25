@@ -121,3 +121,11 @@ export async function toggleVote(a: string, b?: string) {
 
   return { ok: true, votes: count ?? 0 };
 }
+"use server";
+import { revalidatePath } from "next/cache";
+import { createSupabaseServerClient } from "@/utils/supabase/server";
+
+export async function addMediaAction(slug: string, fd: FormData) { /* ...como te pasé... */ }
+export async function addHallComment(slug: string, fd: FormData) { /* ...como te pasé... */ }
+/* opcional */ export async function addYoutubeAction(slug: string, youtubeUrl: string) { /* shim */ }
+export async function toggleVote(/* firma dual */ a: string, b?: string) { /* ...como te pasé... */ }
