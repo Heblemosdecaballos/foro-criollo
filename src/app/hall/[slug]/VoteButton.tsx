@@ -1,35 +1,33 @@
 "use client";
-import { useState, useTransition } from "react";
+
+import { useOptimistic, useTransition } from "react";
 import { toggleVote } from "./actions";
 
-type Props = {
+export default function VoteButton({
+  slug,
+  mediaId,
+  initialVotes,
+}: {
   slug: string;
-  initialCount?: number;
-};
-
-export default function VoteButton({ slug, initialCount = 0 }: Props) {
-  const [count, setCount] = useState(initialCount);
+  mediaId?: string | null;
+  initialVotes: number;
+}) {
   const [pending, startTransition] = useTransition();
-
-  const onClick = () => {
-    startTransition(async () => {
-      try {
-        const res = await toggleVote(slug);
-        if (res?.ok && typeof res.votes === "number") setCount(res.votes);
-      } catch (e) {
-        console.error(e);
-        alert("No se pudo registrar tu voto.");
-      }
-    });
-  };
+  const [votes, setVotes] = useOptimistic(initialVotes, (v) => v + 1);
 
   return (
     <button
-      onClick={onClick}
+      type="button"
       disabled={pending}
-      className="px-3 py-2 rounded bg-[var(--brand-green)] text-white disabled:opacity-60"
+      onClick={() => {
+        startTransition(async () => {
+          const res = await toggleVote(slug, mediaId || undefined);
+          setVotes(res.votes);
+        });
+      }}
+      className="rounded border border-black/20 px-3 py-1 text-sm hover:bg-black/5 disabled:opacity-60"
     >
-      👍 {pending ? "..." : count}
+      👍 {votes}
     </button>
   );
 }
