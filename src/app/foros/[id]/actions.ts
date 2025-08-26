@@ -1,13 +1,10 @@
 "use server";
 
-import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import { revalidatePath } from "next/cache";
 
-export async function createPostAction(
-  _prevState: any,
-  formData: FormData
-): Promise<{ ok: boolean; message?: string }> {
+export async function addCommentAction(formData: FormData): Promise<{ ok: boolean; message?: string }> {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -28,12 +25,9 @@ export async function createPostAction(
     }
   );
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
+  // Auth
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) {
     return { ok: false, message: "Debes iniciar sesión para responder." };
   }
 
@@ -49,11 +43,11 @@ export async function createPostAction(
     .insert({ thread_id, content, author_id: user.id });
 
   if (error) {
-    console.error("Create post error:", error);
+    console.error("addCommentAction error:", error);
     return { ok: false, message: "No se pudo publicar la respuesta." };
   }
 
-  // Revalidar la página del hilo para que aparezca la nueva respuesta
+  // Invalida la caché del hilo para que aparezca la nueva respuesta
   revalidatePath(`/foros/${thread_id}`);
   return { ok: true };
 }
