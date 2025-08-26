@@ -1,15 +1,19 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function createThreadAction(formData: FormData) {
+export async function createThreadAction(
+  formData: FormData
+): Promise<{ ok: boolean; id?: string; message?: string }> {
   const supabase = supabaseServer();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Debes iniciar sesión para crear un foro." };
+
+  if (!user) {
+    return { ok: false, message: "Debes iniciar sesión para crear un foro." };
+  }
 
   const title = (formData.get("title") as string)?.trim();
   const content = (formData.get("content") as string)?.trim();
@@ -33,5 +37,5 @@ export async function createThreadAction(formData: FormData) {
     return { ok: false, message: "Error al crear el foro." };
   }
 
-  redirect(`/foros/${data.id}`);
+  return { ok: true, id: data.id };
 }
