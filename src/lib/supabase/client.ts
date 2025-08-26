@@ -8,4 +8,8 @@ export const supabaseClient = createClient(
   }
 );
 
+/** Compatibilidad con código antiguo que importaba { supabaseBrowser } */
+export const supabaseBrowser = supabaseClient;
+
+/** Default export para imports por defecto */
 export default supabaseClient;
