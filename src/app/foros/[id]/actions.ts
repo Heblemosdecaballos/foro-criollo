@@ -1,52 +1,59 @@
 "use server";
 
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-function backWithError(id: string, msg: string): never {
-  redirect(`/foro/${id}?error=${encodeURIComponent(msg)}`);
-}
+export async function createPostAction(
+  _prevState: any,
+  formData: FormData
+): Promise<{ ok: boolean; message?: string }> {
+  const cookieStore = await cookies();
 
-/**
- * Agrega un comentario a un hilo.
- * Espera el campo "text" en el FormData (coincide con la columna thread_comments.text).
- */
-export async function addCommentAction(threadId: string, formData: FormData): Promise<void> {
-  const supa = createSupabaseServerClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
 
-  // Usuario
   const {
     data: { user },
-    error: userErr,
-  } = await supa.auth.getUser();
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (userErr) backWithError(threadId, userErr.message);
-  if (!user) backWithError(threadId, "Debes iniciar sesión para comentar.");
+  if (userError || !user) {
+    return { ok: false, message: "Debes iniciar sesión para responder." };
+  }
 
-  // Nombre visible
-  const author_name =
-    (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) ||
-    user.email ||
-    "Usuario";
+  const thread_id = (formData.get("thread_id") as string)?.trim();
+  const content = (formData.get("content") as string)?.trim();
 
-  // Campos
-  const textRaw = formData.get("text");
-  const text = (typeof textRaw === "string" ? textRaw : "").trim();
+  if (!thread_id || !content) {
+    return { ok: false, message: "Contenido obligatorio." };
+  }
 
-  if (text.length === 0) backWithError(threadId, "El comentario no puede estar vacío.");
+  const { error } = await supabase
+    .from("posts")
+    .insert({ thread_id, content, author_id: user.id });
 
-  // Insert
-  const { error } = await supa.from("thread_comments").insert({
-    thread_id: threadId,
-    author_id: user.id,
-    author_name, // 👈 nuevo
-    text,
-  });
+  if (error) {
+    console.error("Create post error:", error);
+    return { ok: false, message: "No se pudo publicar la respuesta." };
+  }
 
-  if (error) backWithError(threadId, error.message);
-
-  // Revalida y vuelve al hilo
-  revalidatePath(`/foro/${threadId}`);
-  redirect(`/foro/${threadId}`);
+  // Revalidar la página del hilo para que aparezca la nueva respuesta
+  revalidatePath(`/foros/${thread_id}`);
+  return { ok: true };
 }
