@@ -1,47 +1,63 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addCommentAction } from "./actions";
 
-export default function CommentForm({ threadId, initialError }: { threadId: string; initialError?: string }) {
+export default function CommentForm({
+  threadId,
+  initialError,
+}: {
+  threadId: string;
+  initialError?: string;
+}) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | undefined>(initialError);
+  const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
+  const [value, setValue] = useState("");
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    const fd = new FormData(e.currentTarget);
+    fd.set("thread_id", threadId);
+
+    startTransition(async () => {
+      const res = await addCommentAction(fd);
+      if (!res.ok) {
+        setErrorMsg(res.message || "No se pudo publicar.");
+        return;
+      }
+      setValue("");
+      // Refresca los datos del servidor ya revalidados
+      router.refresh();
+    });
+  };
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setError(undefined);
-        const fd = new FormData(e.currentTarget as HTMLFormElement);
-        startTransition(async () => {
-          try {
-            await addCommentAction(threadId, fd);
-          } catch (err) {
-            // Por si llegara a lanzar en cliente (normalmente redirect corta en el server)
-            setError((err as Error).message);
-          }
-        });
-      }}
-      className="space-y-3"
-    >
+    <form onSubmit={onSubmit} className="space-y-3">
       <textarea
-        name="text" // 👈 nombre correcto del campo
-        rows={4}
-        placeholder="Escribe tu comentario..."
-        className="w-full rounded-md border border-black/20 px-3 py-2 text-sm outline-none focus:ring-2"
-        disabled={pending}
+        name="content"
         required
+        rows={4}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Escribe tu respuesta…"
+        className="w-full border rounded p-2"
       />
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md border border-black/20 bg-black px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-        >
-          {pending ? "Publicando..." : "Comentar"}
-        </button>
-        {error && <span className="text-sm text-red-600">{error}</span>}
-      </div>
+      {errorMsg && (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-2 rounded">
+          {errorMsg}
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={pending}
+        className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-60"
+      >
+        {pending ? "Publicando…" : "Publicar respuesta"}
+      </button>
     </form>
   );
 }
