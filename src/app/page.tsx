@@ -1,6 +1,7 @@
 // src/app/page.tsx
 import Image from "next/image";
 import Link from "next/link";
+import IconHorse from "@/src/components/ui/IconHorse";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -8,62 +9,77 @@ export const revalidate = 0;
 export default function Home() {
   return (
     <>
-      {/* FRANJA CAFÉ */}
-      <section className="hero-cafe text-white relative">
-        <div className="container py-14 md:py-18">
-          <div className="flex items-center gap-3">
-            <Image src="/brand/horse.png" alt="Caballo" width={40} height={40} />
-            <h1 className="font-serif text-4xl md:text-5xl font-bold">
-              Hablando de Caballos
-            </h1>
-          </div>
-          <p className="mt-4 max-w-2xl text-white/90">
-            La comunidad más grande del Caballo Criollo Colombiano
-          </p>
-          <Link href="/foros" className="mt-6 inline-flex btn btn-olive">
-            Crear Nuevo Foro
-          </Link>
-        </div>
+      {/* FRANJA CAFÉ con contenido centrado y foto dentro (sin superposición) */}
+      <section className="hero-cafe text-white">
+        <div className="container py-12 md:py-16">
+          <div className="grid md:grid-cols-2 items-center gap-8">
+            {/* Columna izquierda: título + copy + CTA */}
+            <div>
+              <div className="flex items-center gap-3">
+                <IconHorse size={40} />
+                <h1 className="font-serif text-4xl md:text-5xl font-bold">
+                  Hablando de Caballos
+                </h1>
+              </div>
+              <p className="mt-4 max-w-xl text-white/90">
+                La comunidad más grande del Caballo Criollo Colombiano
+              </p>
+              <Link href="/foros" className="mt-6 inline-flex btn btn-olive">
+                Crear Nuevo Foro
+              </Link>
+            </div>
 
-        {/* TARJETA FOTO SUPERPUESTA */}
-        <div className="container relative">
-          <div className="hero-photo-card">
-            <Image src="/hero/portada.jpg" alt="Caballo Criollo" fill className="object-cover" priority />
-          </div>
-        </div>
-      </section>
-
-      {/* MÉTRICAS */}
-      <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 -mt-8 mb-8">
-        {[
-          { big: "500+", small: "Miembros Activos" },
-          { big: "50+", small: "Foros Especializados" },
-          { big: "24/7", small: "Comunidad Activa" },
-        ].map((m) => (
-          <div key={m.big} className="card">
-            <div className="card-body text-center">
-              <div className="text-3xl font-bold">{m.big}</div>
-              <div className="text-sm mt-1 text-brown-700/70">{m.small}</div>
+            {/* Columna derecha: tarjeta con la foto, centrada dentro de la franja */}
+            <div className="flex justify-center">
+              <div className="relative w-[460px] h-[260px] md:w-[520px] md:h-[300px] rounded-xl overflow-hidden ring-1 ring-white/40 shadow-xl">
+                <Image
+                  src="/hero/portada.jpg"  // <- RUTA DE LA FOTO
+                  alt="Caballo Criollo"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
             </div>
           </div>
-        ))}
+        </div>
       </section>
+
+      {/* (Eliminado el bloque de métricas) */}
 
       {/* TRES CUADROS SUPERIORES */}
-      <section className="container grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
-        {[
-          { icon: "🐎", title: "Expertos en Caballos", desc: "Conecta con criadores, entrenadores y expertos del caballo criollo colombiano" },
-          { icon: "💬", title: "Foros Especializados", desc: "Participa en discusiones sobre crianza, entrenamiento, salud y competencias" },
-          { icon: "📚", title: "Recursos Educativos", desc: "Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos" },
-        ].map((c) => (
-          <div key={c.title} className="card">
-            <div className="card-body text-center">
-              <div className="text-3xl mb-3">{c.icon}</div>
-              <div className="font-serif font-semibold">{c.title}</div>
-              <p className="text-brown-700/80 mt-2">{c.desc}</p>
+      <section className="container grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+        <div className="card">
+          <div className="card-body text-center">
+            <div className="mb-3 flex justify-center">
+              <IconHorse size={28} />
             </div>
+            <div className="font-serif font-semibold">Expertos en Caballos</div>
+            <p className="text-brown-700/80 mt-2">
+              Conecta con criadores, entrenadores y expertos del caballo criollo colombiano
+            </p>
           </div>
-        ))}
+        </div>
+
+        <div className="card">
+          <div className="card-body text-center">
+            <div className="text-3xl mb-3">💬</div>
+            <div className="font-serif font-semibold">Foros Especializados</div>
+            <p className="text-brown-700/80 mt-2">
+              Participa en discusiones sobre crianza, entrenamiento, salud y competencias
+            </p>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-body text-center">
+            <div className="text-3xl mb-3">📚</div>
+            <div className="font-serif font-semibold">Recursos Educativos</div>
+            <p className="text-brown-700/80 mt-2">
+              Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* TEMAS ESPECIALIZADOS */}
@@ -76,8 +92,8 @@ export default function Home() {
 
       <section className="container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
+          { icon: <span className="inline-block"><IconHorse size={24} /></span>, title: "Entrenamiento", desc: "Foros especializados en entrenamiento", href: "/foros?cat=entrenamiento" },
           { icon: "🧬", title: "Crianza y Genética", desc: "Foros especializados en crianza y genética", href: "/foros?cat=crianza" },
-          { icon: "🐎", title: "Entrenamiento", desc: "Foros especializados en entrenamiento", href: "/foros?cat=entrenamiento" },
           { icon: "🏆", title: "Competencias", desc: "Foros especializados en competencias", href: "/foros?cat=competencias" },
           { icon: "🩺", title: "Salud Veterinaria", desc: "Foros especializados en salud veterinaria", href: "/foros?cat=salud" },
           { icon: "📜", title: "Historia y Tradición", desc: "Tradición, cultura y anécdotas", href: "/foros?cat=historia" },
