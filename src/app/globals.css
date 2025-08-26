@@ -11,13 +11,10 @@ html, body {
   @apply bg-cream-50 text-brown-700;
 }
 
-/* Contenedor base */
 .container {
   @apply mx-auto max-w-6xl px-4;
 }
 
-/* Cards */
-.card {
-  @apply rounded-xl shadow-card bg-white overflow-hidden border border-brown-700/10;
-}
+/* Cards por si se perdieron */
+.card { @apply rounded-xl shadow-card bg-white overflow-hidden border border-brown-700/10; }
 .card-body { @apply p-4 md:p-5; }
