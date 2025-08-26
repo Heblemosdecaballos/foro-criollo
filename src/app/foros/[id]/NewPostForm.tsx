@@ -24,7 +24,6 @@ export default function NewPostForm({ threadId }: { threadId: string }) {
         return;
       }
       setValue("");
-      // Refresca los datos del hilo
       router.refresh();
     });
   };
