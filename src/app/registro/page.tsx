@@ -1,7 +1,7 @@
 // src/app/registro/page.tsx
 import Link from "next/link";
 import { createSupabaseServer } from "@/src/lib/supabase/server";
-import { register } from "@/app/actions/register"; // <-- FIX de la ruta
+import { register } from "../actions/register"; // ← RUTA RELATIVA FIJA
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,7 +19,10 @@ export default async function RegisterPage() {
           <h1 className="font-serif text-2xl mb-2">Ya estás registrado</h1>
           <p className="text-brown-700/80">
             Tu sesión está activa. Vuelve al{" "}
-            <Link href="/" className="underline">inicio</Link>.
+            <Link href="/" className="underline">
+              inicio
+            </Link>
+            .
           </p>
         </div>
       </main>
@@ -38,7 +41,9 @@ export default async function RegisterPage() {
           <div className="space-y-2">
             <label className="block text-sm text-brown-700/80">Nombre</label>
             <input
-              type="text" name="full_name" required
+              type="text"
+              name="full_name"
+              required
               className="w-full h-12 rounded-xl border border-brown-700/30 bg-cream-50 px-3 outline-none focus:ring-2 focus:ring-brown-700/20"
               placeholder="Tu nombre"
             />
@@ -47,7 +52,9 @@ export default async function RegisterPage() {
           <div className="space-y-2">
             <label className="block text-sm text-brown-700/80">Correo</label>
             <input
-              type="email" name="email" required
+              type="email"
+              name="email"
+              required
               className="w-full h-12 rounded-xl border border-brown-700/30 bg-cream-50 px-3 outline-none focus:ring-2 focus:ring-brown-700/20"
               placeholder="tu@correo.com"
             />
@@ -56,19 +63,28 @@ export default async function RegisterPage() {
           <div className="space-y-2">
             <label className="block text-sm text-brown-700/80">Contraseña</label>
             <input
-              type="password" name="password" required minLength={6}
+              type="password"
+              name="password"
+              required
+              minLength={6}
               className="w-full h-12 rounded-xl border border-brown-700/30 bg-cream-50 px-3 outline-none focus:ring-2 focus:ring-brown-700/20"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
 
-          <button type="submit" className="w-full h-11 rounded-xl bg-olive-600 text-white font-medium hover:bg-olive-700 transition">
+          <button
+            type="submit"
+            className="w-full h-11 rounded-xl bg-olive-600 text-white font-medium hover:bg-olive-700 transition"
+          >
             Registrarme
           </button>
         </form>
 
         <p className="mt-6 text-center text-brown-700/80">
-          ¿Ya tienes cuenta? <Link href="/login" className="underline">Iniciar Sesión</Link>
+          ¿Ya tienes cuenta?{" "}
+          <Link href="/login" className="underline">
+            Iniciar Sesión
+          </Link>
         </p>
       </div>
     </main>
