@@ -1,10 +1,30 @@
 // src/app/registro/page.tsx
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/src/lib/supabase/server";
-import { register } from "../actions/register"; // ← RUTA RELATIVA FIJA
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+/** Server Action local: registrar usuario */
+async function register(formData: FormData) {
+  "use server";
+  const full_name = String(formData.get("full_name") || "").trim();
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "");
+
+  const supabase = createSupabaseServer();
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name } },
+  });
+
+  if (error) {
+    redirect(`/registro?error=${encodeURIComponent(error.message)}`);
+  }
+  redirect("/login?registered=1");
+}
 
 export default async function RegisterPage() {
   const supabase = createSupabaseServer();
@@ -19,10 +39,7 @@ export default async function RegisterPage() {
           <h1 className="font-serif text-2xl mb-2">Ya estás registrado</h1>
           <p className="text-brown-700/80">
             Tu sesión está activa. Vuelve al{" "}
-            <Link href="/" className="underline">
-              inicio
-            </Link>
-            .
+            <Link href="/" className="underline">inicio</Link>.
           </p>
         </div>
       </main>
@@ -81,10 +98,7 @@ export default async function RegisterPage() {
         </form>
 
         <p className="mt-6 text-center text-brown-700/80">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="underline">
-            Iniciar Sesión
-          </Link>
+          ¿Ya tienes cuenta? <Link href="/login" className="underline">Iniciar Sesión</Link>
         </p>
       </div>
     </main>
