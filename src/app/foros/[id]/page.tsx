@@ -7,10 +7,10 @@ export default async function ThreadDetailPage({ params }: { params: { id: strin
   const supabase = supabaseServer();
   const threadId = params.id;
 
-  // Incrementar contador de visitas
+  // Incrementar visitas
   await supabase.rpc("increment_thread_views", { p_thread_id: threadId });
 
-  // Datos del hilo
+  // Hilo
   const { data: thread, error: tErr } = await supabase
     .from("threads")
     .select("id, title, content, author_id, created_at, views, posts_count")
@@ -18,7 +18,7 @@ export default async function ThreadDetailPage({ params }: { params: { id: strin
     .single();
   if (tErr || !thread) notFound();
 
-  // Perfil del autor
+  // Perfil autor
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, username, full_name, avatar_url")
@@ -32,9 +32,7 @@ export default async function ThreadDetailPage({ params }: { params: { id: strin
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const authorName = profile?.username || profile?.full_name || "Usuario";
 
@@ -42,14 +40,23 @@ export default async function ThreadDetailPage({ params }: { params: { id: strin
     <div className="max-w-3xl mx-auto p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{thread.title}</h1>
-        <Link href="/foros" className="text-sm underline">
-          ← Volver a Foros
-        </Link>
+        <Link href="/foros" className="text-sm underline">← Volver a Foros</Link>
       </div>
 
       <article className="rounded-2xl border bg-white p-5 shadow-sm mb-6">
-        <div className="text-sm text-gray-500 mb-2">
-          Por {authorName} • {new Date(thread.created_at).toLocaleString()} • {thread.views} visitas • {thread.posts_count} respuestas
+        <div className="text-sm text-gray-500 mb-2 flex items-center gap-2">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={authorName} className="w-6 h-6 rounded-full object-cover" />
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-gray-200" />
+          )}
+          <span>Por {authorName}</span>
+          <span>•</span>
+          <span>{new Date(thread.created_at).toLocaleString()}</span>
+          <span>•</span>
+          <span>{thread.views} visitas</span>
+          <span>•</span>
+          <span>{thread.posts_count} respuestas</span>
         </div>
         <div className="prose max-w-none whitespace-pre-wrap">{thread.content}</div>
       </article>
