@@ -1,27 +1,37 @@
 "use server";
 
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 import { revalidatePath } from "next/cache";
 
-export async function addCommentAction(
-  formData: FormData
-): Promise<{ ok: boolean; message?: string }> {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
+function supabaseServer() {
+  const cookieStore = cookies();
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookieList: { name: string; value: string; options: CookieOptions }[]) {
+          cookieList.forEach(({ name, value, options }) => {
+            cookieStore.set({ name, value, ...options });
+          });
+        },
       },
     }
   );
+}
 
-  const { data: { user } } = await supabase.auth.getUser();
+export async function addCommentAction(
+  formData: FormData
+): Promise<{ ok: boolean; message?: string }> {
+  const supabase = supabaseServer();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Debes iniciar sesión para responder." };
 
   const thread_id = (formData.get("thread_id") as string)?.trim();
