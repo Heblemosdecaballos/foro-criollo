@@ -1,0 +1,63 @@
+# Query: @/src/lib/supabase/server
+# ContextLines: 1
+
+12 resultados - Archivos de 12
+
+src/app/api/hall/[slug]/comments/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/api/hall/[slug]/media/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/api/hall/[slug]/vote/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/api/hof/horses/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/api/hof/media/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/auth/callback/route.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
+
+src/app/hall/[slug]/page.tsx:
+  1  // src/app/hall/[slug]/page.tsx
+  2: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  3  import AddMediaForm from "@/src/components/hall/AddMediaForm";
+
+src/app/login/page.tsx:
+  3  import { redirect } from "next/navigation";
+  4: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  5  
+
+src/app/registro/page.tsx:
+  3  import { redirect } from "next/navigation";
+  4: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  5  
+
+src/app/threads/[id]/page.tsx:
+  1: import { createClient } from "@/src/lib/supabase/server";
+  2  
+
+src/components/site/Header.tsx:
+  4  import { redirect } from "next/navigation";
+  5: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  6  
+
+src/lib/supabase/server/index.ts:
+  2  import { NextResponse } from "next/server";
+  3: import { createSupabaseServer } from "@/src/lib/supabase/server";
+  4  
