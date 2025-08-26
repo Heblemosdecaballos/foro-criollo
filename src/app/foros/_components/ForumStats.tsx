@@ -2,8 +2,11 @@
 
 import { AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis, ResponsiveContainer, Legend } from "recharts";
 
-export default function ForumStats({ data }: { data: Array<{ day: string; threads: number; posts: number; active_users: number }> }) {
-  // data: [{ day: "2025-08-20", threads: 3, posts: 12, active_users: 5 }, ...]
+export default function ForumStats({
+  data,
+}: {
+  data: Array<{ day: string; threads: number; posts: number; active_users: number }>;
+}) {
   return (
     <div className="w-full h-64 rounded-2xl border bg-white p-4 shadow-sm">
       <div className="mb-2 font-semibold">Actividad (últimos días)</div>
