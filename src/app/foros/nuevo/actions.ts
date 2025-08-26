@@ -2,6 +2,7 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export async function createThreadAction(formData: FormData) {
   const cookieStore = await cookies();
@@ -24,13 +25,11 @@ export async function createThreadAction(formData: FormData) {
     }
   );
 
-  // Obtener usuario
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+  if (!user) {
     return { ok: false, message: "Debes iniciar sesión para crear un foro." };
   }
 
@@ -42,29 +41,20 @@ export async function createThreadAction(formData: FormData) {
     return { ok: false, message: "Título y contenido son obligatorios." };
   }
 
-  // Si no envías foro_id, podrías crear un foro por defecto o permitir null.
-  const insertPayload: any = {
-    title,
-    content,
-    author_id: user.id,
-  };
-  if (foro_id) insertPayload.foro_id = foro_id;
+  const payload: any = { title, content, author_id: user.id };
+  if (foro_id) payload.foro_id = foro_id;
 
   const { data, error } = await supabase
     .from("threads")
-    .insert(insertPayload)
+    .insert(payload)
     .select("id")
     .single();
 
   if (error) {
     console.error("Create thread error:", error);
-    return {
-      ok: false,
-      message:
-        "Error al crear el foro: " +
-        (error.message || "Intenta nuevamente más tarde."),
-    };
+    return { ok: false, message: "Error al crear el foro." };
   }
 
-  return { ok: true, id: data.id };
+  // 👇 Redirección inmediata al detalle del hilo
+  redirect(`/foros/${data.id}`);
 }
