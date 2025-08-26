@@ -9,33 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // paleta tomada de las capturas (tonos crema, marrón y oliva)
+        // Fondo crema de tu diseño
         cream: {
-          50:  "#F9F4EB",
-          100: "#F3ECDF",
-          200: "#EDE4D3",
+          50:  "#F8F1E6",
+          100: "#F1E8DA",
+          200: "#EADFCB",
         },
-        sand: {
-          100: "#F2E9DC",
-          200: "#E9DFC9",
-        },
+        // Marrones de texto/hero
         brown: {
-          700: "#5F422F", // títulos / texto principal
+          700: "#5F422F",
           800: "#4B3325",
         },
+        // VERDE exactamente como el de los cajones/botón (ajustado)
         olive: {
-          600: "#718255", // botones
+          600: "#6F7F56",
           700: "#5E6D45",
         },
-        accent: {
-          500: "#C1702E", // acentos cálidos (gradiente hero)
+        // Café del hero (usaremos clase .hero-cafe)
+        cafe: {
+          a: "#B36A3E",  // izquierda/arriba
+          b: "#7B5740",  // derecha/abajo
         },
       },
       boxShadow: {
         card: "0 10px 24px rgba(0,0,0,0.06)",
-      },
-      borderRadius: {
-        xl2: "1.25rem",
       },
       fontFamily: {
         serif: ["var(--font-serif)"],
