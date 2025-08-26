@@ -1,51 +1,40 @@
-// /app/foro/nuevo/actions.ts
+// src/app/foros/nuevo/actions.ts
 "use server";
 
-import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
-import { createServerClient } from "@supabase/ssr";
-
-/** Cliente Supabase (server) */
-function supa() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (n: string) => cookieStore.get(n)?.value } }
-  );
-}
+import { redirect } from "next/navigation";
+import { createSupabaseServer } from "@/src/lib/supabase/server";
 
 /**
- * Crea un nuevo foro/hilo.
- * Espera campos: title, body
+ * Server Action para crear un hilo nuevo.
+ * Ajusta el nombre de la tabla/columnas a tu esquema real si difiere.
  */
-export async function createThreadAction(fd: FormData) {
-  try {
-    const s = supa();
+export async function createThreadAction(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  const content = String(formData.get("content") || "").trim();
+  const category = String(formData.get("category") || "").trim();
 
-    const { data: auth } = await s.auth.getUser();
-    if (!auth?.user) throw new Error("Debes iniciar sesión.");
-
-    const title = (fd.get("title") as string)?.trim();
-    const body = ((fd.get("body") as string) || "").trim();
-
-    if (!title || title.length < 3) throw new Error("Título demasiado corto.");
-
-    const { data, error } = await s
-      .from("forum_threads")
-      .insert({
-        title,
-        body,
-        author_id: auth.user.id,
-      })
-      .select("id")
-      .maybeSingle();
-
-    if (error) throw error;
-
-    revalidatePath("/foro");
-    return { ok: true, id: data?.id ?? null };
-  } catch (e: any) {
-    return { ok: false, error: e?.message ?? "No se pudo crear el foro." };
+  if (!title || !content) {
+    // si quieres, podrías redirigir con ?error=
+    redirect("/foros/nuevo");
   }
+
+  const supabase = createSupabaseServer();
+
+  // usuario actual (para author_id / author_name si aplica)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // ⬇️ AJUSTA el nombre de la tabla y columnas si tu esquema es distinto
+  // Ejemplos comunes: "threads", "forum_threads", "posts"
+  const { error } = await supabase.from("threads").insert({
+    title,
+    content,
+    category,
+    author_id: user?.id ?? null,
+  });
+
+  // TODO: manejar el error como prefieras
+  // por ahora siempre volvemos al listado
+  redirect("/foros");
 }
