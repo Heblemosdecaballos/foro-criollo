@@ -20,9 +20,7 @@ async function register(formData: FormData) {
     options: { data: { full_name } },
   });
 
-  if (error) {
-    redirect(`/registro?error=${encodeURIComponent(error.message)}`);
-  }
+  if (error) redirect(`/registro?error=${encodeURIComponent(error.message)}`);
   redirect("/login?registered=1");
 }
 
@@ -31,25 +29,14 @@ export default async function RegisterPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (user) {
-    return (
-      <main className="container py-16">
-        <div className="max-w-lg mx-auto text-center">
-          <h1 className="font-serif text-2xl mb-2">Ya estás registrado</h1>
-          <p className="text-brown-700/80">
-            Tu sesión está activa. Vuelve al{" "}
-            <Link href="/" className="underline">inicio</Link>.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (user) redirect("/");
 
   return (
     <main className="container py-16">
       <div className="max-w-lg mx-auto">
-        <h1 className="text-center font-serif text-2xl text-brown-800">Crear Cuenta</h1>
+        <h1 className="text-center font-serif text-2xl text-brown-800">
+          Crear Cuenta
+        </h1>
         <p className="mt-1 text-center text-brown-700/80">
           Únete a la comunidad del Caballo Criollo Colombiano
         </p>
@@ -98,7 +85,10 @@ export default async function RegisterPage() {
         </form>
 
         <p className="mt-6 text-center text-brown-700/80">
-          ¿Ya tienes cuenta? <Link href="/login" className="underline">Iniciar Sesión</Link>
+          ¿Ya tienes cuenta?{" "}
+          <Link href="/login" className="underline">
+            Iniciar Sesión
+          </Link>
         </p>
       </div>
     </main>
