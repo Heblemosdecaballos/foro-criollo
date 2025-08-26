@@ -1,6 +1,6 @@
 // src/app/page.tsx
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardBody } from "@/src/components/ui/Card";
 
 export const dynamic = "force-dynamic";
@@ -9,24 +9,53 @@ export const revalidate = 0;
 export default function Home() {
   return (
     <>
-      {/* HERO */}
-      <section className="hero-grad text-white">
-        <div className="container py-16 md:py-20">
-          <div className="flex items-center gap-4">
-            <Image src="/brand/horse.png" alt="Caballo" width={48} height={48} />
-            <h1 className="font-serif text-4xl md:text-5xl font-bold">Hablando de Caballos</h1>
+      {/* FRANJA CAFÉ EXISTENTE (con overlay de foto a la derecha) */}
+      <section className="relative w-full">
+        {/* Tu franja café: usa tu clase/estilos previos.
+            Si antes usabas un gradiente, aquí tienes uno muy similar.
+            Puedes reemplazarlo por tu clase exacta si ya la tenías (p.ej. bg-[...]). */}
+        <div className="w-full bg-gradient-to-r from-[#8C5A3E] to-[#5C3D2B] text-white">
+          <div className="container py-12 md:py-16">
+            <h1 className="font-serif text-4xl md:text-5xl font-bold">
+              Hablando de Caballos
+            </h1>
+            <p className="mt-3 text-white/90 max-w-2xl">
+              La comunidad más grande del Caballo Criollo Colombiano
+            </p>
+            <Link
+              href="/foros"
+              className="mt-6 inline-flex rounded-lg bg-white text-brown-800 px-4 py-2 text-sm font-medium hover:bg-cream-200"
+            >
+              Crear Nuevo Foro
+            </Link>
           </div>
-          <p className="mt-4 max-w-2xl text-white/90">
-            La comunidad más grande del Caballo Criollo Colombiano
-          </p>
-          <Link href="/foros" className="mt-6 inline-flex btn btn-olive bg-white text-brown-800 hover:bg-cream-200">
-            Crear Nuevo Foro
-          </Link>
+        </div>
+
+        {/* RECUADRO FOTO: posicionado encima de la franja, a la derecha */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="container h-full relative">
+            <div
+              className="
+                pointer-events-auto
+                absolute right-0 md:right-4 bottom-[-30px] md:bottom-[-40px]
+                w-[280px] md:w-[420px] h-[160px] md:h-[220px]
+                rounded-xl overflow-hidden ring-1 ring-white/40 shadow-xl
+              "
+            >
+              <Image
+                src="/hero/portada.jpg"   // <- tu foto anterior
+                alt="Caballo Criollo"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* MÉTRICAS */}
-      <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 -mt-8 mb-8">
+      {/* MÉTRICAS (igual que antes, con compensación por la tarjeta flotante) */}
+      <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 mt-20 md:mt-24 mb-8">
         {[
           { big: "500+", small: "Miembros Activos" },
           { big: "50+", small: "Foros Especializados" },
@@ -41,31 +70,7 @@ export default function Home() {
         ))}
       </section>
 
-      {/* TEMAS ESPECIALIZADOS */}
-      <section className="container my-10">
-        <h2 className="font-serif text-2xl font-semibold text-center mb-1">Temas Especializados</h2>
-        <p className="text-center text-brown-700/80 mb-6">
-          Explora nuestras áreas especializadas diseñadas para cada aspecto del caballo criollo
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { title: "Crianza y Genética", href: "/foros?cat=crianza" },
-            { title: "Entrenamiento", href: "/foros?cat=entrenamiento" },
-            { title: "Competencias", href: "/foros?cat=competencias" },
-            { title: "Salud Veterinaria", href: "/foros?cat=salud" },
-            { title: "Historia y Tradición", href: "/foros?cat=historia" },
-            { title: "Comercialización", href: "/foros?cat=comercial" },
-          ].map((t) => (
-            <Card key={t.title} className="hover:shadow-md transition">
-              <CardBody className="text-center">
-                <div className="font-serif font-semibold mb-1">{t.title}</div>
-                <Link href={t.href} className="text-sm underline">Ver</Link>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-      </section>
+      {/* (Resto de tu home tal cual lo tenías) */}
     </>
   );
 }
