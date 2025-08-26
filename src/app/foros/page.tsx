@@ -1,31 +1,23 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { createServerClient } from "@supabase/ssr";
+import { supabaseServer } from "@/lib/supabase/server";
 
 export default async function ForosPage() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n) => cookieStore.get(n)?.value,
-        set: (n, v, o) => cookieStore.set({ name: n, value: v, ...o }),
-        remove: (n, o) => cookieStore.set({ name: n, value: "", ...o }),
-      },
-    }
-  );
+  const supabase = supabaseServer();
 
-  const { data: threads } = await supabase
+  const { data: threads, error } = await supabase
     .from("threads")
     .select("id, title, created_at")
     .order("created_at", { ascending: false });
 
+  // (opcional) podrías mostrar un error de carga en UI si 'error'
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Foros</h1>
-        <Link href="/foros/nuevo" className="px-3 py-2 rounded bg-green-600 text-white">
+        <Link
+          href="/foros/nuevo"
+          className="px-3 py-2 rounded bg-green-600 text-white"
+        >
           + Crear Nuevo Foro
         </Link>
       </div>
