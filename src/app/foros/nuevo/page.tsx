@@ -4,9 +4,7 @@ import NewThreadForm from "./NewThreadForm";
 
 export default async function NuevoForoPage() {
   const supabase = supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -17,9 +15,7 @@ export default async function NuevoForoPage() {
       ) : (
         <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-2 rounded">
           Debes iniciar sesión para crear un foro.{" "}
-          <Link className="underline" href="/login">
-            Inicia sesión
-          </Link>
+          <Link className="underline" href="/login">Inicia sesión</Link>
         </p>
       )}
     </div>
