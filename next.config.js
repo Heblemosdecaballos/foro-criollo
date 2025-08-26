@@ -1,13 +1,12 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ❌ IMPORTANTÍSIMO: NO uses `output: "export"` si quieres API Routes
-  // output: "export",
-
   reactStrictMode: true,
-  experimental: {
-    // App Router ya es estable, pero mantenemos explícito si tu repo venía así
-    appDir: true,
+  images: {
+    // agrega dominios externos si usas <Image> con URLs remotas
+    remotePatterns: [],
   },
+  // ❌ NADA de experimental.appDir acá
 };
 
 module.exports = nextConfig;
