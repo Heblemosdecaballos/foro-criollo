@@ -3,22 +3,29 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import NewPostForm from "./NewPostForm";
 
-export default async function ThreadDetailPage({
-  params,
-}: { params: { id: string } }) {
+export default async function ThreadDetailPage({ params }: { params: { id: string } }) {
   const supabase = supabaseServer();
   const threadId = params.id;
 
+  // Incrementar contador de visitas
+  await supabase.rpc("increment_thread_views", { p_thread_id: threadId });
+
+  // Datos del hilo
   const { data: thread, error: tErr } = await supabase
     .from("threads")
-    .select("id, title, content, author_id, created_at")
+    .select("id, title, content, author_id, created_at, views, posts_count")
     .eq("id", threadId)
     .single();
+  if (tErr || !thread) notFound();
 
-  if (tErr || !thread) {
-    notFound();
-  }
+  // Perfil del autor
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, username, full_name, avatar_url")
+    .eq("id", thread.author_id)
+    .single();
 
+  // Respuestas
   const { data: posts } = await supabase
     .from("posts")
     .select("id, content, author_id, created_at")
@@ -29,6 +36,8 @@ export default async function ThreadDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const authorName = profile?.username || profile?.full_name || "Usuario";
+
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -38,21 +47,19 @@ export default async function ThreadDetailPage({
         </Link>
       </div>
 
-      <article className="border rounded p-4 mb-6 bg-white">
-        <div className="prose max-w-none whitespace-pre-wrap">
-          {thread.content}
+      <article className="rounded-2xl border bg-white p-5 shadow-sm mb-6">
+        <div className="text-sm text-gray-500 mb-2">
+          Por {authorName} • {new Date(thread.created_at).toLocaleString()} • {thread.views} visitas • {thread.posts_count} respuestas
         </div>
-        <p className="text-xs text-gray-500 mt-3">
-          Creado: {new Date(thread.created_at).toLocaleString()}
-        </p>
+        <div className="prose max-w-none whitespace-pre-wrap">{thread.content}</div>
       </article>
 
       <section className="mb-6">
         <h2 className="text-xl font-medium mb-3">Respuestas</h2>
-        {posts && posts.length > 0 ? (
+        {posts && posts.length ? (
           <ul className="space-y-3">
             {posts.map((p) => (
-              <li key={p.id} className="border rounded p-3 bg-white">
+              <li key={p.id} className="rounded-xl border bg-white p-3 shadow-sm">
                 <div className="whitespace-pre-wrap">{p.content}</div>
                 <p className="text-xs text-gray-500 mt-2">
                   Publicado: {new Date(p.created_at).toLocaleString()}
