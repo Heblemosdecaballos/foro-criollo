@@ -1,8 +1,8 @@
 // src/components/site/Header.tsx
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/src/lib/supabase/server";
-import { logout } from "../../app/actions/logout"; // ← RUTA RELATIVA FIJA
 
 const NAV = [
   { href: "/foros", label: "Foros" },
@@ -14,7 +14,15 @@ const NAV = [
   { href: "/app", label: "📱 Instalar app" },
 ];
 
-// Server component (sin "use client")
+/** Server Action local: cerrar sesión */
+async function logout() {
+  "use server";
+  const supabase = createSupabaseServer();
+  await supabase.auth.signOut();
+  redirect("/");
+}
+
+// Server component
 export default async function Header() {
   const supabase = createSupabaseServer();
   const {
