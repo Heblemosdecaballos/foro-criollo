@@ -1,7 +1,7 @@
 // src/app/page.tsx
+import Image from "next/image";
 import Link from "next/link";
 import { Card, CardBody } from "@/src/components/ui/Card";
-import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,9 +9,9 @@ export const revalidate = 0;
 export default function Home() {
   return (
     <>
-      {/* Franja café del hero con el tono exacto */}
-      <section className="hero-cafe text-white">
-        <div className="container py-14 md:py-18 relative">
+      {/* FRANJA CAFÉ (misma que tu diseño) */}
+      <section className="hero-cafe text-white relative">
+        <div className="container py-14 md:py-18">
           <div className="flex items-center gap-3">
             <Image src="/brand/horse.png" alt="Caballo" width={40} height={40} />
             <h1 className="font-serif text-4xl md:text-5xl font-bold">
@@ -24,17 +24,23 @@ export default function Home() {
           <Link href="/foros" className="mt-6 inline-flex btn btn-olive">
             Crear Nuevo Foro
           </Link>
+        </div>
 
-          {/*
-          // Si quieres la foto en la misma franja (overlay derecha):
-          <div className="hidden md:block pointer-events-auto absolute right-0 bottom-[-35px] w-[420px] h-[220px] rounded-xl overflow-hidden ring-1 ring-white/40 shadow-xl">
-            <Image src="/hero/portada.jpg" alt="Caballo Criollo" fill className="object-cover" priority />
+        {/* TARJETA CON LA FOTO ENCIMA DE LA FRANJA (derecha) */}
+        <div className="container relative">
+          <div className="hero-photo-card">
+            <Image
+              src="/hero/portada.jpg"   // <— tu foto anterior
+              alt="Caballo Criollo"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
-          */}
         </div>
       </section>
 
-      {/* Métricas (cajas blancas) */}
+      {/* MÉTRICAS (cajas blancas) */}
       <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 -mt-8 mb-8">
         {[
           { big: "500+", small: "Miembros Activos" },
@@ -50,7 +56,66 @@ export default function Home() {
         ))}
       </section>
 
-      {/* Resto de secciones… */}
+      {/* TRES CUADROS SUPERIORES (como en tu referencia) */}
+      <section className="container grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl mb-3">🐎</div>
+            <div className="font-serif font-semibold">Expertos en Caballos</div>
+            <p className="text-brown-700/80 mt-2">
+              Conecta con criadores, entrenadores y expertos del caballo criollo colombiano
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl mb-3">💬</div>
+            <div className="font-serif font-semibold">Foros Especializados</div>
+            <p className="text-brown-700/80 mt-2">
+              Participa en discusiones sobre crianza, entrenamiento, salud y competencias
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody className="text-center">
+            <div className="text-3xl mb-3">📚</div>
+            <div className="font-serif font-semibold">Recursos Educativos</div>
+            <p className="text-brown-700/80 mt-2">
+              Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos
+            </p>
+          </CardBody>
+        </Card>
+      </section>
+
+      {/* TÍTULO & SUBTÍTULO DE “TEMAS ESPECIALIZADOS” */}
+      <section className="container my-6">
+        <h2 className="font-serif text-xl md:text-2xl text-center">Temas Especializados</h2>
+        <p className="text-center text-brown-700/80 mt-2 max-w-3xl mx-auto">
+          Explora nuestras áreas especializadas diseñadas para cada aspecto del caballo criollo
+        </p>
+      </section>
+
+      {/* GRID DE TEMAS (como en la imagen) */}
+      <section className="container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {[
+          { icon: "🧬", title: "Crianza y Genética", desc: "Foros especializados en crianza y genética", href: "/foros?cat=crianza" },
+          { icon: "🐎", title: "Entrenamiento", desc: "Foros especializados en entrenamiento", href: "/foros?cat=entrenamiento" },
+          { icon: "🏆", title: "Competencias", desc: "Foros especializados en competencias", href: "/foros?cat=competencias" },
+          { icon: "🩺", title: "Salud Veterinaria", desc: "Foros especializados en salud veterinaria", href: "/foros?cat=salud" },
+          { icon: "📜", title: "Historia y Tradición", desc: "Tradición, cultura y anécdotas", href: "/foros?cat=historia" },
+          { icon: "💰", title: "Comercialización", desc: "Compra, venta y servicios", href: "/foros?cat=comercial" },
+          { icon: "📺", title: "Eventos en Vivo", desc: "Transmisiones y coberturas", href: "/transmisiones" },
+          { icon: "💭", title: "Experiencias", desc: "Historias de la comunidad", href: "/historias" },
+        ].map((t) => (
+          <Link key={t.title} href={t.href} className="card hover:shadow-md transition">
+            <CardBody className="text-center">
+              <div className="text-3xl mb-3">{t.icon}</div>
+              <div className="font-serif font-semibold">{t.title}</div>
+              <p className="text-brown-700/80 mt-2 text-sm">{t.desc}</p>
+            </CardBody>
+          </Link>
+        ))}
+      </section>
     </>
   );
 }
