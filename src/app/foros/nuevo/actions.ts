@@ -7,28 +7,16 @@ export async function createThreadAction(
 ): Promise<{ ok: boolean; id?: string; message?: string }> {
   const supabase = supabaseServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false, message: "Debes iniciar sesión para crear un foro." };
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Debes iniciar sesión para crear un foro." };
 
   const title = (formData.get("title") as string)?.trim();
   const content = (formData.get("content") as string)?.trim();
-  const foro_id = (formData.get("foro_id") as string)?.trim() || null;
-
-  if (!title || !content) {
-    return { ok: false, message: "Título y contenido son obligatorios." };
-  }
-
-  const payload: any = { title, content, author_id: user.id };
-  if (foro_id) payload.foro_id = foro_id;
+  if (!title || !content) return { ok: false, message: "Título y contenido son obligatorios." };
 
   const { data, error } = await supabase
     .from("threads")
-    .insert(payload)
+    .insert({ title, content, author_id: user.id })
     .select("id")
     .single();
 
