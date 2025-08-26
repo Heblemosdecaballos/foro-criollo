@@ -24,7 +24,12 @@ export default function ThreadCard({ thread, profile }: { thread: Thread; profil
       </Link>
       <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
         <div className="flex items-center gap-2">
-          <span>Por {authorName}</span>
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={authorName} className="w-5 h-5 rounded-full object-cover" />
+          ) : (
+            <div className="w-5 h-5 rounded-full bg-gray-200" />
+          )}
+          <span className="truncate max-w-[140px]">Por {authorName}</span>
           <span>•</span>
           <span>{new Date(thread.created_at).toLocaleString()}</span>
         </div>
