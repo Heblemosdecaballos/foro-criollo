@@ -4,24 +4,25 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createThreadAction } from "./actions";
 
+type CreateThreadResult = { ok: boolean; id?: string; message?: string };
+
 export default function NewThreadForm() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMsg(null);
 
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const res = await createThreadAction(formData);
+      const res = (await createThreadAction(formData)) as CreateThreadResult;
       if (!res.ok) {
         setErrorMsg(res.message || "Error desconocido.");
         return;
       }
-      // Redirige al detalle del hilo (ajusta la ruta real)
       router.push(`/foros/${res.id}`);
     });
   };
@@ -49,17 +50,6 @@ export default function NewThreadForm() {
           placeholder="Escribe los detalles del tema a debatir…"
         />
       </div>
-
-      {/* Si manejas categorías/foros */}
-      {/* <div>
-        <label className="block text-sm font-medium mb-1">Foro (opcional)</label>
-        <input
-          name="foro_id"
-          type="text"
-          className="w-full border rounded p-2"
-          placeholder="UUID del foro/categoría"
-        />
-      </div> */}
 
       {errorMsg && (
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 p-2 rounded">
