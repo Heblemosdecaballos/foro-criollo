@@ -1,15 +1,11 @@
-// src/lib/supabase/client.ts
-"use client";
+import { createClient } from "@supabase/supabase-js";
 
-import { createBrowserClient } from "@supabase/ssr";
+export const supabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: { persistSession: true, autoRefreshToken: true },
+  }
+);
 
-export function createSupabaseBrowser() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-}
-
-export const createSupabaseBrowserClient = createSupabaseBrowser;
-export const supabaseBrowser = createSupabaseBrowser;
-export default createSupabaseBrowser;
+export default supabaseClient;
