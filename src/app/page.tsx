@@ -1,7 +1,6 @@
 // src/app/page.tsx
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardBody } from "@/src/components/ui/Card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,7 +8,7 @@ export const revalidate = 0;
 export default function Home() {
   return (
     <>
-      {/* FRANJA CAFÉ (misma que tu diseño) */}
+      {/* FRANJA CAFÉ */}
       <section className="hero-cafe text-white relative">
         <div className="container py-14 md:py-18">
           <div className="flex items-center gap-3">
@@ -26,68 +25,48 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* TARJETA CON LA FOTO ENCIMA DE LA FRANJA (derecha) */}
+        {/* TARJETA FOTO SUPERPUESTA */}
         <div className="container relative">
           <div className="hero-photo-card">
-            <Image
-              src="/hero/portada.jpg"   // <— tu foto anterior
-              alt="Caballo Criollo"
-              fill
-              className="object-cover"
-              priority
-            />
+            <Image src="/hero/portada.jpg" alt="Caballo Criollo" fill className="object-cover" priority />
           </div>
         </div>
       </section>
 
-      {/* MÉTRICAS (cajas blancas) */}
+      {/* MÉTRICAS */}
       <section className="container grid grid-cols-1 md:grid-cols-3 gap-4 -mt-8 mb-8">
         {[
           { big: "500+", small: "Miembros Activos" },
           { big: "50+", small: "Foros Especializados" },
           { big: "24/7", small: "Comunidad Activa" },
         ].map((m) => (
-          <Card key={m.big}>
-            <CardBody className="text-center">
+          <div key={m.big} className="card">
+            <div className="card-body text-center">
               <div className="text-3xl font-bold">{m.big}</div>
               <div className="text-sm mt-1 text-brown-700/70">{m.small}</div>
-            </CardBody>
-          </Card>
+            </div>
+          </div>
         ))}
       </section>
 
-      {/* TRES CUADROS SUPERIORES (como en tu referencia) */}
+      {/* TRES CUADROS SUPERIORES */}
       <section className="container grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-3xl mb-3">🐎</div>
-            <div className="font-serif font-semibold">Expertos en Caballos</div>
-            <p className="text-brown-700/80 mt-2">
-              Conecta con criadores, entrenadores y expertos del caballo criollo colombiano
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-3xl mb-3">💬</div>
-            <div className="font-serif font-semibold">Foros Especializados</div>
-            <p className="text-brown-700/80 mt-2">
-              Participa en discusiones sobre crianza, entrenamiento, salud y competencias
-            </p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-3xl mb-3">📚</div>
-            <div className="font-serif font-semibold">Recursos Educativos</div>
-            <p className="text-brown-700/80 mt-2">
-              Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos
-            </p>
-          </CardBody>
-        </Card>
+        {[
+          { icon: "🐎", title: "Expertos en Caballos", desc: "Conecta con criadores, entrenadores y expertos del caballo criollo colombiano" },
+          { icon: "💬", title: "Foros Especializados", desc: "Participa en discusiones sobre crianza, entrenamiento, salud y competencias" },
+          { icon: "📚", title: "Recursos Educativos", desc: "Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos" },
+        ].map((c) => (
+          <div key={c.title} className="card">
+            <div className="card-body text-center">
+              <div className="text-3xl mb-3">{c.icon}</div>
+              <div className="font-serif font-semibold">{c.title}</div>
+              <p className="text-brown-700/80 mt-2">{c.desc}</p>
+            </div>
+          </div>
+        ))}
       </section>
 
-      {/* TÍTULO & SUBTÍTULO DE “TEMAS ESPECIALIZADOS” */}
+      {/* TEMAS ESPECIALIZADOS */}
       <section className="container my-6">
         <h2 className="font-serif text-xl md:text-2xl text-center">Temas Especializados</h2>
         <p className="text-center text-brown-700/80 mt-2 max-w-3xl mx-auto">
@@ -95,7 +74,6 @@ export default function Home() {
         </p>
       </section>
 
-      {/* GRID DE TEMAS (como en la imagen) */}
       <section className="container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {[
           { icon: "🧬", title: "Crianza y Genética", desc: "Foros especializados en crianza y genética", href: "/foros?cat=crianza" },
@@ -107,13 +85,13 @@ export default function Home() {
           { icon: "📺", title: "Eventos en Vivo", desc: "Transmisiones y coberturas", href: "/transmisiones" },
           { icon: "💭", title: "Experiencias", desc: "Historias de la comunidad", href: "/historias" },
         ].map((t) => (
-          <Link key={t.title} href={t.href} className="card hover:shadow-md transition">
-            <CardBody className="text-center">
+          <a key={t.title} href={t.href} className="card hover:shadow-md transition">
+            <div className="card-body text-center">
               <div className="text-3xl mb-3">{t.icon}</div>
               <div className="font-serif font-semibold">{t.title}</div>
               <p className="text-brown-700/80 mt-2 text-sm">{t.desc}</p>
-            </CardBody>
-          </Link>
+            </div>
+          </a>
         ))}
       </section>
     </>
