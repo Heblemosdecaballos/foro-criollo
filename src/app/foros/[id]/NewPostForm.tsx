@@ -16,25 +16,11 @@ function SubmitBtn() {
   );
 }
 
-export default function NewPostForm({
-  threadId,
-  isLoggedIn,
-}: {
-  threadId: string;
-  isLoggedIn: boolean;
-}) {
+export default function NewPostForm({ threadId }: { threadId: string }) {
   const [state, formAction] = useFormState(createPostAction, {
     ok: null,
     message: null,
   });
-
-  if (!isLoggedIn) {
-    return (
-      <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-2 rounded">
-        Debes iniciar sesión para publicar.
-      </p>
-    );
-  }
 
   return (
     <form action={formAction} className="space-y-3">
