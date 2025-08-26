@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-export const supabaseClient = createClient(
+/** Cliente único de navegador (browser) */
+const supabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
@@ -8,8 +9,17 @@ export const supabaseClient = createClient(
   }
 );
 
-/** Compatibilidad con código antiguo que importaba { supabaseBrowser } */
-export const supabaseBrowser = supabaseClient;
+/**
+ * ✅ Retro-compatibilidad:
+ * Algunos componentes hacen `const supabase = supabaseBrowser();`
+ * Mantenemos esa API como función que devuelve el cliente.
+ */
+export function supabaseBrowser() {
+  return supabaseClient;
+}
 
-/** Default export para imports por defecto */
+/** Exports modernos recomendados */
+export { supabaseClient };
+
+/** Default export (también válido: import supabase from "@/lib/supabase/client") */
 export default supabaseClient;
