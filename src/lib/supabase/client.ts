@@ -10,16 +10,26 @@ const supabaseClient = createClient(
 );
 
 /**
- * ✅ Retro-compatibilidad:
- * Algunos componentes hacen `const supabase = supabaseBrowser();`
- * Mantenemos esa API como función que devuelve el cliente.
+ * API recomendada en componentes cliente:
+ *   import supabaseClient from "@/lib/supabase/client";
+ */
+export default supabaseClient;
+
+/**
+ * ✅ Compatibilidad con código antiguo:
+ * - algunos archivos usan `const supabase = supabaseBrowser();`
+ * - otros usan `createSupabaseBrowser()` o `createSupabaseBrowserClient()`
+ * Todos devuelven el mismo cliente.
  */
 export function supabaseBrowser() {
   return supabaseClient;
 }
+export function createSupabaseBrowser() {
+  return supabaseClient;
+}
+export function createSupabaseBrowserClient() {
+  return supabaseClient;
+}
 
-/** Exports modernos recomendados */
+/** Export nombrado del objeto, por si lo importan como named import */
 export { supabaseClient };
-
-/** Default export (también válido: import supabase from "@/lib/supabase/client") */
-export default supabaseClient;
