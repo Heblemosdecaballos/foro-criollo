@@ -4,6 +4,7 @@ import { Eye, MessageSquare } from "lucide-react";
 type Profile = { id: string; username: string | null; full_name: string | null; avatar_url: string | null };
 type Thread = {
   id: string;
+  slug?: string | null;
   title: string;
   content: string;
   created_at: string;
@@ -15,10 +16,11 @@ type Thread = {
 export default function ThreadCard({ thread, profile }: { thread: Thread; profile?: Profile | null }) {
   const authorName = profile?.username || profile?.full_name || "Usuario";
   const preview = thread.content?.slice(0, 140) || "";
+  const href = `/foros/${thread.slug ?? thread.id}`;
 
   return (
     <li className="rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition">
-      <Link href={`/foros/${thread.id}`} className="block">
+      <Link href={href} className="block">
         <h3 className="text-lg font-semibold mb-1 line-clamp-2">{thread.title}</h3>
         <p className="text-sm text-gray-600 line-clamp-2">{preview}</p>
       </Link>
