@@ -8,6 +8,8 @@ const supabaseClient = createClient(
 
 export default supabaseClient;
 export { supabaseClient };
+
+// Retro-compat: funciones que devuelven el mismo cliente
 export function supabaseBrowser() { return supabaseClient; }
 export function createSupabaseBrowser() { return supabaseClient; }
 export function createSupabaseBrowserClient() { return supabaseClient; }
