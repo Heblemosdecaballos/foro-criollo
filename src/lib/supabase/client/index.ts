@@ -1,7 +1,7 @@
-// src/lib/supabase/client/index.ts
-export { default } from "../client";
 export {
+  default,
+  supabaseClient,
+  supabaseBrowser,
   createSupabaseBrowser,
   createSupabaseBrowserClient,
-  supabaseBrowser,
 } from "../client";
