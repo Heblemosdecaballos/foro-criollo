@@ -1,10 +1,18 @@
-// app/robots.ts
-export default function robots() {
-  const base =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+import type { MetadataRoute } from "next";
+
+export default function robots(): MetadataRoute.Robots {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://hablandodecaballos.com";
+
   return {
-    rules: [{ userAgent: "*", allow: "/" }],
-    sitemap: base ? `${base}/sitemap.xml` : undefined,
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+      },
+    ],
+    sitemap: `${siteUrl}/sitemap.xml`,
+    host: siteUrl,
   };
 }
