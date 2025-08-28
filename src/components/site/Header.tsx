@@ -1,88 +1,106 @@
-// src/components/site/Header.tsx
-import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServer } from "@/src/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
 
-const NAV = [
-  { href: "/foros", label: "Foros" },
-  { href: "/noticias", label: "Noticias" },
-  { href: "/historias", label: "Historias" },
-  { href: "/transmisiones", label: "Transmisiones" },
-  { href: "/hall", label: "Hall of Fame" },
-  { href: "/chat", label: "Chat en Vivo" },
-  { href: "/app", label: "📱 Instalar app" },
-];
-
-/** Server Action local: cerrar sesión */
-async function logout() {
-  "use server";
-  const supabase = createSupabaseServer();
-  await supabase.auth.signOut();
-  redirect("/");
-}
-
-// Server component
+/**
+ * Header server component (lee cookies para saber si hay usuario)
+ * - Menú responsive sin JS usando <details> para mobile
+ * - Botón "Crear Foro"
+ */
 export default async function Header() {
-  const supabase = createSupabaseServer();
+  const supabase = supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const userName =
-    user?.user_metadata?.full_name ||
-    user?.email?.split("@")[0] ||
-    undefined;
-
   return (
-    <header className="w-full sticky top-0 z-40 bg-cream-50/95 backdrop-blur border-b border-brown-700/10">
-      <div className="container h-16 flex items-center gap-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <Image src="/brand/horse.png" alt="Caballo" width={28} height={28} priority />
-          <span className="font-serif text-[18px] md:text-[20px] leading-none font-semibold text-brown-700">
-            Hablando de Caballos
-          </span>
+    <header className="sticky top-0 z-40 w-full border-b bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <span className="text-xl">🐴</span>
+          <span className="text-lg">Hablando de Caballos</span>
         </Link>
 
-        {/* Nav */}
-        <nav className="hidden lg:flex items-center gap-1 ml-2">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="px-3 py-2 rounded-lg text-[14px] text-brown-700 hover:bg-cream-100"
-            >
-              {item.label}
-            </Link>
-          ))}
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-4 md:flex text-sm">
+          <Link href="/" className="hover:underline">
+            Inicio
+          </Link>
+          <Link href="/foros" className="hover:underline">
+            Foros
+          </Link>
+          <Link href="/hall" className="hover:underline">
+            Hall
+          </Link>
+          <Link href="/recursos" className="hover:underline">
+            Recursos
+          </Link>
         </nav>
 
-        {/* Auth */}
-        <div className="ml-auto flex items-center gap-2">
+        {/* Actions */}
+        <div className="hidden items-center gap-2 md:flex">
+          <Link
+            href="/foros/nuevo"
+            className="rounded-xl bg-green-600 px-3 py-2 text-white shadow-sm hover:shadow"
+          >
+            Crear Foro
+          </Link>
+
           {user ? (
-            <>
-              <span className="rounded-full border border-brown-700/20 px-3 py-1.5 text-sm text-brown-700">
-                Hola, <b>{userName}</b>
-              </span>
-              <form action={logout}>
-                <button className="btn btn-ghost">Salir</button>
-              </form>
-            </>
+            <Link href="/perfil" className="rounded-xl border px-3 py-2">
+              Mi cuenta
+            </Link>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-full border border-brown-700/20 px-4 py-1.5 text-sm text-brown-700 hover:bg-cream-100"
-              >
-                Iniciar Sesión
-              </Link>
-              <Link href="/registro" className="btn btn-olive">
-                Registrarse
-              </Link>
-            </>
+            <Link href="/login" className="rounded-xl border px-3 py-2">
+              Iniciar sesión
+            </Link>
           )}
         </div>
+
+        {/* Mobile menu */}
+        <details className="md:hidden">
+          <summary className="cursor-pointer rounded-xl border px-3 py-2 text-sm">
+            Menú
+          </summary>
+          <div className="absolute right-4 mt-2 w-56 rounded-xl border bg-white p-2 shadow-lg">
+            <div className="flex flex-col">
+              <Link href="/" className="rounded px-3 py-2 hover:bg-gray-50">
+                Inicio
+              </Link>
+              <Link href="/foros" className="rounded px-3 py-2 hover:bg-gray-50">
+                Foros
+              </Link>
+              <Link href="/hall" className="rounded px-3 py-2 hover:bg-gray-50">
+                Hall
+              </Link>
+              <Link href="/recursos" className="rounded px-3 py-2 hover:bg-gray-50">
+                Recursos
+              </Link>
+              <hr className="my-2" />
+              <Link
+                href="/foros/nuevo"
+                className="rounded px-3 py-2 hover:bg-gray-50"
+              >
+                + Crear Foro
+              </Link>
+              {user ? (
+                <Link
+                  href="/perfil"
+                  className="rounded px-3 py-2 hover:bg-gray-50"
+                >
+                  Mi cuenta
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded px-3 py-2 hover:bg-gray-50"
+                >
+                  Iniciar sesión
+                </Link>
+              )}
+            </div>
+          </div>
+        </details>
       </div>
     </header>
   );
