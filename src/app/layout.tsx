@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic"; // el header lee cookies (usuario)
+export const dynamic = "force-dynamic"; // el header lee cookies/session
 
 import type { Metadata } from "next";
 import "./globals.css";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s · Hablando de Caballos",
   },
   description:
-    "Comunidad hispana de aficionados y profesionales del mundo ecuestre. Foros, debates y recursos.",
+    "Comunidad hispana del mundo ecuestre. Foros, debates y recursos.",
   openGraph: {
     type: "website",
     url: siteUrl,
@@ -29,9 +29,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body className="bg-neutral-50">
+      {/* ✅ Fondo beige aplicado por clase utilitaria */}
+      <body className="min-h-screen bg-site-beige text-neutral-900">
         <Header />
-        <main>{children}</main>
+        <main className="min-h-[calc(100vh-64px)]">{children}</main>
       </body>
     </html>
   );
