@@ -1,15 +1,65 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import NewPostForm from "./NewPostForm";
 import EditorThread from "./EditorThread";
 import PostItem from "./PostItem";
 
 function isUUID(v: string) {
-  // UUID v1–v5
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 
+/** ----------  METADATA DINÁMICA POR HILO  ---------- */
+export async function generateMetadata(
+  { params }: { params: { slug: string } }
+): Promise<Metadata> {
+  const supabase = supabaseServer();
+  const param = params.slug;
+
+  // intenta por slug
+  let { data: t } = await supabase
+    .from("threads")
+    .select("title, content, is_deleted, slug")
+    .eq("slug", param)
+    .single();
+
+  // si no hay y parece UUID, busca por id y redirige en la propia página (metadata usa fallback)
+  if ((!t || t.is_deleted) && isUUID(param)) {
+    const { data: byId } = await supabase
+      .from("threads")
+      .select("slug, title, content, is_deleted")
+      .eq("id", param)
+      .single();
+    t = byId || t;
+  }
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://hablandodecaballos.com";
+
+  const title = t?.title ? `${t.title}` : "Hilo del foro";
+  const description =
+    t?.content?.slice(0, 140) ||
+    "Debate ecuestre en la comunidad Hablando de Caballos.";
+
+  const slug = t?.slug || param;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${siteUrl}/foros/${slug}` },
+    openGraph: {
+      title,
+      description,
+      url: `${siteUrl}/foros/${slug}`,
+      images: [`${siteUrl}/foros/${slug}/opengraph-image`],
+      type: "article",
+    },
+  };
+}
+
+/** ----------  PÁGINA DEL HILO  ---------- */
 export default async function ThreadDetailBySlug({ params }: { params: { slug: string } }) {
   const supabase = supabaseServer();
   const param = params.slug;
@@ -32,11 +82,9 @@ export default async function ThreadDetailBySlug({ params }: { params: { slug: s
     if (!byId || byId.is_deleted) {
       notFound();
     }
-    // Redirige a la URL SEO por slug
     redirect(`/foros/${byId.slug}`);
   }
 
-  // Si sigue sin existir o está borrado, 404
   if (!thread || thread.is_deleted) {
     notFound();
   }
@@ -52,10 +100,7 @@ export default async function ThreadDetailBySlug({ params }: { params: { slug: s
     .single();
 
   // Usuario actual (permisos UI)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   let meIsMod = false;
   if (user) {
     const { data: me } = await supabase
@@ -67,7 +112,7 @@ export default async function ThreadDetailBySlug({ params }: { params: { slug: s
   }
   const canEditThread = !!user && (user.id === thread.author_id || meIsMod);
 
-  // Respuestas (no borradas, orden ascendente)
+  // Respuestas (no borradas)
   const { data: posts } = await supabase
     .from("posts")
     .select("id, content, author_id, created_at, is_deleted")
@@ -80,9 +125,7 @@ export default async function ThreadDetailBySlug({ params }: { params: { slug: s
     <div className="max-w-3xl mx-auto p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{thread.title}</h1>
-        <Link href="/foros" className="text-sm underline">
-          ← Volver a Foros
-        </Link>
+        <Link href="/foros" className="text-sm underline">← Volver a Foros</Link>
       </div>
 
       <article className="rounded-2xl border bg-white p-5 shadow-sm mb-6">
@@ -113,7 +156,7 @@ export default async function ThreadDetailBySlug({ params }: { params: { slug: s
         <h2 className="text-xl font-medium mb-3">Respuestas</h2>
         {posts && posts.length ? (
           <ul className="space-y-3">
-            {posts.filter((p) => !p.is_deleted).map((p) => (
+            {posts.filter(p => !p.is_deleted).map((p) => (
               <PostItem
                 key={p.id}
                 post={{ id: p.id, content: p.content, created_at: p.created_at }}
