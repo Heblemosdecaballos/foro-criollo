@@ -1,7 +1,8 @@
-export const dynamic = "force-static"; // layout puede ser estático
+export const dynamic = "force-dynamic"; // el header lee cookies (usuario)
 
 import type { Metadata } from "next";
 import "./globals.css";
+import Header from "@/components/site/Header";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -21,19 +22,17 @@ export const metadata: Metadata = {
     siteName: "Hablando de Caballos",
     locale: "es_ES",
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  alternates: {
-    canonical: siteUrl,
-  },
+  robots: { index: true, follow: true },
+  alternates: { canonical: siteUrl },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className="bg-neutral-50">
+        <Header />
+        <main>{children}</main>
+      </body>
     </html>
   );
 }
