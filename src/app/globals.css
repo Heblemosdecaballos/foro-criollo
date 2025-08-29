@@ -2,133 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================
-   Variables de marca
-   ========================= */
+/* ====== Marca global ====== */
 :root{
   --site-beige: #F5EFE6;
-  --header-h: 68px;            /* alto aproximado del header */
-  --hero-cafe-start: #9A623E;
-  --hero-cafe-end:   #B77A51;
-  --container-w: 1200px;       /* ancho máximo del contenido */
 }
 
-/* Base */
 html, body { height: 100%; }
+
 body{
   background: var(--site-beige);
   color: #111827;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 .bg-site-beige{ background-color: var(--site-beige); }
 
-/* Titulares con serif elegante (viene de next/font en layout.tsx) */
-h1, h2, h3, .brand-title, .font-serif{
-  font-family: var(--font-heading), ui-serif, Georgia, "Times New Roman", serif;
-}
-
-/* =========================
-   FRANJA CAFÉ (solo portada)
-   ========================= */
-.site-main{ position: relative; z-index: 0; }
-
-/* La franja café se pinta detrás del PRIMER bloque de la portada */
-body.has-hero .site-main::before{
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: var(--header-h);
-  height: 520px; /* alto visible de la franja */
-  background: linear-gradient(180deg, var(--hero-cafe-start) 0%, var(--hero-cafe-end) 100%);
-  z-index: -1;
-  pointer-events: none;
-  box-shadow: 0 18px 40px rgba(0,0,0,.08) inset;
-}
-
-/* =========================
-   LAYOUT DEL HÉROE (sin tocar tu JSX)
-   Aplica al PRIMER bloque de la portada
-   ========================= */
-body.has-hero .site-main > *:first-child{
-  /* Contenedor centrado y grid de 12 columnas */
-  display: grid !important;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: center;
-  gap: 24px;
-  max-width: var(--container-w);
-  margin-inline: auto;
-  padding: 48px 16px 88px;    /* espacio inferior extra para que NO se monten las categorías */
-  min-height: 480px;          /* asegura altura cómoda dentro de la franja */
-}
-
-/* Columna izquierda: titulares + párrafo + CTA */
-body.has-hero .site-main > *:first-child h1{
-  grid-column: 1 / span 7;
-  color: #fff;
-  font-weight: 900;
-  line-height: 1.05;
-  font-size: clamp(32px, 5.2vw, 64px);
-  margin: 0 0 12px 0;
-  text-align: left;
-}
-body.has-hero .site-main > *:first-child p{
-  grid-column: 1 / span 6;
-  color: rgba(255,255,255,.9);
-  font-size: clamp(14px, 1.6vw, 20px);
-  margin: 0 0 16px 0;
-  text-align: left;
-}
-
-/* Botones dentro del héroe (CTA "Crear Nuevo Foro") */
-body.has-hero .site-main > *:first-child a,
-body.has-hero .site-main > *:first-child button{
-  grid-column: 1 / span 3;
-  justify-self: start;
-}
-
-/* Columna derecha: la foto central “card” */
-body.has-hero .site-main > *:first-child img{
-  grid-column: 8 / -1;
-  width: 100%;
-  height: auto;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow:
-    0 20px 40px rgba(0,0,0,.20),
-    0 4px 8px rgba(0,0,0,.08);
-}
-
-/* Evita que la imagen rompa el layout si viene muy alta */
-@media (max-width: 1024px){
-  body.has-hero .site-main > *:first-child{
-    grid-template-columns: 1fr;
-    padding: 32px 16px 72px;
-    min-height: auto;
-  }
-  body.has-hero .site-main > *:first-child h1{ grid-column: 1 / -1; }
-  body.has-hero .site-main > *:first-child p{ grid-column: 1 / -1; }
-  body.has-hero .site-main > *:first-child a,
-  body.has-hero .site-main > *:first-child button{ grid-column: 1 / -1; }
-  body.has-hero .site-main > *:first-child img{
-    grid-column: 1 / -1;
-    margin-top: 16px;
-  }
-}
-
-/* =========================
-   SECCIÓN SIGUIENTE (categorías)
-   Empuja un poco hacia abajo para que no “toque” la franja
-   ========================= */
-body.has-hero .site-main > *:nth-child(2){
-  margin-top: 12px;           /* espacio natural */
-}
-
-/* Si la segunda sección también es un grid de tarjetas, evita que se pegue */
-@media (min-width: 1024px){
-  body.has-hero .site-main > *:nth-child(2){
-    margin-top: 24px;
-  }
+/* Tipos base (puedes ajustar si ya tienes fuentes cargadas) */
+h1, h2, h3, .font-serif{
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
 }
 
 /* Accesibilidad */
