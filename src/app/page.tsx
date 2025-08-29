@@ -3,16 +3,14 @@ import Link from "next/link";
 export default function Home() {
   return (
     <>
-      {/* ======= HÉROE (franja café con grid 7/5) ======= */}
+      {/* ================== HÉROE ================== */}
       <section
-        // Franja café (sin CSS externo)
         style={{ background: "linear-gradient(180deg,#9A623E 0%, #B77A51 100%)" }}
-        className="relative shadow-inner"
+        className="relative"
       >
         <div className="mx-auto max-w-7xl px-4 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* IZQUIERDA: título + descripción + CTA */}
-          <div className="lg:col-span-7 text-left">
-            {/* ⬇⬇ Usa tu H1 original (puedes reemplazar este bloque por el tuyo tal cual) */}
+          {/* IZQUIERDA */}
+          <div className="lg:col-span-7">
             <h1 className="font-serif text-white text-4xl md:text-6xl font-extrabold leading-tight">
               Hablando de Caballos
             </h1>
@@ -27,11 +25,10 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* DERECHA: foto central (no se pierde) */}
+          {/* DERECHA (FOTO CENTRAL) */}
           <div className="lg:col-span-5">
-            {/* ⬇⬇ CAMBIA el src por el de tu foto actual si es distinto */}
             <img
-              src="/media/hero.jpg"
+              src="/media/hero.jpg"  // <-- coloca tu imagen en public/media/hero.jpg o cambia este src
               alt="Exhibición de caballos"
               className="w-full h-auto rounded-2xl shadow-xl"
               loading="eager"
@@ -40,23 +37,69 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ======= CATEGORÍAS / SECCIONES SIGUIENTES ======= */}
-      <section className="mx-auto max-w-7xl px-4 pt-8 md:pt-10">
-        {/*
-          ⬇⬇ Aquí pega TODO tu bloque de:
-            - 'Expertos / Foros especializados / Recursos' (las 3 cards grandes)
-            - Título "Temas Especializados" + descripción
-            - Grilla de categorías
-          SIN CAMBIAR tu JSX interno. Solo queda envuelto en este <section> para que no se monte con la franja.
-        */}
-
-        {/* EJEMPLO mínimo — BORRAR y reemplazar por tu contenido real */}
-        {/* <TusCardsIntro /> */}
-        {/* <TituloTemasEspecializados /> */}
-        {/* <GrillaCategorias /> */}
+      {/* ========== SECCIÓN: 3 CARDS INTRO ========== */}
+      <section className="mx-auto max-w-7xl px-4 py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1 */}
+          <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
+            <div className="text-3xl mb-2">🐴</div>
+            <h3 className="font-serif text-lg font-semibold">Expertos en Caballos</h3>
+            <p className="text-sm text-neutral-700 mt-1">
+              Conecta con criadores, entrenadores y expertos del caballo criollo colombiano
+            </p>
+          </div>
+          {/* Card 2 */}
+          <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
+            <div className="text-3xl mb-2">💬</div>
+            <h3 className="font-serif text-lg font-semibold">Foros Especializados</h3>
+            <p className="text-sm text-neutral-700 mt-1">
+              Participa en discusiones sobre crianza, entrenamiento, salud y competencias
+            </p>
+          </div>
+          {/* Card 3 */}
+          <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
+            <div className="text-3xl mb-2">📚</div>
+            <h3 className="font-serif text-lg font-semibold">Recursos Educativos</h3>
+            <p className="text-sm text-neutral-700 mt-1">
+              Accede a guías, artículos y recursos sobre el cuidado y manejo de caballos
+            </p>
+          </div>
+        </div>
       </section>
 
-      {/* Si tienes más secciones debajo, déjalas tal cual */}
+      {/* ======= SECCIÓN: TEMAS ESPECIALIZADOS ======= */}
+      <section className="mx-auto max-w-7xl px-4 pb-12">
+        <div className="text-center mb-6">
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold">Temas Especializados</h2>
+          <p className="text-neutral-700 mt-2 max-w-3xl mx-auto">
+            Explora nuestras áreas especializadas diseñadas para cada aspecto del caballo criollo
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Fila 1 */}
+          <CardTema icon="🐎" title="Entrenamiento" desc="Foros especializados en entrenamiento" />
+          <CardTema icon="🧬" title="Crianza y Genética" desc="Foros especializados en crianza y genética" />
+          <CardTema icon="🏆" title="Competencias" desc="Foros especializados en competencias" />
+          <CardTema icon="🩺" title="Salud Veterinaria" desc="Foros especializados en salud veterinaria" />
+          {/* Fila 2 */}
+          <CardTema icon="📜" title="Historia y Tradición" desc="Tradición, cultura y anécdotas" />
+          <CardTema icon="💰" title="Comercialización" desc="Compra, venta y servicios" />
+          <CardTema icon="📺" title="Eventos en Vivo" desc="Transmisiones y coberturas" />
+          <CardTema icon="☁️" title="Experiencias" desc="Historias de la comunidad" />
+        </div>
+      </section>
     </>
+  );
+}
+
+/* ----------- Subcomponente simple para los temas ----------- */
+function CardTema({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="rounded-2xl bg-white/80 p-6 shadow-sm border hover:shadow-md transition">
+      <div className="text-3xl mb-2">{icon}</div>
+      <h3 className="font-serif text-base md:text-lg font-semibold">{title}</h3>
+      <p className="text-sm text-neutral-700 mt-1">{desc}</p>
+    </div>
   );
 }
