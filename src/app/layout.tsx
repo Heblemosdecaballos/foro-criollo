@@ -7,7 +7,7 @@ import { Merriweather } from "next/font/google";
 
 const heading = Merriweather({
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["700", "900"],
   variable: "--font-heading",
 });
 
@@ -30,25 +30,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-site-beige text-neutral-900">
         <Header />
 
-        {/* Marca la portada para dibujar la franja café SIN tocar otras páginas */}
+        {/* Marca solo la portada para dibujar la franja café y aplicar el layout del héroe */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
 (function(){
-  var apply = function(){
+  function apply(){
     if (location && (location.pathname === "/" || location.pathname === "/inicio")) {
       document.body.classList.add("has-hero");
     } else {
       document.body.classList.remove("has-hero");
     }
-  };
+  }
   document.addEventListener("DOMContentLoaded", apply);
   window.addEventListener("popstate", apply);
 })();`,
           }}
         />
 
-        {/* Contenido principal con banda café cuando body.has-hero esté activo */}
         <main id="main" className="site-main min-h-[calc(100vh-var(--header-h,64px))]">
           {children}
         </main>
