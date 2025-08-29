@@ -2,10 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ====== Marca global ====== */
-:root{
-  --site-beige: #F5EFE6;
-}
+/* ===== Fondo y base global ===== */
+:root{ --site-beige: #F5EFE6; }
 
 html, body { height: 100%; }
 
@@ -16,9 +14,10 @@ body{
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Utilitaria (por si la necesitas en algún bloque) */
 .bg-site-beige{ background-color: var(--site-beige); }
 
-/* Tipos base (puedes ajustar si ya tienes fuentes cargadas) */
+/* Tipografía de títulos (similar a tus capturas) */
 h1, h2, h3, .font-serif{
   font-family: ui-serif, Georgia, "Times New Roman", serif;
 }
