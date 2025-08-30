@@ -1,72 +1,57 @@
-// app/hall/nueva/NewHallForm.tsx
-'use client'
+"use client";
 
-import { useTransition, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createNomination } from './actions'
+import { useState, useTransition } from "react";
+import { ANDARES } from "@/lib/hall/types";
+import { createHorseAction } from "./actions";
+import { useRouter } from "next/navigation";
 
 export default function NewHallForm() {
-  const [pending, start] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    setError(null);
+
+    startTransition(async () => {
+      const res = await createHorseAction(data);
+      if (!res.ok) setError(res.message || "Error");
+      else router.push(`/hall/${res.andar}/${res.slug}`);
+    });
+  }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        const fd = new FormData(e.currentTarget as HTMLFormElement)
-        setError(null)
-        start(async () => {
-          const res = await createNomination(fd)
-          if (!res.ok) {
-            setError(res.error || 'No se pudo crear la nominación')
-            return
-          }
-          router.push(`/hall/${res.slug}`)
-        })
-      }}
-      encType="multipart/form-data"
-      className="space-y-4"
-    >
+    <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border bg-white/80 p-6">
+      {error && <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-2 rounded">{error}</p>}
+
       <div>
-        <label className="block text-sm font-medium">Título</label>
-        <input name="title" className="input w-full" required />
+        <label className="block text-sm font-medium">Nombre del Ejemplar</label>
+        <input name="name" required className="mt-1 w-full rounded border px-3 py-2" />
       </div>
 
       <div>
         <label className="block text-sm font-medium">Andar</label>
-        <select name="gait" className="input w-full" required>
-          <option value="trocha_galope">Trocha y Galope</option>
-          <option value="trote_galope">Trote y Galope</option>
-          <option value="trocha_colombia">Trocha Colombia</option>
-          <option value="paso_fino">Paso Fino Colombiano</option>
+        <select name="andar" required className="mt-1 w-full rounded border px-3 py-2">
+          {ANDARES.map(a => <option key={a.slug} value={a.slug}>{a.name}</option>)}
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Año (opcional)</label>
-        <input name="year" type="number" className="input w-full" placeholder="Ej. 2018" />
+        <label className="block text-sm font-medium">Descripción</label>
+        <textarea name="description" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Biografía</label>
-        <textarea name="bio" rows={4} className="input w-full" />
+        <label className="block text-sm font-medium">Pedigrí (URL PDF/imagen opcional)</label>
+        <input name="pedigree_url" type="url" className="mt-1 w-full rounded border px-3 py-2" />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium">Logros (opcional)</label>
-        <textarea name="achievements" rows={3} className="input w-full" />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Portada (opcional)</label>
-        <input type="file" name="cover" accept="image/*" />
-      </div>
-
-      <button className="btn btn-primary" disabled={pending}>
-        {pending ? 'Creando…' : 'Crear nominación'}
+      <button disabled={pending} className="rounded-xl bg-green-700 px-4 py-2 text-white">
+        {pending ? "Creando..." : "Crear Ejemplar"}
       </button>
-      {error && <p className="text-red-600 text-sm">{error}</p>}
     </form>
-  )
+  );
 }
