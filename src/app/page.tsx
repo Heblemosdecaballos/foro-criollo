@@ -11,12 +11,22 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* IZQUIERDA: título + descripción + CTA */}
           <div className="lg:col-span-7">
-            <h1 className="font-serif text-white text-4xl md:text-6xl font-extrabold leading-tight">
-              Hablando de Caballos
-            </h1>
-            <p className="text-white/90 text-lg md:text-xl mt-3">
+            {/* Caballo grande junto al título */}
+            <div className="flex items-center gap-4">
+              <img
+                src="/brand/horse.png"   // <- public/brand/horse.png
+                alt="Caballo de marca"
+                className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20"
+              />
+              <h1 className="font-serif text-white text-4xl md:text-6xl font-extrabold leading-tight m-0">
+                Hablando de Caballos
+              </h1>
+            </div>
+
+            <p className="text-white/90 text-lg md:text-xl mt-4">
               La comunidad más grande del Caballo Criollo Colombiano
             </p>
+
             <Link
               href="/foros/nuevo"
               className="inline-block mt-6 rounded-xl bg-green-700 text-white px-5 py-3 shadow hover:shadow-md"
@@ -25,10 +35,10 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* DERECHA: FOTO CENTRAL (ruta fija a tu imagen) */}
+          {/* DERECHA: FOTO CENTRAL (mantiene tu ruta oficial) */}
           <div className="lg:col-span-5">
             <img
-              src="/hero/portada.jpg"        // 👈 tu ruta oficial (public/hero/portada.jpg)
+              src="/hero/portada.jpg"    // <- public/hero/portada.jpg
               alt="Exhibición de caballos"
               className="w-full h-auto rounded-2xl shadow-xl"
               loading="eager"
@@ -40,14 +50,21 @@ export default function Home() {
       {/* ======= 3 CARDS INTRO ======= */}
       <section className="mx-auto max-w-7xl px-4 py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 */}
+          {/* Card 1 – Expertos en Caballos (con el caballo de marca) */}
           <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
-            <div className="text-3xl mb-2">🐴</div>
+            <div className="mb-2">
+              <img
+                src="/brand/horse.png"   // <- public/brand/horse.png
+                alt="Caballo"
+                className="w-10 h-10"
+              />
+            </div>
             <h3 className="font-serif text-lg font-semibold">Expertos en Caballos</h3>
             <p className="text-sm text-neutral-700 mt-1">
               Conecta con criadores, entrenadores y expertos del caballo criollo colombiano
             </p>
           </div>
+
           {/* Card 2 */}
           <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
             <div className="text-3xl mb-2">💬</div>
@@ -56,6 +73,7 @@ export default function Home() {
               Participa en discusiones sobre crianza, entrenamiento, salud y competencias
             </p>
           </div>
+
           {/* Card 3 */}
           <div className="rounded-2xl bg-white/80 p-6 shadow-sm border">
             <div className="text-3xl mb-2">📚</div>
