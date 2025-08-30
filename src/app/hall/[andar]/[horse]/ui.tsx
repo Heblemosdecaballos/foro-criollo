@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { followAction, unfollowAction, voteAction, commentAction } from "./actions";
+import { followAction, unfollowAction, voteAction, commentAction, setFeaturedMediaAction, deleteMediaAction } from "./actions";
 
+/* ======== VOTO ======== */
 export function VoteButton({ horseId }: { horseId: string }) {
   const [pending, start] = useTransition();
   const [count, setCount] = useState<number | null>(null);
@@ -10,10 +11,12 @@ export function VoteButton({ horseId }: { horseId: string }) {
   return (
     <button
       disabled={pending}
-      onClick={() => start(async () => {
-        const res = await voteAction(horseId);
-        if (res.ok && typeof res.votes_count === "number") setCount(res.votes_count);
-      })}
+      onClick={() =>
+        start(async () => {
+          const res = await voteAction(horseId);
+          if (res.ok && typeof res.votes_count === "number") setCount(res.votes_count);
+        })
+      }
       className="rounded-full border px-3 py-1 text-sm bg-white/70 hover:bg-white"
     >
       👍 Votar {count !== null ? `(${count})` : ""}
@@ -21,6 +24,7 @@ export function VoteButton({ horseId }: { horseId: string }) {
   );
 }
 
+/* ======== FOLLOW ======== */
 export function FollowButton({ horseId }: { horseId: string }) {
   const [following, setFollowing] = useState(false);
   const [pending, start] = useTransition();
@@ -28,10 +32,12 @@ export function FollowButton({ horseId }: { horseId: string }) {
   return (
     <button
       disabled={pending}
-      onClick={() => start(async () => {
-        const res = following ? await unfollowAction(horseId) : await followAction(horseId);
-        if (res.ok) setFollowing(!following);
-      })}
+      onClick={() =>
+        start(async () => {
+          const res = following ? await unfollowAction(horseId) : await followAction(horseId);
+          if (res.ok) setFollowing(!following);
+        })
+      }
       className="rounded-full border px-3 py-1 text-sm bg-white/70 hover:bg-white"
     >
       {following ? "✓ Siguiendo" : "Seguir"}
@@ -39,6 +45,7 @@ export function FollowButton({ horseId }: { horseId: string }) {
   );
 }
 
+/* ======== COMENTARIOS ======== */
 export function CommentForm({ targetType, targetId }: { targetType: "horse" | "media"; targetId: string }) {
   const [pending, start] = useTransition();
   const [value, setValue] = useState("");
@@ -57,7 +64,7 @@ export function CommentForm({ targetType, targetId }: { targetType: "horse" | "m
     >
       <input
         value={value}
-        onChange={(e)=>setValue(e.target.value)}
+        onChange={(e) => setValue(e.target.value)}
         placeholder="Escribe un comentario…"
         className="flex-1 rounded border px-3 py-2"
       />
@@ -69,11 +76,55 @@ export function CommentForm({ targetType, targetId }: { targetType: "horse" | "m
 }
 
 export function MediaComments({ mediaId }: { mediaId: string }) {
-  // (Opcional) aquí puedes listar comentarios por media si lo deseas.
-  // Para no alargar, dejamos solo el formulario:
   return (
     <div className="mt-3">
       <CommentForm targetType="media" targetId={mediaId} />
+    </div>
+  );
+}
+
+/* ======== ACCIONES DE ADMIN SOBRE MEDIA ======== */
+export function AdminMediaActions({
+  horseId,
+  mediaId,
+  onDone,
+}: {
+  horseId: string;
+  mediaId: string;
+  onDone?: () => void;
+}) {
+  const [pending, start] = useTransition();
+
+  return (
+    <div className="flex gap-2 mt-2">
+      <button
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const res = await setFeaturedMediaAction(horseId, mediaId);
+            onDone?.();
+            if (!res.ok) alert(res.message || "No se pudo establecer portada");
+          })
+        }
+        className="text-xs rounded border px-2 py-1 bg-white hover:bg-amber-50"
+      >
+        ⭐ Portada
+      </button>
+      <button
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const ok = confirm("¿Eliminar archivo?");
+            if (!ok) return;
+            const res = await deleteMediaAction(mediaId);
+            onDone?.();
+            if (!res.ok) alert(res.message || "No se pudo eliminar");
+          })
+        }
+        className="text-xs rounded border px-2 py-1 bg-white hover:bg-red-50"
+      >
+        🗑️ Eliminar
+      </button>
     </div>
   );
 }
