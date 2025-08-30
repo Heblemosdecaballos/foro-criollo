@@ -1,56 +1,78 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ANDARES } from "@/lib/hall/types";
 import { createHorseAction } from "./actions";
-import { useRouter } from "next/navigation";
 
-export default function NewHallForm() {
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+export default function NewHallForm({ defaultAndar }: { defaultAndar?: string }) {
+  const [pending, start] = useTransition();
+  const [name, setName] = useState("");
+  const [andar, setAndar] = useState(defaultAndar || ANDARES[0].slug);
+  const [desc, setDesc] = useState("");
+  const [ped, setPed] = useState("");
   const router = useRouter();
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    setError(null);
-
-    startTransition(async () => {
-      const res = await createHorseAction(data);
-      if (!res.ok) setError(res.message || "Error");
-      else router.push(`/hall/${res.andar}/${res.slug}`);
-    });
-  }
-
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border bg-white/80 p-6">
-      {error && <p className="text-sm text-red-700 bg-red-50 border border-red-200 p-2 rounded">{error}</p>}
-
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const res = await createHorseAction({ name, andar_slug: andar, description: desc, pedigree_url: ped });
+          if (!res.ok) return alert(res.message || "No se pudo crear");
+          router.push(`/hall/${res.andar}/${res.slug}`);
+        });
+      }}
+      className="rounded-2xl border bg-white/80 p-6 space-y-4"
+    >
       <div>
-        <label className="block text-sm font-medium">Nombre del Ejemplar</label>
-        <input name="name" required className="mt-1 w-full rounded border px-3 py-2" />
+        <label className="block text-sm mb-1">Nombre</label>
+        <input
+          className="w-full rounded border px-3 py-2"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Andar</label>
-        <select name="andar" required className="mt-1 w-full rounded border px-3 py-2">
-          {ANDARES.map(a => <option key={a.slug} value={a.slug}>{a.name}</option>)}
+        <label className="block text-sm mb-1">Andar</label>
+        <select
+          className="w-full rounded border px-3 py-2"
+          value={andar}
+          onChange={(e) => setAndar(e.target.value)}
+        >
+          {ANDARES.map(a => (
+            <option key={a.slug} value={a.slug}>{a.name}</option>
+          ))}
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Descripción</label>
-        <textarea name="description" rows={4} className="mt-1 w-full rounded border px-3 py-2" />
+        <label className="block text-sm mb-1">Descripción (opcional)</label>
+        <textarea
+          className="w-full rounded border px-3 py-2"
+          rows={4}
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+        />
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Pedigrí (URL PDF/imagen opcional)</label>
-        <input name="pedigree_url" type="url" className="mt-1 w-full rounded border px-3 py-2" />
+        <label className="block text-sm mb-1">URL Pedigrí (PDF o imagen) (opcional)</label>
+        <input
+          className="w-full rounded border px-3 py-2"
+          placeholder="https://..."
+          value={ped}
+          onChange={(e) => setPed(e.target.value)}
+        />
       </div>
 
-      <button disabled={pending} className="rounded-xl bg-green-700 px-4 py-2 text-white">
-        {pending ? "Creando..." : "Crear Ejemplar"}
+      <button
+        disabled={pending}
+        className="rounded bg-green-700 text-white px-4 py-2"
+      >
+        {pending ? "Creando…" : "Crear ejemplar"}
       </button>
     </form>
   );
