@@ -9,8 +9,16 @@ const MOD_EMAIL = process.env.FORUM_MOD_EMAIL;
 
 export async function uploadMediaAction(fd: FormData) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !isAdminEmail(user.email)) return { ok: false, message: "Solo admin." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isAdminEmail(user.email)) {
+    return { ok: false, message: "Solo admin." };
+  }
+
+  // ✅ Capturamos el user.id para evitar el error de TS en closures
+  const createdBy = user.id;
 
   const horse_id = String(fd.get("horse_id") || "");
   const andar = String(fd.get("andar") || "");
@@ -18,8 +26,13 @@ export async function uploadMediaAction(fd: FormData) {
 
   const paths = storagePaths(andar as any, horse_slug);
 
-  async function handleFile(kind: "Images"|"Videos"|"Docs", file: File, type: "image"|"video"|"doc") {
+  async function handleFile(
+    kind: "Images" | "Videos" | "Docs",
+    file: File,
+    type: "image" | "video" | "doc"
+  ) {
     if (file.size > 10 * 1024 * 1024) throw new Error("Archivo mayor a 10MB");
+
     const originalPath = `Hall/${andar}/${horse_slug}/${kind}/${file.name}`;
 
     // 1) Subir al bucket PRIVADO (originales)
@@ -28,31 +41,30 @@ export async function uploadMediaAction(fd: FormData) {
       .upload(originalPath, file, { upsert: true, contentType: file.type });
     if (upErr) throw upErr;
 
-    // 2) Copiar al bucket PÚBLICO para visualización con transform (simple mirror)
+    // 2) Copiar al bucket PÚBLICO para visualización (mirror simple)
     const { data: signed } = await supabase.storage
       .from("hall-originals")
-      .createSignedUrl(originalPath, 60); // URL corta solo para copiar contenido
+      .createSignedUrl(originalPath, 60); // URL temporal para leer el binario
     if (!signed?.signedUrl) throw new Error("No se pudo firmar URL");
 
     const r = await fetch(signed.signedUrl);
     const blob = await r.blob();
+
     const { error: pubErr } = await supabase.storage
       .from("hall-public")
       .upload(originalPath, blob, { upsert: true, contentType: file.type });
     if (pubErr) throw pubErr;
 
     // 3) Registrar en DB (apuntamos al bucket público para listar/mostrar)
-    const { error: dbErr } = await supabase
-      .from("hall_media")
-      .insert({
-        horse_id,
-        type,
-        bucket: "hall-public",
-        path: originalPath,
-        mime_type: file.type,
-        size_bytes: file.size,
-        created_by: user.id,
-      });
+    const { error: dbErr } = await supabase.from("hall_media").insert({
+      horse_id,
+      type,
+      bucket: "hall-public",
+      path: originalPath,
+      mime_type: file.type,
+      size_bytes: file.size,
+      created_by: createdBy, // ✅ usamos la constante segura
+    });
     if (dbErr) throw dbErr;
   }
 
@@ -73,7 +85,9 @@ export async function uploadMediaAction(fd: FormData) {
 
 export async function voteAction(horseId: string) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Inicia sesión." };
 
   // Upsert voto
@@ -82,24 +96,25 @@ export async function voteAction(horseId: string) {
     .upsert({ horse_id: horseId, user_id: user.id, value: 1 });
   if (error) return { ok: false, message: error.message };
 
-  // Recalcular conteo
-  const { data: agg } = await supabase
+  // Recalcular conteo (uso de count correcto)
+  const { count, error: countErr } = await supabase
     .from("hall_votes")
-    .select("value", { count: "exact", head: true })
+    .select("*", { count: "exact", head: true })
     .eq("horse_id", horseId);
+  if (countErr) return { ok: false, message: countErr.message };
 
-  const votes_count = agg?.length ? agg.length : (typeof agg === "number" ? agg : null);
-
-  if (typeof votes_count === "number") {
-    await supabase.from("horses").update({ votes_count }).eq("id", horseId);
+  if (typeof count === "number") {
+    await supabase.from("horses").update({ votes_count: count }).eq("id", horseId);
   }
 
-  return { ok: true, votes_count };
+  return { ok: true, votes_count: count ?? undefined };
 }
 
 export async function followAction(horseId: string) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user || !user.email) return { ok: false, message: "Inicia sesión." };
 
   const { error } = await supabase
@@ -112,7 +127,9 @@ export async function followAction(horseId: string) {
 
 export async function unfollowAction(horseId: string) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Inicia sesión." };
 
   const { error } = await supabase
@@ -125,9 +142,15 @@ export async function unfollowAction(horseId: string) {
   return { ok: true };
 }
 
-export async function commentAction(targetType: "horse" | "media", targetId: string, content: string) {
+export async function commentAction(
+  targetType: "horse" | "media",
+  targetId: string,
+  content: string
+) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Inicia sesión." };
 
   const { error } = await supabase
@@ -135,15 +158,21 @@ export async function commentAction(targetType: "horse" | "media", targetId: str
     .insert({ target_type: targetType, target_id: targetId, user_id: user.id, content });
   if (error) return { ok: false, message: error.message };
 
-  // Notificar followers del horse si el comentario es sobre MEDIA
+  // Notificar followers si el comentario es sobre MEDIA
   if (targetType === "media" && resend) {
-    // hall_media -> horse_id
     const { data: media } = await supabase
-      .from("hall_media").select("horse_id").eq("id", targetId).single();
+      .from("hall_media")
+      .select("horse_id")
+      .eq("id", targetId)
+      .single();
+
     if (media?.horse_id) {
       const { data: subs } = await supabase
-        .from("hall_follows").select("user_email").eq("horse_id", media.horse_id);
-      const to = (subs || []).map(s => s.user_email).filter(Boolean);
+        .from("hall_follows")
+        .select("user_email")
+        .eq("horse_id", media.horse_id);
+
+      const to = (subs || []).map((s) => s.user_email).filter(Boolean) as string[];
       if (to.length && process.env.RESEND_API_KEY) {
         await resend.emails.send({
           from: "Hablando de Caballos <onboarding@resend.dev>",
@@ -158,9 +187,15 @@ export async function commentAction(targetType: "horse" | "media", targetId: str
   return { ok: true };
 }
 
-export async function reportAction(targetType: "horse"|"media", targetId: string, reason?: string) {
+export async function reportAction(
+  targetType: "horse" | "media",
+  targetId: string,
+  reason?: string
+) {
   const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Inicia sesión." };
 
   const { error } = await supabase
