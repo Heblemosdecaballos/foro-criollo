@@ -20,7 +20,7 @@ const NAV = [
   { label: "Noticias",      href: "/noticias" },
   { label: "Historias",     href: "/historias" },
   { label: "Transmisiones", href: "/transmisiones" },
-  { label: "Hall of Fame",  href: "/hall-of-fame" },
+  { label: "Hall of Fame",  href: "/hall" },
   { label: "Chat en Vivo",  href: "/chat" },
   { label: "Instalar app",  href: "/instalar" },
 ];
