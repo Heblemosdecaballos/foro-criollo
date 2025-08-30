@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ANDARES } from "@/lib/hall/types";
-import { isValidAndar, publicImageUrl } from "@/lib/hall/utils";
+import { isValidAndar, publicImageUrl, isAdminEmail } from "@/lib/hall/utils";
 import AddMediaForm from "./AddMediaForm";
 import { FollowButton, VoteButton, CommentForm, MediaComments, AdminMediaActions } from "./ui";
 
@@ -26,11 +26,8 @@ export default async function HorseDetail({ params }: { params: { andar: string;
     .eq("horse_id", horse.id).order("created_at", { ascending: false }).limit(100);
 
   const { data: { user } } = await supabase.auth.getUser();
-  const isAdmin = !!user?.email && (process.env.HALL_ADMIN_EMAIL?.toLowerCase() === user.email.toLowerCase());
+  const isAdmin = isAdminEmail(user?.email);
   const andarName = ANDARES.find(a => a.slug === andar)?.name;
-
-  // Para refrescar después de acciones
-  async function revalidate() {}
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
