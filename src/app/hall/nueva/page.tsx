@@ -1,13 +1,11 @@
-// app/hall/nueva/page.tsx
-import NewHallForm from './NewHallForm'
+import NewHallForm from "./NewHallForm";
 
-export const revalidate = 0
-
-export default function NuevaNominationPage() {
+export const dynamic = "force-dynamic";
+export default function NewHorsePage() {
   return (
-    <div className="container py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6">Nominar al Hall de la Fama</h1>
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="font-serif text-2xl md:text-3xl mb-4">Nuevo Ejemplar</h1>
       <NewHallForm />
     </div>
-  )
+  );
 }
