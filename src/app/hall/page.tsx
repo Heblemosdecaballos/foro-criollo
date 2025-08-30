@@ -8,7 +8,7 @@ export default async function HallIndex() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="font-serif text-2xl md:text-3xl mb-4">Hall of Fame</h1>
       <p className="text-neutral-700 mb-6">
-        Explora los andares del Caballo Criollo Colombiano. Selecciona un andar para ver sus ejemplares.
+        Descubre los ejemplares que han hecho grande el caballo criollo colombiano.
       </p>
 
       <div className="flex flex-wrap gap-3">
