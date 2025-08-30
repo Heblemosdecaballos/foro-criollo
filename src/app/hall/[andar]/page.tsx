@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ANDARES } from "@/lib/hall/types";
-import { isValidAndar, publicImageUrl } from "@/lib/hall/utils";
+import { isValidAndar, publicImageUrl, andarIcon, isAdminEmail } from "@/lib/hall/utils";
 
 export const dynamic = "force-dynamic";
 
 async function getCoverUrl(horseId: string) {
   const supabase = supabaseServer();
+
   // 1) portada explícita
   let { data: fm } = await supabase
     .from("hall_media")
@@ -19,8 +20,8 @@ async function getCoverUrl(horseId: string) {
     .limit(1)
     .maybeSingle();
 
+  // 2) si no hay, la imagen más reciente
   if (!fm) {
-    // 2) la imagen más reciente
     const r = await supabase
       .from("hall_media")
       .select("path, bucket")
@@ -40,6 +41,9 @@ export default async function HallByAndar({ params }: { params: { andar: string 
   if (!isValidAndar(andar)) notFound();
 
   const supabase = supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  const admin = isAdminEmail(user?.email);
+
   const { data: horses } = await supabase
     .from("horses")
     .select("id, slug, name, views, votes_count")
@@ -49,16 +53,36 @@ export default async function HallByAndar({ params }: { params: { andar: string 
   const covers = await Promise.all(
     (horses || []).map(async (h) => ({ id: h.id, url: await getCoverUrl(h.id) }))
   );
-
   const getUrl = (id: string) => covers.find(c => c.id === id)?.url || null;
+  const andarName = ANDARES.find(a => a.slug === andar)?.name;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-serif text-2xl md:text-3xl">
-          {ANDARES.find(a => a.slug === andar)?.name}
-        </h1>
-        <Link href="/hall" className="text-sm underline">← Volver a Hall</Link>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img
+            src={andarIcon(andar)}
+            width={56}
+            height={56}
+            alt=""
+            className="h-12 w-12 object-contain"
+          />
+          <h1 className="font-serif text-2xl md:text-3xl">{andarName}</h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {admin && (
+            <Link
+              href={`/hall/nueva?andar=${andar}`}
+              className="rounded-full border bg-white/70 px-4 py-2 text-sm hover:bg-white"
+            >
+              + Nuevo ejemplar
+            </Link>
+          )}
+          <Link href="/hall" className="text-sm underline">
+            ← Volver a Hall
+          </Link>
+        </div>
       </div>
 
       {!horses?.length ? (
@@ -72,7 +96,6 @@ export default async function HallByAndar({ params }: { params: { andar: string 
                 <Link href={`/hall/${andar}/${h.slug}`}>
                   <div className="aspect-video rounded-lg bg-gray-100 mb-3 overflow-hidden">
                     {cover ? (
-                      // imagen de portada
                       <img src={cover} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
