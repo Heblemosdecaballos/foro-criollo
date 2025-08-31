@@ -5,24 +5,23 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createHorseAction } from "./actions";
 
+type Andar = { slug: string; label: string };
+
 type Props = {
   defaultAndar?: string;
+  andares: Andar[];
 };
 
-const ANDARES = [
-  { slug: "paso-fino", label: "Paso Fino" },
-  { slug: "trocha", label: "Trocha" },
-  { slug: "galope", label: "Galope" },
-  { slug: "trote-y-galope", label: "Trote y Galope" },
-  // agrega los que tengas en tu tabla `andares`
-];
-
-export default function NewHallForm({ defaultAndar }: Props) {
+export default function NewHallForm({ defaultAndar, andares }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
+  const initialAndar = defaultAndar && andares.some(a => a.slug === defaultAndar)
+    ? defaultAndar
+    : (andares[0]?.slug ?? "");
+
   const [name, setName] = useState("");
-  const [andar, setAndar] = useState(defaultAndar ?? ANDARES[0]?.slug ?? "");
+  const [andar, setAndar] = useState(initialAndar);
   const [desc, setDesc] = useState("");
   const [ped, setPed] = useState("");
 
@@ -32,7 +31,7 @@ export default function NewHallForm({ defaultAndar }: Props) {
       const res = await createHorseAction({
         name,
         andar_slug: andar,
-        description: desc,
+        description: desc || null,
         pedigree_url: ped || null,
       });
 
@@ -40,10 +39,16 @@ export default function NewHallForm({ defaultAndar }: Props) {
         alert(res.message || "No se pudo crear");
         return;
       }
-
-      // Redirige a la ficha del ejemplar
       router.push(`/hall/${res.andar}/${res.slug}`);
     });
+  }
+
+  if (!andares.length) {
+    return (
+      <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded">
+        No hay andares definidos. Por favor crea andares primero.
+      </div>
+    );
   }
 
   return (
@@ -67,7 +72,7 @@ export default function NewHallForm({ defaultAndar }: Props) {
           onChange={(e) => setAndar(e.target.value)}
           required
         >
-          {ANDARES.map((a) => (
+          {andares.map((a) => (
             <option key={a.slug} value={a.slug}>
               {a.label}
             </option>
