@@ -1,6 +1,7 @@
+// src/app/api/setup/create-admin/route.ts
 // Ruta TEMPORAL para crear el primer usuario admin.
-// BÓRRALA después de usarla.
 // Requiere header: x-setup-token = process.env.SETUP_ADMIN_TOKEN
+// Bórrala después de usarla.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
@@ -35,11 +36,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Crea usuario con email confirmado (no requiere SMTP)
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true,         // ← queda confirmado, no necesitas SMTP
       user_metadata: { role: "admin" },
     });
 
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, user_id: data.user?.id || null });
+    return NextResponse.json({ ok: true, user_id: data.user?.id ?? null });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || "Error" }, { status: 500 });
   }
