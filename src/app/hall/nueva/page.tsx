@@ -1,6 +1,16 @@
-// src/app/hall/nueva/page.tsx
+ // src/app/hall/nueva/page.tsx
 import NewHallForm from "./NewHallForm";
 import { createSupabaseServer } from "@/lib/supabase/server";
+
+type AndarRow = { slug: string; name: string | null };
+
+function labelFromSlug(slug: string): string {
+  // "trocha-y-galope" -> "Trocha Y Galope"
+  return slug
+    .split("-")
+    .map((s) => (s ? s[0].toUpperCase() + s.slice(1) : s))
+    .join(" ");
+}
 
 export default async function Page({
   searchParams,
@@ -10,17 +20,15 @@ export default async function Page({
   const defaultAndar = searchParams?.andar;
 
   const supabase = createSupabaseServer();
-
-  // Trae slug y name de la tabla andares
-  const { data: andaresRows, error } = await supabase
+  const { data: andaresRows } = await supabase
     .from("andares")
     .select("slug, name")
     .order("name", { ascending: true });
 
   const andares =
-    (andaresRows || []).map((r) => ({
+    ((andaresRows as AndarRow[] | null) || []).map((r) => ({
       slug: r.slug,
-      label: r.name ?? r.slug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+      label: r.name ?? labelFromSlug(r.slug),
     })) ?? [];
 
   return (
