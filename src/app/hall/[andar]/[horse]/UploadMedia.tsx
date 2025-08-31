@@ -20,14 +20,14 @@ export default function UploadMediaBlock(props: {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     start(async () => {
-      + const res = await uploadMediaAction(fd);
+      const res = await uploadMediaAction(fd);
       if (!res.ok) {
         alert(res.message || 'No se pudo subir.');
         return;
       }
       alert('Imagen subida ✔');
       if (fileRef.current) fileRef.current.value = '';
-      // window.location.reload(); // opcional si quieres forzar refresco
+      // window.location.reload(); // opcional
     });
   }
 
@@ -41,6 +41,7 @@ export default function UploadMediaBlock(props: {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Subir media</h3>
+
       {canUpload ? (
         <form onSubmit={onSubmit} className="space-y-2">
           <input type="hidden" name="horseId" value={horseId} />
