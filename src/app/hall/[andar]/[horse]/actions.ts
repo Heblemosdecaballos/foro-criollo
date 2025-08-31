@@ -127,4 +127,106 @@ export async function setCoverAction(payload: {
   if (coverErr) return { ok: false, message: `No se pudo marcar portada: ${coverErr.message}` };
 
   revalidatePath(`/hall/${andarSlug}/${horseSlug}`);
-  return { ok: true, message: "Portada actual
+  return { ok: true, message: "Portada actualizada." };
+}
+
+// alias para compatibilidad con "setFeaturedMediaAction"
+export { setCoverAction as setFeaturedMediaAction };
+
+// ==============================
+//  BORRAR MEDIA
+// ==============================
+export async function deleteMediaAction(payload: {
+  mediaId: string;
+  horseId: string;
+  andarSlug: string;
+  horseSlug: string;
+}) {
+  const { mediaId, horseId, andarSlug, horseSlug } = payload;
+
+  const supabase = createSupabaseServer();
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (userErr || !user) return { ok: false, message: "Debes iniciar sesión." };
+
+  // Traer registro para conocer storage_path
+  const { data: row, error: getErr } = await supabase
+    .from("horse_media")
+    .select("id, horse_id, storage_path")
+    .eq("id", mediaId)
+    .single();
+  if (getErr || !row || row.horse_id !== horseId) {
+    return { ok: false, message: "Media no encontrada o no pertenece al ejemplar." };
+  }
+
+  // Borrar archivo del bucket público
+  const { error: remErr } = await supabase.storage
+    .from("hall-public")
+    .remove([row.storage_path]);
+  if (remErr) {
+    // seguimos, pero informamos
+    console.warn("No se pudo borrar del storage:", remErr.message);
+  }
+
+  // Borrar registro
+  const { error: delErr } = await supabase.from("horse_media").delete().eq("id", mediaId);
+  if (delErr) return { ok: false, message: `No se pudo borrar media: ${delErr.message}` };
+
+  revalidatePath(`/hall/${andarSlug}/${horseSlug}`);
+  return { ok: true, message: "Media eliminada." };
+}
+
+// ==============================
+//  VOTAR (like/dislike)
+// ==============================
+export async function voteAction(payload: { horseId: string; value: 1 | -1 }) {
+  const { horseId, value } = payload;
+  if (value !== 1 && value !== -1) return { ok: false, message: "Valor de voto inválido." };
+
+  const supabase = createSupabaseServer();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return { ok: false, message: "Debes iniciar sesión." };
+
+  // upsert en hall_votes (requiere índice único en (horse_id, created_by))
+  const { error } = await supabase
+    .from("hall_votes")
+    .upsert(
+      { horse_id: horseId, value, created_by: user.id },
+      { onConflict: "horse_id,created_by" }
+    );
+  if (error) return { ok: false, message: error.message };
+
+  return { ok: true };
+}
+
+// ==============================
+//  COMENTAR
+// ==============================
+export async function commentAction(payload: { horseId: string; text: string }) {
+  const { horseId, text } = payload;
+  if (!text?.trim()) return { ok: false, message: "Comentario vacío." };
+
+  const supabase = createSupabaseServer();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (!user) return { ok: false, message: "Debes iniciar sesión." };
+
+  const { error } = await supabase
+    .from("hall_comments")
+    .insert({ horse_id: horseId, content: text.trim(), created_by: user.id });
+  if (error) return { ok: false, message: error.message };
+
+  return { ok: true };
+}
+
+// ==============================
+//  FOLLOW / UNFOLLOW (stubs)
+// ==============================
+// Si aún no tienes la tabla (p. ej. horse_follows), dejamos stubs seguros
+export async function followAction(_payload: { horseId: string }) {
+  return { ok: false, message: "Seguir ejemplar aún no está habilitado." };
+}
+export async function unfollowAction(_payload: { horseId: string }) {
+  return { ok: false, message: "Dejar de seguir aún no está habilitado." };
+}
