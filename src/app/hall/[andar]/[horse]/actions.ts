@@ -44,23 +44,19 @@ export async function uploadMediaAction(formData: FormData) {
     .select("id")
     .eq("id", horseId)
     .single();
-
   if (horseErr || !horse) return { ok: false, message: "El ejemplar no existe." };
 
   const mime = file.type || "application/octet-stream";
   const ext = extFromMime(mime);
-
   const uuid =
     (globalThis.crypto?.randomUUID?.() as string) ??
     `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
   const storagePath = `horses/${horseId}/${uuid}.${ext}`;
 
   // Subir al bucket público
   const { error: upErrPub } = await supabase.storage
     .from("hall-public")
     .upload(storagePath, file, { cacheControl: "3600", upsert: false, contentType: mime });
-
   if (upErrPub) return { ok: false, message: `Error subiendo (público): ${upErrPub.message}` };
 
   // URL pública
@@ -78,20 +74,17 @@ export async function uploadMediaAction(formData: FormData) {
     })
     .select("id")
     .single();
-
-  if (insErr) {
-    return { ok: false, message: `Subió pero falló registrar media: ${insErr.message}` };
-  }
+  if (insErr) return { ok: false, message: `Subió pero falló registrar media: ${insErr.message}` };
 
   revalidatePath(`/hall/${andarSlug}/${horseSlug}`);
   return { ok: true, message: "Imagen subida correctamente.", mediaId: inserted?.id, public_url };
 }
 
-// (alias opcional si en algún sitio lo importaste con el nombre viejo)
+// alias por si algún componente usa el nombre anterior
 export { uploadMediaAction as uploadHorseMediaAction };
 
 // ==============================
-//  MARCAR PORTADA
+//  MARCAR PORTADA (setFeatured)
 // ==============================
 export async function setCoverAction(payload: {
   horseId: string;
@@ -114,7 +107,6 @@ export async function setCoverAction(payload: {
     .select("id, horse_id")
     .eq("id", mediaId)
     .single();
-
   if (mErr || !media || media.horse_id !== horseId) {
     return { ok: false, message: "La media no pertenece a este ejemplar." };
   }
@@ -125,7 +117,6 @@ export async function setCoverAction(payload: {
     .update({ is_cover: false })
     .eq("horse_id", horseId)
     .eq("is_cover", true);
-
   if (clearErr) return { ok: false, message: `No se pudo limpiar portada previa: ${clearErr.message}` };
 
   // Marcar nueva
@@ -133,9 +124,7 @@ export async function setCoverAction(payload: {
     .from("horse_media")
     .update({ is_cover: true })
     .eq("id", mediaId);
-
   if (coverErr) return { ok: false, message: `No se pudo marcar portada: ${coverErr.message}` };
 
   revalidatePath(`/hall/${andarSlug}/${horseSlug}`);
-  return { ok: true, message: "Portada actualizada." };
-}
+  return { ok: true, message: "Portada actual
