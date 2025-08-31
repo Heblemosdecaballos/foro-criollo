@@ -37,18 +37,16 @@ export async function POST(req: Request) {
     }
 
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,         // ← queda confirmado, no necesitas SMTP
-      user_metadata: { role: "admin" },
-    });
+  email,
+  password,
+  email_confirm: true,
+  user_metadata: { role: "admin" },
+});
 
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ ok: true, user_id: data.user?.id ?? null });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "Error" }, { status: 500 });
-  }
+if (error) {
+  // TEMPORAL: devolver error crudo para diagnosticar
+  return NextResponse.json(
+    { ok: false, error: error.message, name: (error as any).name, details: (error as any).error_description || null },
+    { status: 400 }
+  );
 }
