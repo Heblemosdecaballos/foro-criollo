@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useRef } from 'react';
-import { uploadHorseMediaAction, setCoverAction } from './actions';
+import { uploadMediaAction, setCoverAction } from './actions';
 
 type Media = { id: string; public_url: string; is_cover: boolean };
 
@@ -20,7 +20,7 @@ export default function UploadMediaBlock(props: {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     start(async () => {
-      const res = await uploadHorseMediaAction(fd);
+      + const res = await uploadMediaAction(fd);
       if (!res.ok) {
         alert(res.message || 'No se pudo subir.');
         return;
