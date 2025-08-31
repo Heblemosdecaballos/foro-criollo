@@ -1,17 +1,18 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { createSupabaseServer } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+// ❌ ya no usamos cookies() aquí
+// import { cookies } from "next/headers";
+import { createSupabaseServer } from "@/lib/supabase/server"; // este helper en tu proyecto es de 0 argumentos
 
-// ✅ slugify inline (sin librerías)
+// slugify inline (sin librerías externas)
 function slugify(str: string): string {
   return str
     .toLowerCase()
-    .normalize("NFD")                 // separa tildes
-    .replace(/[\u0300-\u036f]/g, "") // elimina diacríticos
-    .replace(/[^a-z0-9]+/g, "-")     // no alfanumérico -> guion
-    .replace(/(^-|-$)+/g, "");       // recorta guiones al inicio/fin
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 }
 
 type Payload = {
@@ -28,11 +29,14 @@ export async function createHorseAction(payload: Payload) {
     return { ok: false, message: "Faltan campos obligatorios." };
   }
 
-  const cookieStore = cookies();
-  const supabase = createSupabaseServer(cookieStore);
+  // ✅ tu helper no recibe args
+  const supabase = createSupabaseServer();
 
   // Validar sesión (si tu RLS lo requiere para insert)
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
   if (userErr || !user) {
     return { ok: false, message: "Debes iniciar sesión." };
   }
