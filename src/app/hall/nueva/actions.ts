@@ -1,10 +1,18 @@
-// src/app/hall/nueva/actions.ts
 "use server";
 
 import { cookies } from "next/headers";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import slugify from "@sindresorhus/slugify"; // instala si no la tienes, o usa tu util
+
+// ✅ slugify inline (sin librerías)
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")                 // separa tildes
+    .replace(/[\u0300-\u036f]/g, "") // elimina diacríticos
+    .replace(/[^a-z0-9]+/g, "-")     // no alfanumérico -> guion
+    .replace(/(^-|-$)+/g, "");       // recorta guiones al inicio/fin
+}
 
 type Payload = {
   name: string;
@@ -29,14 +37,13 @@ export async function createHorseAction(payload: Payload) {
     return { ok: false, message: "Debes iniciar sesión." };
   }
 
-  // Crear slug estable e idempotente por nombre (ajusta si necesitas unicidad más compleja)
-  const base = slugify(name, { decamelize: false, lowercase: true });
+  // Slug estable + intento simple de evitar colisión
+  const base = slugify(name);
   let finalSlug = base;
 
-  // Intento de evitar colisión simple
   let tries = 0;
   while (tries < 5) {
-    const { data: existing } = await supabase
+    const { data: existing, error: exErr } = await supabase
       .from("horses")
       .select("id")
       .eq("andar_slug", andar_slug)
@@ -44,12 +51,14 @@ export async function createHorseAction(payload: Payload) {
       .eq("is_deleted", false)
       .limit(1);
 
+    if (exErr) break;
     if (!existing || existing.length === 0) break;
+
     tries += 1;
     finalSlug = `${base}-${tries + 1}`;
   }
 
-  // Insert
+  // Insertar
   const { data, error } = await supabase
     .from("horses")
     .insert({
@@ -67,7 +76,7 @@ export async function createHorseAction(payload: Payload) {
     return { ok: false, message: error.message };
   }
 
-  // Revalidar listado de ese andar y la página nueva (por si la cargas SSR)
+  // Revalidar páginas relacionadas
   revalidatePath(`/hall/${andar_slug}`);
   revalidatePath(`/hall/${andar_slug}/${data.slug}`);
 
