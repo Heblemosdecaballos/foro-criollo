@@ -22,7 +22,7 @@ type Payload = {
 
 // Busca un slug disponible dentro del mismo andar
 async function pickAvailableSlug(
-  supabase: ReturnType<typeof createSupabaseServer>,
+  supabase: any,
   andar_slug: string,
   base: string
 ): Promise<string> {
@@ -33,7 +33,7 @@ async function pickAvailableSlug(
     .eq("is_deleted", false)
     .like("slug", `${base}%`);
 
-  const taken = new Set((rows || []).map((r) => r.slug));
+  const taken = new Set((rows || []).map((r: { slug: string }) => r.slug));
   if (!taken.has(base)) return base;
 
   let i = 2;
@@ -56,11 +56,12 @@ export async function createHorseAction(payload: Payload) {
   const supabase = createSupabaseServer();
 
   // 1) Validar sesión (RLS)
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Debes iniciar sesión." };
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (userErr || !user) return { ok: false, message: "Debes iniciar sesión." };
 
-  // 2) ✅ Validar que el andar exista (evita romper la FK)
-  const { data: andarExists, error: andarErr } = await supabase
+  // 2) Validar que el andar exista (evita romper la FK)
+  const { data: andarRows, error: andarErr } = await supabase
     .from("andares")
     .select("slug")
     .eq("slug", andar_slug)
@@ -69,7 +70,7 @@ export async function createHorseAction(payload: Payload) {
   if (andarErr) {
     return { ok: false, message: `Error verificando andar: ${andarErr.message}` };
   }
-  if (!andarExists || andarExists.length === 0) {
+  if (!andarRows || andarRows.length === 0) {
     return { ok: false, message: "Andar inválido. Actualiza la página e inténtalo de nuevo." };
   }
 
@@ -79,4 +80,34 @@ export async function createHorseAction(payload: Payload) {
 
   // 4) Insertar con 1 reintento si hay colisión de índice
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { data, err
+    const { data, error } = await supabase
+      .from("horses")
+      .insert({
+        name,
+        slug: finalSlug,
+        andar_slug,
+        description: description ?? null,
+        pedigree_url: pedigree_url ?? null,
+        created_by: user.id,
+      })
+      .select("slug, andar_slug")
+      .single();
+
+    if (!error && data) {
+      // Revalidar páginas relevantes
+      revalidatePath(`/hall/${andar_slug}`);
+      revalidatePath(`/hall/${andar_slug}/${data.slug}`);
+      return { ok: true, slug: data.slug, andar: data.andar_slug };
+    }
+
+    const msg = String(error?.message || "");
+    if (msg.includes("duplicate key") || (error as any)?.code === "23505") {
+      // retry 1 vez con sufijo aleatorio
+      finalSlug = `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
+      continue;
+    }
+    return { ok: false, message: msg || "No se pudo crear el ejemplar." };
+  }
+
+  return { ok: false, message: "No se pudo crear el ejemplar por colisión de slug." };
+}
