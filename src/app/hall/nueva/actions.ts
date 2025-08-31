@@ -1,82 +1,75 @@
-'use server';
+// src/app/hall/nueva/actions.ts
+"use server";
 
-import supabaseServer from '@/src/lib/supabase/server';
+import { cookies } from "next/headers";
+import { createSupabaseServer } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import slugify from "@sindresorhus/slugify"; // instala si no la tienes, o usa tu util
 
-function slugify(input: string) {
-  return input
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
-export type CreateHorsePayload = {
+type Payload = {
   name: string;
   andar_slug: string;
-  description?: string;
-  pedigree_url?: string;
+  description?: string | null;
+  pedigree_url?: string | null;
 };
 
-export type CreateHorseResult = {
-  ok: boolean;
-  message?: string | null;
-  andar?: string;
-  slug?: string;
-};
+export async function createHorseAction(payload: Payload) {
+  const { name, andar_slug, description, pedigree_url } = payload;
 
-export async function createHorseAction(payload: CreateHorsePayload): Promise<CreateHorseResult> {
-  try {
-    const name = (payload.name || '').trim();
-    const andar_slug = (payload.andar_slug || '').trim();
-    const description = (payload.description || '').trim();
-    const pedigree_url = (payload.pedigree_url || '').trim();
-
-    if (!name || !andar_slug) {
-      return { ok: false, message: 'Nombre y andar son obligatorios.' };
-    }
-
-    const slug = slugify(name);
-    const supabase = supabaseServer();
-
-    // 1) Si ya existe (no borrado), devolvemos su ruta (idempotente)
-    const { data: exists, error: exErr } = await supabase
-      .from('horses')
-      .select('andar_slug, slug')
-      .eq('slug', slug)
-      .eq('is_deleted', false)
-      .maybeSingle();
-
-    if (exErr) return { ok: false, message: exErr.message };
-
-    if (exists) {
-      return { ok: true, andar: exists.andar_slug, slug: exists.slug };
-    }
-
-    // 2) Insertar
-    const { data: ins, error: inErr } = await supabase
-      .from('horses')
-      .insert({
-        name,
-        slug,
-        andar_slug,
-        description: description || null,
-        pedigree_url: pedigree_url || null,
-      })
-      .select('andar_slug, slug')
-      .single();
-
-    if (inErr) {
-      // Carrera: otro insertó el mismo slug; devolvemos la ruta
-      if ((inErr as any).code === '23505') {
-        return { ok: true, andar: andar_slug, slug };
-      }
-      return { ok: false, message: inErr.message };
-    }
-
-    return { ok: true, andar: ins!.andar_slug, slug: ins!.slug };
-  } catch (err: any) {
-    return { ok: false, message: err?.message || 'Error inesperado' };
+  if (!name || !andar_slug) {
+    return { ok: false, message: "Faltan campos obligatorios." };
   }
+
+  const cookieStore = cookies();
+  const supabase = createSupabaseServer(cookieStore);
+
+  // Validar sesión (si tu RLS lo requiere para insert)
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { ok: false, message: "Debes iniciar sesión." };
+  }
+
+  // Crear slug estable e idempotente por nombre (ajusta si necesitas unicidad más compleja)
+  const base = slugify(name, { decamelize: false, lowercase: true });
+  let finalSlug = base;
+
+  // Intento de evitar colisión simple
+  let tries = 0;
+  while (tries < 5) {
+    const { data: existing } = await supabase
+      .from("horses")
+      .select("id")
+      .eq("andar_slug", andar_slug)
+      .eq("slug", finalSlug)
+      .eq("is_deleted", false)
+      .limit(1);
+
+    if (!existing || existing.length === 0) break;
+    tries += 1;
+    finalSlug = `${base}-${tries + 1}`;
+  }
+
+  // Insert
+  const { data, error } = await supabase
+    .from("horses")
+    .insert({
+      name,
+      slug: finalSlug,
+      andar_slug,
+      description: description ?? null,
+      pedigree_url: pedigree_url ?? null,
+      created_by: user.id,
+    })
+    .select("slug, andar_slug")
+    .single();
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  // Revalidar listado de ese andar y la página nueva (por si la cargas SSR)
+  revalidatePath(`/hall/${andar_slug}`);
+  revalidatePath(`/hall/${andar_slug}/${data.slug}`);
+
+  return { ok: true, slug: data.slug, andar: data.andar_slug };
 }
