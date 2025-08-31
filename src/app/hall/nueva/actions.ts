@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
-// slugify inline (sin librerías externas)
+// --- Util: slugify inline (sin dependencias externas)
 function slugify(str: string): string {
   return str
     .toLowerCase()
@@ -20,36 +20,29 @@ type Payload = {
   pedigree_url?: string | null;
 };
 
+// Busca un slug disponible dentro del mismo andar
 async function pickAvailableSlug(
   supabase: ReturnType<typeof createSupabaseServer>,
   andar_slug: string,
   base: string
 ): Promise<string> {
-  // Trae todos los que empiecen por base en ese andar (ignora borrados)
-  const { data: rows, error } = await supabase
+  const { data: rows } = await supabase
     .from("horses")
     .select("slug")
     .eq("andar_slug", andar_slug)
     .eq("is_deleted", false)
     .like("slug", `${base}%`);
 
-  if (error) {
-    // Si hay error al listar, usa el base y dejamos que el índice nos avise si choca
-    return base;
-  }
-
   const taken = new Set((rows || []).map((r) => r.slug));
   if (!taken.has(base)) return base;
 
-  // Busca siguiente disponible: base-2, base-3, ... (límite prudente)
   let i = 2;
   while (i < 1000) {
     const candidate = `${base}-${i}`;
     if (!taken.has(candidate)) return candidate;
     i++;
   }
-
-  // Fallback (muy raro llegar aquí)
+  // fallback extremo
   return `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
@@ -62,51 +55,28 @@ export async function createHorseAction(payload: Payload) {
 
   const supabase = createSupabaseServer();
 
-  // Validar sesión (según RLS)
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser();
-  if (userErr || !user) {
-    return { ok: false, message: "Debes iniciar sesión." };
+  // 1) Validar sesión (RLS)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Debes iniciar sesión." };
+
+  // 2) ✅ Validar que el andar exista (evita romper la FK)
+  const { data: andarExists, error: andarErr } = await supabase
+    .from("andares")
+    .select("slug")
+    .eq("slug", andar_slug)
+    .limit(1);
+
+  if (andarErr) {
+    return { ok: false, message: `Error verificando andar: ${andarErr.message}` };
+  }
+  if (!andarExists || andarExists.length === 0) {
+    return { ok: false, message: "Andar inválido. Actualiza la página e inténtalo de nuevo." };
   }
 
-  // Generar slug base y elegir uno disponible en ese andar
+  // 3) Generar slug disponible en ese andar
   const base = slugify(name);
   let finalSlug = await pickAvailableSlug(supabase, andar_slug, base);
 
-  // Intento de inserción con 1 reintento si hay carrera (23505)
+  // 4) Insertar con 1 reintento si hay colisión de índice
   for (let attempt = 0; attempt < 2; attempt++) {
-    const { data, error } = await supabase
-      .from("horses")
-      .insert({
-        name,
-        slug: finalSlug,
-        andar_slug,
-        description: description ?? null,
-        pedigree_url: pedigree_url ?? null,
-        created_by: user.id,
-      })
-      .select("slug, andar_slug")
-      .single();
-
-    if (!error && data) {
-      // Revalidar páginas relacionadas
-      revalidatePath(`/hall/${andar_slug}`);
-      revalidatePath(`/hall/${andar_slug}/${data.slug}`);
-      return { ok: true, slug: data.slug, andar: data.andar_slug };
-    }
-
-    // Si fue violación de unicidad, generamos otro slug y reintentamos 1 vez
-    const pgCode = (error as any)?.code || (error as any)?.details || "";
-    if (pgCode === "23505" || String(error?.message || "").includes("duplicate key")) {
-      finalSlug = `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
-      continue;
-    }
-
-    // Otro error: devolvemos mensaje
-    return { ok: false, message: error?.message || "No se pudo crear el ejemplar." };
-  }
-
-  return { ok: false, message: "No se pudo crear el ejemplar por colisión de slug." };
-}
+    const { data, err
