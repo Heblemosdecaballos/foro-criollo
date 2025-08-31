@@ -1,9 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-// ❌ ya no usamos cookies() aquí
-// import { cookies } from "next/headers";
-import { createSupabaseServer } from "@/lib/supabase/server"; // este helper en tu proyecto es de 0 argumentos
+import { createSupabaseServer } from "@/lib/supabase/server";
 
 // slugify inline (sin librerías externas)
 function slugify(str: string): string {
@@ -22,6 +20,39 @@ type Payload = {
   pedigree_url?: string | null;
 };
 
+async function pickAvailableSlug(
+  supabase: ReturnType<typeof createSupabaseServer>,
+  andar_slug: string,
+  base: string
+): Promise<string> {
+  // Trae todos los que empiecen por base en ese andar (ignora borrados)
+  const { data: rows, error } = await supabase
+    .from("horses")
+    .select("slug")
+    .eq("andar_slug", andar_slug)
+    .eq("is_deleted", false)
+    .like("slug", `${base}%`);
+
+  if (error) {
+    // Si hay error al listar, usa el base y dejamos que el índice nos avise si choca
+    return base;
+  }
+
+  const taken = new Set((rows || []).map((r) => r.slug));
+  if (!taken.has(base)) return base;
+
+  // Busca siguiente disponible: base-2, base-3, ... (límite prudente)
+  let i = 2;
+  while (i < 1000) {
+    const candidate = `${base}-${i}`;
+    if (!taken.has(candidate)) return candidate;
+    i++;
+  }
+
+  // Fallback (muy raro llegar aquí)
+  return `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
 export async function createHorseAction(payload: Payload) {
   const { name, andar_slug, description, pedigree_url } = payload;
 
@@ -29,10 +60,9 @@ export async function createHorseAction(payload: Payload) {
     return { ok: false, message: "Faltan campos obligatorios." };
   }
 
-  // ✅ tu helper no recibe args
   const supabase = createSupabaseServer();
 
-  // Validar sesión (si tu RLS lo requiere para insert)
+  // Validar sesión (según RLS)
   const {
     data: { user },
     error: userErr,
@@ -41,48 +71,42 @@ export async function createHorseAction(payload: Payload) {
     return { ok: false, message: "Debes iniciar sesión." };
   }
 
-  // Slug estable + intento simple de evitar colisión
+  // Generar slug base y elegir uno disponible en ese andar
   const base = slugify(name);
-  let finalSlug = base;
+  let finalSlug = await pickAvailableSlug(supabase, andar_slug, base);
 
-  let tries = 0;
-  while (tries < 5) {
-    const { data: existing, error: exErr } = await supabase
+  // Intento de inserción con 1 reintento si hay carrera (23505)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { data, error } = await supabase
       .from("horses")
-      .select("id")
-      .eq("andar_slug", andar_slug)
-      .eq("slug", finalSlug)
-      .eq("is_deleted", false)
-      .limit(1);
+      .insert({
+        name,
+        slug: finalSlug,
+        andar_slug,
+        description: description ?? null,
+        pedigree_url: pedigree_url ?? null,
+        created_by: user.id,
+      })
+      .select("slug, andar_slug")
+      .single();
 
-    if (exErr) break;
-    if (!existing || existing.length === 0) break;
+    if (!error && data) {
+      // Revalidar páginas relacionadas
+      revalidatePath(`/hall/${andar_slug}`);
+      revalidatePath(`/hall/${andar_slug}/${data.slug}`);
+      return { ok: true, slug: data.slug, andar: data.andar_slug };
+    }
 
-    tries += 1;
-    finalSlug = `${base}-${tries + 1}`;
+    // Si fue violación de unicidad, generamos otro slug y reintentamos 1 vez
+    const pgCode = (error as any)?.code || (error as any)?.details || "";
+    if (pgCode === "23505" || String(error?.message || "").includes("duplicate key")) {
+      finalSlug = `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
+      continue;
+    }
+
+    // Otro error: devolvemos mensaje
+    return { ok: false, message: error?.message || "No se pudo crear el ejemplar." };
   }
 
-  // Insertar
-  const { data, error } = await supabase
-    .from("horses")
-    .insert({
-      name,
-      slug: finalSlug,
-      andar_slug,
-      description: description ?? null,
-      pedigree_url: pedigree_url ?? null,
-      created_by: user.id,
-    })
-    .select("slug, andar_slug")
-    .single();
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
-
-  // Revalidar páginas relacionadas
-  revalidatePath(`/hall/${andar_slug}`);
-  revalidatePath(`/hall/${andar_slug}/${data.slug}`);
-
-  return { ok: true, slug: data.slug, andar: data.andar_slug };
+  return { ok: false, message: "No se pudo crear el ejemplar por colisión de slug." };
 }
