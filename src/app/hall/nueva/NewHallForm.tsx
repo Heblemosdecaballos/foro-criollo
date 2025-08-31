@@ -1,99 +1,106 @@
-'use client';
+// src/app/hall/nueva/NewHallForm.tsx
+"use client";
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useTransition } from 'react';
-import { createHorseAction } from './actions';
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createHorseAction } from "./actions";
 
-export default function NewHallForm() {
+type Props = {
+  defaultAndar?: string;
+};
+
+const ANDARES = [
+  { slug: "paso-fino", label: "Paso Fino" },
+  { slug: "trocha", label: "Trocha" },
+  { slug: "galope", label: "Galope" },
+  { slug: "trote-y-galope", label: "Trote y Galope" },
+  // agrega los que tengas en tu tabla `andares`
+];
+
+export default function NewHallForm({ defaultAndar }: Props) {
   const router = useRouter();
-  const params = useSearchParams();
-  const andarDefault = params.get('andar') || '';
-
-  const [name, setName] = useState('');
-  const [andar, setAndar] = useState(andarDefault);
-  const [desc, setDesc] = useState('');
-  const [ped, setPed] = useState('');
   const [pending, start] = useTransition();
 
-  const onSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState("");
+  const [andar, setAndar] = useState(defaultAndar ?? ANDARES[0]?.slug ?? "");
+  const [desc, setDesc] = useState("");
+  const [ped, setPed] = useState("");
+
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     start(async () => {
       const res = await createHorseAction({
         name,
         andar_slug: andar,
         description: desc,
-        pedigree_url: ped,
+        pedigree_url: ped || null,
       });
 
-      if (!res.ok || !res.slug || !res.andar) {
-        alert(res.message || 'No se pudo crear');
+      if (!res.ok) {
+        alert(res.message || "No se pudo crear");
         return;
       }
 
+      // Redirige a la ficha del ejemplar
       router.push(`/hall/${res.andar}/${res.slug}`);
     });
-  };
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {/* Nombre */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Nombre</label>
+      <div className="grid gap-2">
+        <label className="text-sm font-medium">Nombre del ejemplar</label>
         <input
-          type="text"
+          className="border rounded px-3 py-2"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Ej. 'Tormento de la Sierra'"
           required
-          className="w-full rounded-md border px-3 py-2"
         />
       </div>
 
-      {/* Andar */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Andar</label>
+      <div className="grid gap-2">
+        <label className="text-sm font-medium">Andar</label>
         <select
+          className="border rounded px-3 py-2"
           value={andar}
-          onChange={e => setAndar(e.target.value)}
+          onChange={(e) => setAndar(e.target.value)}
           required
-          className="w-full rounded-md border px-3 py-2"
         >
-          <option value="">Seleccione un andar…</option>
-          <option value="trocha-y-galope">Trocha y Galope</option>
-          <option value="trote-y-galope">Trote y Galope</option>
-          <option value="trocha-colombiana">Trocha Colombiana</option>
-          <option value="paso-fino-colombiano">Paso Fino Colombiano</option>
+          {ANDARES.map((a) => (
+            <option key={a.slug} value={a.slug}>
+              {a.label}
+            </option>
+          ))}
         </select>
       </div>
 
-      {/* Descripción */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Descripción (opcional)</label>
+      <div className="grid gap-2">
+        <label className="text-sm font-medium">Descripción</label>
         <textarea
+          className="border rounded px-3 py-2 min-h-[100px]"
           value={desc}
-          onChange={e => setDesc(e.target.value)}
-          rows={4}
-          className="w-full rounded-md border px-3 py-2"
+          onChange={(e) => setDesc(e.target.value)}
+          placeholder="Breve descripción del ejemplar…"
         />
       </div>
 
-      {/* Pedigrí */}
-      <div>
-        <label className="block text-sm font-medium mb-1">URL Pedigrí (PDF o imagen) (opcional)</label>
+      <div className="grid gap-2">
+        <label className="text-sm font-medium">URL Pedigree (opcional)</label>
         <input
-          type="url"
+          className="border rounded px-3 py-2"
           value={ped}
-          onChange={e => setPed(e.target.value)}
-          placeholder="https://..."
-          className="w-full rounded-md border px-3 py-2"
+          onChange={(e) => setPed(e.target.value)}
+          placeholder="https://…"
         />
       </div>
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-green-700 text-white px-4 py-2 disabled:opacity-50"
+        className="px-4 py-2 rounded bg-emerald-600 text-white disabled:opacity-50"
       >
-        {pending ? 'Creando…' : 'Crear ejemplar'}
+        {pending ? "Creando…" : "Crear ejemplar"}
       </button>
     </form>
   );
