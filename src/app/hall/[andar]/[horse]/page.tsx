@@ -3,8 +3,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ANDARES } from "@/lib/hall/types";
 import { isValidAndar, publicImageUrl, isAdminEmail } from "@/lib/hall/utils";
-import AddMediaForm from "./AddMediaForm";
-import { FollowButton, VoteButton, CommentForm, MediaComments, AdminMediaActions } from "./ui";
+import { VoteButton, CommentForm, MediaComments, AdminMediaActions } from "./ui";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +14,15 @@ export default async function HorseDetail({ params }: { params: { andar: string;
   const supabase = supabaseServer();
 
   const { data: horse } = await supabase
-    .from("horses").select("*")
+    .from("hall_horses").select("*")
     .eq("andar_slug", andar).eq("slug", params.horse).single();
   if (!horse) notFound();
 
-  await supabase.rpc("increment_horse_views", { p_horse_id: horse.id });
+  // Incrementar vistas
+  await supabase
+    .from("hall_horses")
+    .update({ views: horse.views + 1 })
+    .eq("id", horse.id);
 
   const { data: media } = await supabase
     .from("hall_media").select("*")
@@ -39,7 +42,6 @@ export default async function HorseDetail({ params }: { params: { andar: string;
         </div>
         <div className="flex items-center gap-2">
           <VoteButton horseId={horse.id} />
-          <FollowButton horseId={horse.id} />
         </div>
       </div>
 
@@ -94,13 +96,13 @@ export default async function HorseDetail({ params }: { params: { andar: string;
       {isAdmin && (
         <section className="mb-8">
           <h2 className="font-serif text-xl mb-3">Subir Media</h2>
-          <AddMediaForm horseId={horse.id} andar={andar} horseSlug={horse.slug} />
+          <p className="text-gray-600">Funcionalidad de subida próximamente disponible.</p>
         </section>
       )}
 
       <section className="mb-8">
         <h2 className="font-serif text-xl mb-3">Comentarios</h2>
-        <CommentForm targetType="horse" targetId={horse.id} />
+        <CommentForm horseId={horse.id} />
       </section>
     </div>
   );
