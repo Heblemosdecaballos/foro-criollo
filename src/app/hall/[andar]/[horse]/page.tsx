@@ -102,7 +102,7 @@ export default async function HorseDetail({ params }: { params: { andar: string;
 
       <section className="mb-8">
         <h2 className="font-serif text-xl mb-3">Comentarios</h2>
-        <CommentForm horseId={horse.id} />
+        <CommentForm targetType="horse" targetId={horse.id} />
       </section>
     </div>
   );
