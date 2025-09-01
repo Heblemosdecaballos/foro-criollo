@@ -1,5 +1,10 @@
 {
   "crons": [
     { "path": "/api/cron/digest", "schedule": "0 14 * * *" }
-  ]
+  ],
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://demo-project.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlbW8tcHJvamVjdCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ1MDk1MzM1LCJleHAiOjE5NjA2NzEzMzV9.demo-key-for-development-only",
+    "NEXT_PUBLIC_SITE_URL": "https://app.hablandodecaballos.com"
+  }
 }
