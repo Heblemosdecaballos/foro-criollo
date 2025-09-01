@@ -6,7 +6,7 @@ import {
   getCategory,
   getCategoryLabel,
   type CategoryDef,
-} from "@/src/lib/utils";
+} from "@/lib/utils";
 
 export type Thread = {
   id: string;
@@ -29,7 +29,7 @@ export default function ThreadCard({ t }: { t: Thread }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${cat.className}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${cat.color} ${cat.bgColor}`}
             >
               <Tag className="w-3.5 h-3.5 mr-1.5" />
               {label}

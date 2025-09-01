@@ -45,7 +45,7 @@ export default async function HallByAndar({ params }: { params: { andar: string 
   const admin = isAdminEmail(user?.email);
 
   const { data: horses } = await supabase
-    .from("horses")
+    .from("hall_horses")
     .select("id, slug, name, views, votes_count")
     .eq("andar_slug", andar)
     .order("name", { ascending: true });

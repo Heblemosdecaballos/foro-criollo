@@ -1,7 +1,7 @@
 // src/app/login/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createSupabaseServer } from "@/src/lib/supabase/server";
+import { createSupabaseServer } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
