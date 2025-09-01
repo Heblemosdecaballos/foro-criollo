@@ -3,10 +3,12 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
-const { createClient } = require('redis');
-const { createAdapter } = require('@socket.io/redis-adapter');
+// ELIMINADO: Redis imports completamente removidos
+// const { createClient } = require('redis');
+// const { createAdapter } = require('@socket.io/redis-adapter');
 const session = require('express-session');
-const RedisStore = require('connect-redis').default;
+// ELIMINADO: Redis store
+// const RedisStore = require('connect-redis').default;
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -32,70 +34,20 @@ app.prepare().then(async () => {
     handle(req, res, parsedUrl);
   });
 
-  // Configurar Socket.IO
-  let io;
+  // Configurar Socket.IO SIN Redis (modo standalone)
+  console.log('⚠️ Redis COMPLETAMENTE DESHABILITADO - Socket.IO funcionará en modo standalone');
   
-  // Intentar configurar Redis si está disponible
-  if (process.env.REDIS_URL) {
-    try {
-      const redisUrl = process.env.REDIS_URL;
-      const pubClient = createClient({ 
-        url: redisUrl,
-        socket: {
-          connectTimeout: 5000,
-        }
-      });
-      const subClient = pubClient.duplicate();
-
-      // Conectar a Redis con timeout
-      await Promise.race([
-        Promise.all([
-          pubClient.connect(),
-          subClient.connect()
-        ]),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Redis connection timeout')), 10000)
-        )
-      ]);
-
-      console.log('✅ Redis conectado exitosamente');
-
-      // Configurar Socket.IO con Redis Adapter
-      io = new Server(server, {
-        cors: {
-          origin: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-          methods: ["GET", "POST"]
-        },
-        adapter: createAdapter(pubClient, subClient)
-      });
-
-      console.log('🔌 Socket.IO configurado con Redis Adapter');
-
-    } catch (err) {
-      console.error('❌ Error conectando a Redis:', err);
-      console.log('⚠️ Continuando sin Redis - Socket.IO funcionará en modo standalone');
-      
-      // Configurar Socket.IO sin Redis
-      io = new Server(server, {
-        cors: {
-          origin: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-          methods: ["GET", "POST"]
-        }
-      });
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+      methods: ["GET", "POST"]
     }
-  } else {
-    console.log('⚠️ REDIS_URL no configurado - Socket.IO funcionará en modo standalone');
-    
-    // Configurar Socket.IO sin Redis
-    io = new Server(server, {
-      cors: {
-        origin: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-        methods: ["GET", "POST"]
-      }
-    });
-  }
+    // ELIMINADO: Redis adapter completamente removido
+  });
 
-  // Store para usuarios conectados
+  console.log('🔌 Socket.IO configurado SIN Redis Adapter');
+
+  // Store para usuarios conectados (en memoria)
   const connectedUsers = new Map();
 
   // Eventos Socket.IO
@@ -206,7 +158,7 @@ app.prepare().then(async () => {
   server.listen(port, (err) => {
     if (err) throw err;
     console.log(`🚀 Servidor iniciado en http://localhost:${port}`);
-    console.log(`🔌 WebSocket server activo con Redis adapter`);
+    console.log(`🔌 WebSocket server activo SIN Redis adapter`);
   });
 });
 
