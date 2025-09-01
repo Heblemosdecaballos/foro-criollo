@@ -7,24 +7,46 @@ export const alt = "Hablando de Caballos — Foro";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Guard para manejar ausencia de Supabase
+function createSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey || 
+      supabaseUrl.includes('demo-project') || 
+      supabaseUrl.includes('example') ||
+      supabaseAnonKey.includes('demo-key') ||
+      supabaseAnonKey.includes('placeholder')) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export default async function OpengraphImage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const { data: thread } = await supabase
-    .from("threads")
-    .select("title, is_deleted")
-    .eq("slug", params.slug)
-    .single();
+  let title = "Foro de Caballos";
+  
+  // Solo intentar conectar a Supabase si las credenciales están disponibles
+  const supabase = createSupabaseClient();
+  
+  if (supabase) {
+    try {
+      const { data: thread } = await supabase
+        .from("threads")
+        .select("title, is_deleted")
+        .eq("slug", params.slug)
+        .single();
 
-  const title =
-    !thread || thread.is_deleted ? "Hilo no disponible" : thread.title;
+      title = !thread || thread.is_deleted ? "Hilo no disponible" : thread.title;
+    } catch (error) {
+      // Fallback silencioso si hay error de conexión
+      title = "Foro de Caballos";
+    }
+  }
 
   return new ImageResponse(
     (
