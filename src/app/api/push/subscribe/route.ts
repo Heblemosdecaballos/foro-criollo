@@ -1,17 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from 'redis';
-
-const redis = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-
-// Conectar a Redis si no está conectado
-async function ensureRedisConnection() {
-  if (!redis.isOpen) {
-    await redis.connect();
-  }
-}
+import redisClient from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,27 +13,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await ensureRedisConnection();
-
-    // Guardar suscripción en Redis
+    // Intentar guardar suscripción en Redis
     const subscriptionKey = `push_subscription:${Buffer.from(subscription.endpoint).toString('base64')}`;
-    await redis.setex(subscriptionKey, 86400 * 30, JSON.stringify({
-      ...subscription,
-      subscribedAt: new Date().toISOString()
-    })); // Expira en 30 días
+    const saved = await redisClient.savePushSubscription(subscriptionKey, subscription);
 
-    // Agregar a lista de suscripciones activas
-    await redis.sadd('active_push_subscriptions', subscriptionKey);
-
-    console.log('✅ Nueva suscripción push guardada');
+    if (saved) {
+      console.log('✅ Nueva suscripción push guardada en Redis');
+    } else {
+      console.log('⚠️ Suscripción push no guardada - Redis no disponible');
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Suscripción guardada exitosamente'
+      message: 'Suscripción procesada exitosamente',
+      redisEnabled: redisClient.isRedisEnabled()
     });
 
   } catch (error) {
-    console.error('❌ Error guardando suscripción push:', error);
+    console.error('❌ Error procesando suscripción push:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -1,16 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from 'redis';
-
-const redis = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-
-async function ensureRedisConnection() {
-  if (!redis.isOpen) {
-    await redis.connect();
-  }
-}
+import redisClient from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +8,29 @@ export async function POST(request: NextRequest) {
     
     if (!endpoint) {
       return NextResponse.json(
-        { error: 'Endpoint requerido' },
+        { error: 'Endpoint es requerido' },
         { status: 400 }
       );
     }
 
-    await ensureRedisConnection();
-
     // Eliminar suscripción de Redis
     const subscriptionKey = `push_subscription:${Buffer.from(endpoint).toString('base64')}`;
-    await redis.del(subscriptionKey);
-    await redis.srem('active_push_subscriptions', subscriptionKey);
+    const removed = await redisClient.removePushSubscription(subscriptionKey);
 
-    console.log('✅ Suscripción push eliminada');
+    if (removed) {
+      console.log('✅ Suscripción push eliminada de Redis');
+    } else {
+      console.log('⚠️ Suscripción push no eliminada - Redis no disponible');
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Desuscripción exitosa'
+      message: 'Suscripción procesada exitosamente',
+      redisEnabled: redisClient.isRedisEnabled()
     });
 
   } catch (error) {
-    console.error('❌ Error eliminando suscripción:', error);
+    console.error('❌ Error eliminando suscripción push:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -10,7 +10,7 @@ import { Users, Activity, Wifi, Bell, Database } from 'lucide-react';
 interface SystemStats {
   connectedUsers: number;
   totalConnections: number;
-  redisStatus: 'connected' | 'disconnected' | 'error';
+  redisStatus: 'connected' | 'disconnected' | 'error' | 'disabled';
   cacheHits: number;
   cacheMisses: number;
 }
@@ -146,9 +146,11 @@ export function RealtimeMonitor() {
               <div>
                 <p className="text-sm text-gray-600">Redis</p>
                 <p className={`text-sm font-medium ${
-                  stats.redisStatus === 'connected' ? 'text-green-600' : 'text-red-600'
+                  stats.redisStatus === 'connected' ? 'text-green-600' : 
+                  stats.redisStatus === 'disabled' ? 'text-yellow-600' : 'text-red-600'
                 }`}>
-                  {stats.redisStatus === 'connected' ? 'Conectado' : 'Desconectado'}
+                  {stats.redisStatus === 'connected' ? 'Conectado' : 
+                   stats.redisStatus === 'disabled' ? 'Deshabilitado' : 'Desconectado'}
                 </p>
               </div>
             </div>
