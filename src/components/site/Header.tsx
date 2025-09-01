@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import Image from "next/image";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -19,19 +20,37 @@ const NAV = [
   { label: "Foros",         href: "/foros" },
   { label: "Noticias",      href: "/noticias" },
   { label: "Historias",     href: "/historias" },
-  { label: "Transmisiones", href: "/transmisiones" },
+  { label: "En Vivo",       href: "/en-vivo" },
   { label: "Hall of Fame",  href: "/hall" },
   { label: "Chat en Vivo",  href: "/chat" },
-  { label: "Instalar app",  href: "/instalar" },
 ];
 
 export default async function Header() {
-  const supabase = supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Manejo seguro de autenticación con fallback
+  let user = null;
+  let authError = false;
+  
+  try {
+    const supabase = supabaseServer();
+    const { data, error } = await supabase.auth.getUser();
+    if (!error && data?.user) {
+      user = data.user;
+    }
+  } catch (error) {
+    console.log("Auth check failed in Header:", error instanceof Error ? error.message : "Unknown error");
+    authError = true;
+    // Continuar sin usuario autenticado
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-site-beige/95 backdrop-blur supports-[backdrop-filter]:bg-site-beige/80">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+    <>
+      {authError && (
+        <div className="bg-red-600 text-white text-center py-2 px-4 text-sm">
+          ⚠️ Configuración de base de datos pendiente - Algunas funciones pueden no estar disponibles
+        </div>
+      )}
+      <header className="sticky top-0 z-50 w-full border-b bg-site-beige/95 backdrop-blur supports-[backdrop-filter]:bg-site-beige/80">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -100,5 +119,6 @@ export default async function Header() {
         </details>
       </div>
     </header>
+    </>
   );
 }

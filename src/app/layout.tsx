@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/site/Header";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -21,8 +22,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className="min-h-screen bg-site-beige text-neutral-900">
-        <Header />
-        <main id="main">{children}</main>
+        <ErrorBoundary>
+          <Header />
+          <main id="main">{children}</main>
+        </ErrorBoundary>
       </body>
     </html>
   );
