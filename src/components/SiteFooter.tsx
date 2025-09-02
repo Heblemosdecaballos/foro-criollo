@@ -20,7 +20,7 @@ import {
 const BRAND = {
   name: "Hablando de Caballos",
   logoSrc: "/brand/horse.png",
-  tagline: "La comunidad más grande del Caballo Criollo Colombiano",
+  tagline: "El punto de encuentro de El Caballo Criollo Colombiano",
   description: "Conectamos jinetes, criadores y amantes de los caballos criollos en toda América Latina."
 };
 

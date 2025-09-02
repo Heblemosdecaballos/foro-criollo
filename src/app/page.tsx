@@ -104,8 +104,7 @@ export default function Home() {
 
               {/* Descripción Principal */}
               <p className="text-white/90 text-body-lg leading-relaxed mb-8 max-w-2xl">
-                La <strong>comunidad más grande</strong> del Caballo Criollo Colombiano. 
-                Conectamos jinetes, criadores y amantes de los caballos en toda América Latina.
+                La comunidad más grande del caballo criollo colombiano. Conectamos chalanes, y amantes del caballo a nivel mundial.
               </p>
 
               {/* Estadísticas Rápidas */}
