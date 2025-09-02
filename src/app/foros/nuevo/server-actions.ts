@@ -76,16 +76,18 @@ export async function createForum(formData: FormData): Promise<void> {
       status: "open",
     })
     .select("id")
-    .single<InsertThread>();
+    .single();
 
   if (error) {
     redirectWithError(error.message);
   }
 
+  const threadData = data as InsertThread;
+
   // 4) (Opcional) Crear primer comentario con "content"
   if (content) {
     const { error: postErr } = await supa.from("thread_comments").insert({
-      thread_id: data!.id,
+      thread_id: threadData.id,
       author_id: user.id,
       author_name, // 👈 nuevo
       text: content,

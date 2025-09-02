@@ -14,9 +14,9 @@ export default function SessionButton({ className = '' }: Props) {
 
   useEffect(() => {
     // Estado inicial
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    supabase.auth.getUser().then(({ data }: any) => setUser(data.user ?? null));
     // Suscripción a cambios
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_e: any, session: any) => {
       setUser(session?.user ?? null);
     });
     return () => sub?.subscription.unsubscribe();

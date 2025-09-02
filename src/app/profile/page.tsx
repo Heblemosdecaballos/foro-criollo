@@ -37,13 +37,14 @@ export default function ProfilePage() {
           .from('profiles')
           .select('id, username, full_name, phone')
           .eq('id', user.id)
-          .maybeSingle<Profile>();
+          .maybeSingle();
         if (error) throw error;
 
         if (mounted && data) {
-          setUsername(data.username ?? '');
-          setFullName(data.full_name ?? '');
-          setPhone(data.phone ?? '');
+          const profile = data as Profile;
+          setUsername(profile.username ?? '');
+          setFullName(profile.full_name ?? '');
+          setPhone(profile.phone ?? '');
         }
       } catch (e: any) {
         setMsg(e.message ?? 'No fue posible cargar tu perfil.');

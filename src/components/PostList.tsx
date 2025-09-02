@@ -23,7 +23,7 @@ export default function PostList({ threadId, archived }: { threadId: string; arc
     }
     load()
     const channel = supabase.channel('posts-'+threadId)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` }, (p)=>{
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts', filter: `thread_id=eq.${threadId}` }, (p: any)=>{
         setPosts(prev => [...prev, p.new as any])
       })
       .subscribe()
