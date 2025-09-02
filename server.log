@@ -1,0 +1,11 @@
+
+> start
+> NODE_ENV=production node server.js
+
+✅ Redis conectado exitosamente
+🚀 Servidor iniciado en http://localhost:3000
+🔌 WebSocket server activo con Redis adapter
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport

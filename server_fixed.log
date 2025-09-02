@@ -1,0 +1,209 @@
+
+> start
+> NODE_ENV=production node server.js
+
+✅ Redis conectado exitosamente
+🚀 Servidor iniciado en http://localhost:3000
+🔌 WebSocket server activo con Redis adapter
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Using mock banner data: Supabase credentials not properly configured for production
+Using mock banner data: Supabase credentials not properly configured for production
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Database not available, tracking data: {
+  banner_id: '1',
+  page_url: 'http://localhost:3000/',
+  referrer_url: 'http://localhost:3000/',
+  user_agent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+  device_type: 'desktop',
+  browser: 'Chrome',
+  session_id: 'session_1756747491883_2txlmezxw',
+  view_duration: 0,
+  page_category: 'general',
+  ip_address: '::ffff:127.0.0.1',
+  timestamp: '2025-09-01T17:24:51.949Z'
+}
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /foros. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /foros. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at P (/home/ubuntu/foro-criollo/.next/server/app/foros/page.js:61:1197)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475) {
+  digest: '911815742'
+}
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at P (/home/ubuntu/foro-criollo/.next/server/app/foros/page.js:61:1197)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475) {
+  digest: '911815742'
+}
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /hall. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /hall. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /icon-384x384.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /icon-384x384.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /noticias. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /noticias. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /en-vivo. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /en-vivo. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /manifest.json. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /manifest.json. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /icon-192x192.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /icon-192x192.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Error getting user in layout: Error: Supabase credentials not properly configured for production
+    at l (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:7146)
+    at O (/home/ubuntu/foro-criollo/.next/server/chunks/8318.js:33:5020)
+    at eh (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:134786)
+    at e (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137671)
+    at ek (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:138145)
+    at Array.toJSON (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135755)
+    at stringify (<anonymous>)
+    at eR (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142219)
+    at eE (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142698)
+    at Timeout._onTimeout (/home/ubuntu/foro-criollo/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135475)
+ ⚠ Unsupported metadata viewport is configured in metadata export in /icon-512x512.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata themeColor is configured in metadata export in /icon-512x512.png. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Auth check failed in HeaderWrapper: Supabase credentials not properly configured for production
+Using mock banner data: Supabase credentials not properly configured for production
