@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -21,9 +20,10 @@ import {
 } from 'lucide-react'
 import { formatRelativeDate } from '@/lib/utils'
 import { notFound } from 'next/navigation'
+import { HorseGallery } from '@/components/hall/horse-gallery'
+import { HorseDetailClient } from '@/components/hall/horse-detail-client'
 import { HorseVoting } from '@/components/hall/horse-voting'
 import { HorseComments } from '@/components/hall/horse-comments'
-import { HorseGallery } from '@/components/hall/horse-gallery'
 
 interface Props {
   params: { andar: string; slug: string }
@@ -80,22 +80,7 @@ export default async function HorseDetailPage({ params }: Props) {
     notFound()
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Get user's vote if logged in
-  let userVote = null
-  if (user) {
-    const { data: vote } = await supabase
-      .from('hall_votes')
-      .select('value')
-      .eq('horse_id', horse.id)
-      .eq('user_id', user.id)
-      .single()
-    
-    userVote = vote?.value || null
-  }
-
-  // Calculate stats
+  // Calculate stats (server-side)
   const votes = horse.hall_votes || []
   const totalVotes = votes.length
   const votesSum = votes.reduce((acc: number, vote: any) => acc + vote.value, 0)
@@ -103,7 +88,6 @@ export default async function HorseDetailPage({ params }: Props) {
 
   // Organize media
   const sortedMedia = horse.horse_media?.sort((a: any, b: any) => a.order_index - b.order_index) || []
-  const coverImage = sortedMedia.find((media: any) => media.is_cover)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#EBDDCB] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
@@ -117,13 +101,11 @@ export default async function HorseDetailPage({ params }: Props) {
             </Button>
           </Link>
           
-          {user?.id === horse.created_by && (
-            <Link href={`/hall/${params.andar}/${params.slug}/editar`}>
-              <Button variant="outline">
-                Editar
-              </Button>
-            </Link>
-          )}
+          <HorseDetailClient 
+            horseId={horse.id}
+            createdBy={horse.created_by}
+            editUrl={`/hall/${params.andar}/${params.slug}/editar`}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -274,7 +256,7 @@ export default async function HorseDetailPage({ params }: Props) {
               </Card>
             )}
 
-            {/* Comments */}
+            {/* Comments - Client Component */}
             <Card className="horse-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -290,7 +272,7 @@ export default async function HorseDetailPage({ params }: Props) {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Voting */}
+            {/* Voting - Client Component */}
             <Card className="horse-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -301,7 +283,7 @@ export default async function HorseDetailPage({ params }: Props) {
               <CardContent>
                 <HorseVoting 
                   horseId={horse.id}
-                  currentVote={userVote}
+                  currentVote={null}
                   totalVotes={totalVotes}
                   averageRating={averageRating}
                 />
