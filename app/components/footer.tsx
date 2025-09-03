@@ -11,7 +11,11 @@ import {
   Award,
   Mail,
   MapPin,
-  Phone
+  Phone,
+  Facebook,
+  Instagram,
+  Youtube,
+  MessageCircle
 } from 'lucide-react'
 
 export function Footer() {
@@ -105,31 +109,51 @@ export function Footer() {
           {/* Contact */}
           <div className="space-y-4">
             <h4 className="font-semibold text-foreground">Contacto</h4>
-            <div className="space-y-2">
-              <div className="flex items-center text-sm text-muted-foreground">
+            <div className="space-y-3">
+              <a 
+                href="mailto:admin@hablandodecaballos.com"
+                className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
                 <Mail className="mr-2 h-4 w-4" />
                 <span>admin@hablandodecaballos.com</span>
-              </div>
-              <div className="flex items-center text-sm text-muted-foreground">
+              </a>
+              <a 
+                href="tel:+573113629764"
+                className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
                 <Phone className="mr-2 h-4 w-4" />
-                <span>+57 (300) 123-4567</span>
-              </div>
+                <span>+57 (311) 362-9764</span>
+              </a>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h5 className="text-sm font-medium text-foreground">Síguenos</h5>
-              <div className="space-y-1">
-                <a href="#" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Facebook
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Facebook className="mr-2 h-4 w-4" />
+                  <span>Facebook (Próximamente)</span>
+                </div>
+                <a 
+                  href="https://www.instagram.com/forohablandodecaballos" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors hover:text-pink-500"
+                >
+                  <Instagram className="mr-2 h-4 w-4" />
+                  <span>Instagram</span>
                 </a>
-                <a href="#" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Instagram
-                </a>
-                <a href="#" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  YouTube
-                </a>
-                <a href="#" className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  WhatsApp
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Youtube className="mr-2 h-4 w-4" />
+                  <span>YouTube (Próximamente)</span>
+                </div>
+                <a 
+                  href="https://wa.me/3113629764" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors hover:text-green-500"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  <span>WhatsApp</span>
                 </a>
               </div>
             </div>
