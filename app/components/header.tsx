@@ -66,8 +66,17 @@ export function Header() {
               <Trophy className="h-6 w-6 text-white" />
             </div>
             <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-amber-600">Hablando de Caballos</h1>
-              <p className="text-xs text-muted-foreground">Comunidad Ecuestre</p>
+              <h1 className="text-xl font-bold text-amber-600 flex items-center">
+                Hablando de Caballos
+                <Image 
+                  src="/paso-fino-colombiano.png" 
+                  alt="Paso Fino Colombiano" 
+                  width={24} 
+                  height={24} 
+                  className="ml-2"
+                />
+              </h1>
+              <p className="text-xs text-muted-foreground">El punto de encuentro del caballo criollo colombiano</p>
             </div>
           </Link>
 

@@ -94,7 +94,7 @@ export default async function HomePage() {
   const featuredHorses = mockFeaturedHorses
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#EBDDCB] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 dark:from-amber-900/40 dark:to-orange-900/40" />
@@ -103,15 +103,22 @@ export default async function HomePage() {
             <div className="inline-flex items-center space-x-2 bg-amber-100 dark:bg-amber-900/30 px-4 py-2 rounded-full">
               <Trophy className="h-5 w-5 text-amber-600" />
               <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Comunidad Ecuestre de Élite
+                El punto de encuentro del caballo criollo colombiano
               </span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white flex items-center justify-center flex-wrap">
               Hablando de{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
                 Caballos
               </span>
+              <Image 
+                src="/paso-fino-colombiano.png" 
+                alt="Paso Fino Colombiano" 
+                width={60} 
+                height={60} 
+                className="ml-4"
+              />
             </h1>
             
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">

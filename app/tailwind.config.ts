@@ -60,6 +60,14 @@ const config: Config = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        // Paleta de colores Hablando de Caballos
+        criollo: {
+          beige: '#F5E9DA',      // Beige claro (fondo base)
+          brown: '#4B2E2E',      // Café corporativo (texto y siluetas)
+          gold: '#E6B31E',       // Amarillo dorado (acento)
+          'beige-alt': '#EBDDCB', // Beige intermedio (bloques alternos)
+          white: '#FFFFFF',      // Blanco puro
+        },
       },
       keyframes: {
         'accordion-down': {

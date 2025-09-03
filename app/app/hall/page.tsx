@@ -34,7 +34,7 @@ export default async function HallOfFamePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#EBDDCB] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
       <div className="container mx-auto max-w-7xl px-4 py-8">
         {/* Header */}
         <div className="text-center space-y-6 mb-12">
@@ -45,11 +45,18 @@ export default async function HallOfFamePage() {
             </span>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white flex items-center justify-center flex-wrap">
             Ejemplares{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
               Excepcionales
             </span>
+            <Image 
+              src="/paso-fino-colombiano.png" 
+              alt="Paso Fino Colombiano" 
+              width={50} 
+              height={50} 
+              className="ml-4"
+            />
           </h1>
           
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
@@ -97,22 +104,31 @@ export default async function HallOfFamePage() {
                     className="group block p-4 rounded-lg border hover:bg-accent transition-colors"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="relative w-12 h-12 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/30">
+                      <div className="relative w-12 h-12 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                         <Image
-                          src={`/andares/${andar.slug}.png`}
-                          alt={andar.name}
-                          width={48}
-                          height={48}
+                          src="/paso-fino-colombiano.png"
+                          alt="Paso Fino Colombiano"
+                          width={32}
+                          height={32}
                           className="object-cover"
                         />
                       </div>
-                      <div>
-                        <h3 className="font-semibold group-hover:text-amber-600 transition-colors">
-                          {andar.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {pluralize(andarHorses.length, 'ejemplar', 'ejemplares')}
-                        </p>
+                      <div className="flex items-center space-x-2">
+                        <div>
+                          <h3 className="font-semibold group-hover:text-amber-600 transition-colors flex items-center">
+                            {andar.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {pluralize(andarHorses.length, 'ejemplar', 'ejemplares')}
+                          </p>
+                        </div>
+                        <Image
+                          src="/paso-fino-colombiano.png"
+                          alt="Paso Fino Colombiano"
+                          width={20}
+                          height={20}
+                          className="ml-2"
+                        />
                       </div>
                     </div>
                   </Link>
