@@ -133,15 +133,10 @@ export function Footer() {
                   <Facebook className="mr-2 h-4 w-4" />
                   <span>Facebook (Próximamente)</span>
                 </div>
-                <a 
-                  href="https://www.instagram.com/forohablandodecaballos" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors hover:text-pink-500"
-                >
+                <div className="flex items-center text-sm text-muted-foreground">
                   <Instagram className="mr-2 h-4 w-4" />
-                  <span>Instagram</span>
-                </a>
+                  <span>Instagram (Verificando cuenta...)</span>
+                </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Youtube className="mr-2 h-4 w-4" />
                   <span>YouTube (Próximamente)</span>
