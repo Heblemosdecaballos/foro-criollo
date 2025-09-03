@@ -32,7 +32,8 @@ import {
   Image as ImageIcon,
   Moon,
   Sun,
-  Settings
+  Settings,
+  Shield
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -163,6 +164,14 @@ export function Header() {
                       Rankings
                     </Link>
                   </DropdownMenuItem>
+                  {(user?.email === 'admin@hablandodecaballos.com' || user?.email === 'moderator@hablandodecaballos.com') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Panel Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />

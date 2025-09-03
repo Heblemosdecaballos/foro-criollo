@@ -516,3 +516,168 @@ export interface NotificationSettings {
   notifications_hall: boolean
   email_notifications: boolean
 }
+
+// Admin Panel System Types
+export interface AdminRole {
+  id: string
+  user_id: string
+  role: 'admin' | 'moderator' | 'content_manager'
+  permissions: Record<string, any>
+  assigned_by?: string
+  assigned_at: string
+  is_active: boolean
+  expires_at?: string
+  notes?: string
+  user?: User
+  assigned_by_user?: User
+}
+
+export interface SystemReport {
+  id: string
+  reporter_id?: string
+  reported_type: 'thread' | 'reply' | 'horse' | 'ad' | 'user' | 'media'
+  reported_id: string
+  report_category: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'copyright' | 'other'
+  description?: string
+  status: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  assigned_to?: string
+  resolution?: string
+  resolved_at?: string
+  resolved_by?: string
+  metadata?: Record<string, any>
+  created_at: string
+  updated_at: string
+  reporter?: User
+  assigned_user?: User
+  resolved_by_user?: User
+}
+
+export interface AdminAction {
+  id: string
+  admin_id: string
+  action_type: string
+  target_type?: string
+  target_id?: string
+  description: string
+  metadata?: Record<string, any>
+  ip_address?: string
+  user_agent?: string
+  created_at: string
+  admin?: User
+}
+
+export interface SiteSetting {
+  id: string
+  setting_key: string
+  setting_value?: any
+  setting_type: 'string' | 'number' | 'boolean' | 'json' | 'text'
+  category: 'general' | 'security' | 'notifications' | 'features'
+  description?: string
+  is_public: boolean
+  updated_by?: string
+  updated_at: string
+  updated_by_user?: User
+}
+
+export interface UserSuspension {
+  id: string
+  user_id: string
+  suspended_by: string
+  reason: string
+  suspension_type: 'temporary' | 'permanent' | 'warning'
+  expires_at?: string
+  is_active: boolean
+  appeal_status: 'none' | 'pending' | 'approved' | 'denied'
+  appeal_reason?: string
+  appeal_submitted_at?: string
+  appeal_reviewed_by?: string
+  appeal_reviewed_at?: string
+  created_at: string
+  user?: User
+  suspended_by_user?: User
+  appeal_reviewed_by_user?: User
+}
+
+export interface ModerationQueue {
+  id: string
+  content_type: 'thread' | 'reply' | 'horse' | 'ad' | 'media'
+  content_id: string
+  user_id: string
+  status: 'pending' | 'approved' | 'rejected' | 'flagged'
+  flagged_reason?: string
+  priority: 'low' | 'normal' | 'high'
+  assigned_to?: string
+  reviewed_at?: string
+  reviewed_by?: string
+  reviewer_notes?: string
+  auto_flagged: boolean
+  flag_score: number
+  created_at: string
+  user?: User
+  assigned_user?: User
+  reviewer?: User
+}
+
+export interface AdminNotification {
+  id: string
+  admin_id: string
+  title: string
+  message: string
+  type: 'report' | 'moderation' | 'system' | 'security'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  is_read: boolean
+  action_url?: string
+  metadata?: Record<string, any>
+  created_at: string
+  read_at?: string
+}
+
+// Admin Dashboard Types
+export interface AdminStats {
+  total_users: number
+  new_users_today: number
+  total_threads: number
+  new_threads_today: number
+  total_replies: number
+  new_replies_today: number
+  total_horses: number
+  new_horses_today: number
+  pending_reports: number
+  pending_moderation: number
+  active_suspensions: number
+  total_page_views: number
+}
+
+export interface ContentStats {
+  total_count: number
+  today_count: number
+  this_week_count: number
+  this_month_count: number
+  pending_count?: number
+  flagged_count?: number
+}
+
+export interface UserManagementFilters {
+  search?: string
+  role?: string
+  status?: 'active' | 'suspended' | 'banned'
+  registration_date_from?: string
+  registration_date_to?: string
+  reputation_min?: number
+  reputation_max?: number
+  sort_by?: 'created_at' | 'name' | 'reputation_score' | 'last_seen'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface ReportFilters {
+  status?: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
+  priority?: 'low' | 'medium' | 'high' | 'critical'
+  category?: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'copyright' | 'other'
+  reported_type?: 'thread' | 'reply' | 'horse' | 'ad' | 'user' | 'media'
+  assigned_to?: string
+  date_from?: string
+  date_to?: string
+  sort_by?: 'created_at' | 'priority' | 'status'
+  sort_order?: 'asc' | 'desc'
+}

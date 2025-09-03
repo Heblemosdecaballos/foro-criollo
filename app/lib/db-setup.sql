@@ -699,3 +699,246 @@ CREATE POLICY "user_earned_badges_insert" ON public.user_earned_badges FOR INSER
     auth.email() = 'admin@hablandodecaballos.com'
 );
 CREATE POLICY "user_earned_badges_update" ON public.user_earned_badges FOR UPDATE USING (user_id = auth.uid());
+
+-- ============================================================================
+-- ADMIN PANEL SYSTEM (IMPLEMENTATION PHASE 2)
+-- ============================================================================
+
+-- Create admin roles table
+CREATE TABLE IF NOT EXISTS public.admin_roles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE,
+    role VARCHAR(50) NOT NULL, -- 'admin', 'moderator', 'content_manager'
+    permissions JSONB DEFAULT '{}',
+    assigned_by UUID,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT
+);
+
+-- Create system reports table
+CREATE TABLE IF NOT EXISTS public.system_reports (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    reporter_id UUID,
+    reported_type VARCHAR(50) NOT NULL, -- 'thread', 'reply', 'horse', 'ad', 'user', 'media'
+    reported_id UUID NOT NULL,
+    report_category VARCHAR(50) NOT NULL, -- 'spam', 'inappropriate', 'harassment', 'fake', 'copyright', 'other'
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'reviewing', 'resolved', 'dismissed'
+    priority VARCHAR(20) DEFAULT 'medium', -- 'low', 'medium', 'high', 'critical'
+    assigned_to UUID,
+    resolution TEXT,
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    resolved_by UUID,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create admin actions log table
+CREATE TABLE IF NOT EXISTS public.admin_actions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_id UUID NOT NULL,
+    action_type VARCHAR(50) NOT NULL, -- 'user_suspend', 'content_delete', 'report_resolve', 'badge_assign', etc.
+    target_type VARCHAR(50), -- 'user', 'thread', 'reply', 'horse', 'ad', 'report'
+    target_id UUID,
+    description TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create site settings table
+CREATE TABLE IF NOT EXISTS public.site_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value JSONB,
+    setting_type VARCHAR(50) NOT NULL, -- 'string', 'number', 'boolean', 'json', 'text'
+    category VARCHAR(50) NOT NULL, -- 'general', 'security', 'notifications', 'features'
+    description TEXT,
+    is_public BOOLEAN DEFAULT FALSE,
+    updated_by UUID,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user suspensions table
+CREATE TABLE IF NOT EXISTS public.user_suspensions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL,
+    suspended_by UUID NOT NULL,
+    reason TEXT NOT NULL,
+    suspension_type VARCHAR(50) NOT NULL, -- 'temporary', 'permanent', 'warning'
+    expires_at TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT TRUE,
+    appeal_status VARCHAR(20) DEFAULT 'none', -- 'none', 'pending', 'approved', 'denied'
+    appeal_reason TEXT,
+    appeal_submitted_at TIMESTAMP WITH TIME ZONE,
+    appeal_reviewed_by UUID,
+    appeal_reviewed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create content moderation queue table
+CREATE TABLE IF NOT EXISTS public.moderation_queue (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    content_type VARCHAR(50) NOT NULL, -- 'thread', 'reply', 'horse', 'ad', 'media'
+    content_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'flagged'
+    flagged_reason TEXT,
+    priority VARCHAR(20) DEFAULT 'normal', -- 'low', 'normal', 'high'
+    assigned_to UUID,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    reviewed_by UUID,
+    reviewer_notes TEXT,
+    auto_flagged BOOLEAN DEFAULT FALSE,
+    flag_score INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create admin notifications table
+CREATE TABLE IF NOT EXISTS public.admin_notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_id UUID NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50) NOT NULL, -- 'report', 'moderation', 'system', 'security'
+    priority VARCHAR(20) DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+    is_read BOOLEAN DEFAULT FALSE,
+    action_url VARCHAR(500),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    read_at TIMESTAMP WITH TIME ZONE
+);
+
+-- ============================================================================
+-- INDEXES FOR ADMIN SYSTEM
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS admin_roles_user_idx ON public.admin_roles(user_id, is_active);
+CREATE INDEX IF NOT EXISTS admin_roles_role_idx ON public.admin_roles(role, is_active);
+
+CREATE INDEX IF NOT EXISTS system_reports_status_idx ON public.system_reports(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS system_reports_assigned_idx ON public.system_reports(assigned_to, status);
+CREATE INDEX IF NOT EXISTS system_reports_priority_idx ON public.system_reports(priority, created_at DESC);
+CREATE INDEX IF NOT EXISTS system_reports_reporter_idx ON public.system_reports(reporter_id);
+
+CREATE INDEX IF NOT EXISTS admin_actions_admin_idx ON public.admin_actions(admin_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_actions_type_idx ON public.admin_actions(action_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_actions_target_idx ON public.admin_actions(target_type, target_id);
+
+CREATE INDEX IF NOT EXISTS site_settings_key_idx ON public.site_settings(setting_key);
+CREATE INDEX IF NOT EXISTS site_settings_category_idx ON public.site_settings(category);
+
+CREATE INDEX IF NOT EXISTS user_suspensions_user_idx ON public.user_suspensions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS user_suspensions_active_idx ON public.user_suspensions(is_active, expires_at) WHERE is_active = TRUE;
+
+CREATE INDEX IF NOT EXISTS moderation_queue_status_idx ON public.moderation_queue(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS moderation_queue_assigned_idx ON public.moderation_queue(assigned_to, status);
+CREATE INDEX IF NOT EXISTS moderation_queue_priority_idx ON public.moderation_queue(priority, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS admin_notifications_admin_read_idx ON public.admin_notifications(admin_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_notifications_type_idx ON public.admin_notifications(type, created_at DESC);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY FOR ADMIN SYSTEM
+-- ============================================================================
+
+ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_actions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_suspensions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.moderation_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Admin roles policies
+CREATE POLICY "admin_roles_select" ON public.admin_roles FOR SELECT USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com' OR
+    user_id = auth.uid()
+);
+CREATE POLICY "admin_roles_insert" ON public.admin_roles FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "admin_roles_update" ON public.admin_roles FOR UPDATE USING (
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- System reports policies
+CREATE POLICY "system_reports_select" ON public.system_reports FOR SELECT USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com' OR
+    reporter_id = auth.uid()
+);
+CREATE POLICY "system_reports_insert" ON public.system_reports FOR INSERT WITH CHECK (
+    reporter_id = auth.uid()
+);
+CREATE POLICY "system_reports_update" ON public.system_reports FOR UPDATE USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+
+-- Admin actions policies
+CREATE POLICY "admin_actions_select" ON public.admin_actions FOR SELECT USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "admin_actions_insert" ON public.admin_actions FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+
+-- Site settings policies
+CREATE POLICY "site_settings_select" ON public.site_settings FOR SELECT USING (
+    is_public = TRUE OR 
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "site_settings_update" ON public.site_settings FOR UPDATE USING (
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- User suspensions policies
+CREATE POLICY "user_suspensions_select" ON public.user_suspensions FOR SELECT USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com' OR
+    user_id = auth.uid()
+);
+CREATE POLICY "user_suspensions_insert" ON public.user_suspensions FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "user_suspensions_update" ON public.user_suspensions FOR UPDATE USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com' OR
+    (user_id = auth.uid() AND appeal_status = 'none')
+);
+
+-- Moderation queue policies
+CREATE POLICY "moderation_queue_select" ON public.moderation_queue FOR SELECT USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com' OR
+    user_id = auth.uid()
+);
+CREATE POLICY "moderation_queue_insert" ON public.moderation_queue FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "moderation_queue_update" ON public.moderation_queue FOR UPDATE USING (
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+
+-- Admin notifications policies
+CREATE POLICY "admin_notifications_select" ON public.admin_notifications FOR SELECT USING (
+    admin_id = auth.uid()
+);
+CREATE POLICY "admin_notifications_insert" ON public.admin_notifications FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "admin_notifications_update" ON public.admin_notifications FOR UPDATE USING (
+    admin_id = auth.uid()
+);
