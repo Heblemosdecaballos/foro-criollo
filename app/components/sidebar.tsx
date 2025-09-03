@@ -4,22 +4,28 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
+import { UserStatsCard } from './user-stats-card'
 import { 
   Users, 
   MessageSquare, 
   TrendingUp, 
-  Calendar
+  Calendar,
+  ShoppingCart
 } from 'lucide-react'
-import { ForumStats } from '@/lib/types'
+import { ForumStats, UserStats } from '@/lib/types'
 import { formatRelativeDate } from '@/lib/utils'
 
 interface SidebarProps {
   stats?: ForumStats
+  userStats?: UserStats
 }
 
-export function Sidebar({ stats }: SidebarProps) {
+export function Sidebar({ stats, userStats }: SidebarProps) {
   return (
     <div className="space-y-6">
+      {/* User Stats */}
+      <UserStatsCard userStats={userStats} />
+      
       {/* Community Stats */}
       <Card>
         <CardHeader className="pb-3">
@@ -92,6 +98,18 @@ export function Sidebar({ stats }: SidebarProps) {
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               🏆 Hall of Fame
+            </Link>
+            <Link
+              href="/marketplace"
+              className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              🛒 Marketplace
+            </Link>
+            <Link
+              href="/rankings"
+              className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              📊 Rankings
             </Link>
             <Link
               href="/forums/razas-y-cria"

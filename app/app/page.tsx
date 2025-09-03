@@ -13,7 +13,8 @@ import {
   Eye,
   Clock,
   ChevronRight,
-  Heart
+  Heart,
+  ShoppingCart
 } from 'lucide-react'
 import { formatRelativeDate, pluralize } from '@/lib/utils'
 import { ForumStats } from '@/lib/types'
@@ -132,6 +133,12 @@ export default async function HomePage() {
                 <Button size="lg" className="btn-equestrian">
                   <MessageSquare className="mr-2 h-5 w-5" />
                   Explorar Foros
+                </Button>
+              </Link>
+              <Link href="/marketplace">
+                <Button size="lg" className="btn-equestrian">
+                  <ShoppingCart className="mr-2 h-5 w-5" />
+                  Marketplace
                 </Button>
               </Link>
               <Link href="/hall">

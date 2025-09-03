@@ -27,6 +27,7 @@ import {
   Home,
   Trophy,
   MessageSquare,
+  ShoppingCart,
   Moon,
   Sun
 } from 'lucide-react'
@@ -54,6 +55,7 @@ export function Header() {
     { href: '/', label: 'Inicio', icon: Home },
     { href: '/forums', label: 'Foros', icon: MessageSquare },
     { href: '/hall', label: 'Hall of Fame', icon: Trophy },
+    { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
   ]
 
   return (
