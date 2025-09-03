@@ -89,3 +89,23 @@ export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
 }
+
+export function createSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    // Replace Spanish characters
+    .replace(/[áàäâ]/g, 'a')
+    .replace(/[éèëê]/g, 'e')
+    .replace(/[íìïî]/g, 'i')
+    .replace(/[óòöô]/g, 'o')
+    .replace(/[úùüû]/g, 'u')
+    .replace(/[ñ]/g, 'n')
+    .replace(/[ç]/g, 'c')
+    // Replace spaces and special characters with hyphens
+    .replace(/[^a-z0-9]+/g, '-')
+    // Remove leading and trailing hyphens
+    .replace(/^-+|-+$/g, '')
+    // Replace multiple consecutive hyphens with single hyphen
+    .replace(/-+/g, '-')
+}

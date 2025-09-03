@@ -1193,3 +1193,145 @@ CREATE POLICY "media_likes_insert" ON public.media_likes FOR INSERT WITH CHECK (
 CREATE POLICY "media_likes_delete" ON public.media_likes FOR DELETE USING (
     user_id = auth.uid()
 );
+
+-- ============================================
+-- HALL OF FAME TABLES
+-- ============================================
+
+-- Create andares table
+CREATE TABLE IF NOT EXISTS public.andares (
+    slug VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create horses table
+CREATE TABLE IF NOT EXISTS public.horses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(250) NOT NULL,
+    andar_slug VARCHAR(100) NOT NULL REFERENCES public.andares(slug) ON DELETE RESTRICT,
+    description TEXT,
+    pedigree_url VARCHAR(500),
+    owner_name VARCHAR(200),
+    birth_date DATE,
+    color VARCHAR(100),
+    height_cm INTEGER,
+    awards TEXT[],
+    created_by UUID NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(slug),
+    UNIQUE(andar_slug, slug)
+);
+
+-- Create horse_media table
+CREATE TABLE IF NOT EXISTS public.horse_media (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    horse_id UUID NOT NULL REFERENCES public.horses(id) ON DELETE CASCADE,
+    media_id UUID NOT NULL REFERENCES public.media_files(id) ON DELETE CASCADE,
+    is_cover BOOLEAN DEFAULT FALSE,
+    caption TEXT,
+    order_index INTEGER DEFAULT 0,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(horse_id, media_id)
+);
+
+-- Create hall_votes table
+CREATE TABLE IF NOT EXISTS public.hall_votes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    horse_id UUID NOT NULL REFERENCES public.horses(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    value INTEGER NOT NULL CHECK (value >= 1 AND value <= 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(horse_id, user_id)
+);
+
+-- Create hall_comments table
+CREATE TABLE IF NOT EXISTS public.hall_comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    horse_id UUID NOT NULL REFERENCES public.horses(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    parent_id UUID REFERENCES public.hall_comments(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_horses_andar_slug ON public.horses(andar_slug);
+CREATE INDEX IF NOT EXISTS idx_horses_created_by ON public.horses(created_by);
+CREATE INDEX IF NOT EXISTS idx_horses_created_at ON public.horses(created_at);
+CREATE INDEX IF NOT EXISTS idx_horse_media_horse_id ON public.horse_media(horse_id);
+CREATE INDEX IF NOT EXISTS idx_horse_media_is_cover ON public.horse_media(horse_id, is_cover);
+CREATE INDEX IF NOT EXISTS idx_hall_votes_horse_id ON public.hall_votes(horse_id);
+CREATE INDEX IF NOT EXISTS idx_hall_votes_user_id ON public.hall_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_hall_comments_horse_id ON public.hall_comments(horse_id);
+CREATE INDEX IF NOT EXISTS idx_hall_comments_parent_id ON public.hall_comments(parent_id);
+
+-- Enable RLS on new tables
+ALTER TABLE public.andares ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.horses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.horse_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hall_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hall_comments ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for andares
+CREATE POLICY "andares_select" ON public.andares FOR SELECT USING (TRUE);
+
+-- RLS Policies for horses
+CREATE POLICY "horses_select" ON public.horses FOR SELECT USING (is_deleted = FALSE);
+CREATE POLICY "horses_insert" ON public.horses FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "horses_update" ON public.horses FOR UPDATE USING (
+    auth.uid() = created_by OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "horses_delete" ON public.horses FOR DELETE USING (
+    auth.uid() = created_by OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- RLS Policies for horse_media
+CREATE POLICY "horse_media_select" ON public.horse_media FOR SELECT USING (TRUE);
+CREATE POLICY "horse_media_insert" ON public.horse_media FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "horse_media_update" ON public.horse_media FOR UPDATE USING (
+    auth.uid() = created_by OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "horse_media_delete" ON public.horse_media FOR DELETE USING (
+    auth.uid() = created_by OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- RLS Policies for hall_votes
+CREATE POLICY "hall_votes_select" ON public.hall_votes FOR SELECT USING (TRUE);
+CREATE POLICY "hall_votes_insert" ON public.hall_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "hall_votes_update" ON public.hall_votes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "hall_votes_delete" ON public.hall_votes FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS Policies for hall_comments
+CREATE POLICY "hall_comments_select" ON public.hall_comments FOR SELECT USING (is_deleted = FALSE);
+CREATE POLICY "hall_comments_insert" ON public.hall_comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "hall_comments_update" ON public.hall_comments FOR UPDATE USING (
+    auth.uid() = user_id OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "hall_comments_delete" ON public.hall_comments FOR DELETE USING (
+    auth.uid() = user_id OR 
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- Insert default andares (if not exists)
+INSERT INTO public.andares (slug, name, description) VALUES
+    ('paso-fino', 'Paso Fino', 'El paso fino es un andar natural de cuatro tiempos, lateral, donde el caballo mantiene un ritmo constante y uniforme.'),
+    ('trocha', 'Trocha', 'La trocha es un andar natural de dos tiempos, diagonal, con suspensión y gran comodidad para el jinete.'),
+    ('trocha-y-galope', 'Trocha y Galope', 'Combinación de trocha y galope, mostrando la versatilidad del caballo criollo colombiano.'),
+    ('trote-y-galope', 'Trote y Galope', 'Combinación clásica de trote y galope, común en disciplinas hípicas tradicionales.')
+ON CONFLICT (slug) DO UPDATE SET 
+    name = EXCLUDED.name,
+    description = EXCLUDED.description;
