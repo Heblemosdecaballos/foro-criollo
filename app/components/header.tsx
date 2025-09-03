@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import {
@@ -30,7 +31,8 @@ import {
   ShoppingCart,
   Image as ImageIcon,
   Moon,
-  Sun
+  Sun,
+  Settings
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -144,11 +146,24 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/profile">
+                    <Link href="/perfil">
                       <User className="mr-2 h-4 w-4" />
-                      Perfil
+                      Mi Perfil
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/perfil/configuracion">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Configuración
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/rankings">
+                      <Trophy className="mr-2 h-4 w-4" />
+                      Rankings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Cerrar sesión

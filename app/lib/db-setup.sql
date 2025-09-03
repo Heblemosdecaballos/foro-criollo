@@ -569,3 +569,133 @@ CREATE POLICY "faq_items_update" ON public.faq_items FOR UPDATE USING (auth.emai
 CREATE POLICY "faq_votes_select" ON public.faq_votes FOR SELECT USING (TRUE);
 CREATE POLICY "faq_votes_insert" ON public.faq_votes FOR INSERT WITH CHECK (auth.uid() = created_by);
 CREATE POLICY "faq_votes_update" ON public.faq_votes FOR UPDATE USING (auth.uid() = created_by);
+
+-- ============================================================================
+-- USER PROFILES SYSTEM (IMPLEMENTATION PHASE 1)
+-- ============================================================================
+
+-- Expand user profiles table
+ALTER TABLE IF EXISTS public.user_profiles 
+ADD COLUMN IF NOT EXISTS bio TEXT,
+ADD COLUMN IF NOT EXISTS location VARCHAR(200),
+ADD COLUMN IF NOT EXISTS phone VARCHAR(20),
+ADD COLUMN IF NOT EXISTS website VARCHAR(500),
+ADD COLUMN IF NOT EXISTS birth_date DATE,
+ADD COLUMN IF NOT EXISTS experience_years INTEGER,
+ADD COLUMN IF NOT EXISTS specialties TEXT[],
+ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500),
+ADD COLUMN IF NOT EXISTS cover_image_url VARCHAR(500),
+ADD COLUMN IF NOT EXISTS is_profile_public BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS show_phone BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS show_location BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS allow_messages BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+-- Create user activities table
+CREATE TABLE IF NOT EXISTS public.user_activities (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL,
+    activity_type VARCHAR(50) NOT NULL, -- 'thread_created', 'reply_posted', 'horse_added', 'ad_published', etc.
+    title VARCHAR(300) NOT NULL,
+    description TEXT,
+    reference_id UUID, -- ID of the related object (thread, horse, ad, etc.)
+    reference_type VARCHAR(50), -- 'thread', 'horse', 'ad', 'media', etc.
+    reference_url VARCHAR(500),
+    metadata JSONB DEFAULT '{}',
+    points_earned INTEGER DEFAULT 0,
+    is_public BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user settings table
+CREATE TABLE IF NOT EXISTS public.user_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE,
+    theme VARCHAR(20) DEFAULT 'light', -- 'light', 'dark', 'auto'
+    language VARCHAR(10) DEFAULT 'es', -- 'es', 'en'
+    timezone VARCHAR(50) DEFAULT 'America/Bogota',
+    notifications_email BOOLEAN DEFAULT TRUE,
+    notifications_push BOOLEAN DEFAULT TRUE,
+    notifications_forum BOOLEAN DEFAULT TRUE,
+    notifications_marketplace BOOLEAN DEFAULT TRUE,
+    notifications_hall BOOLEAN DEFAULT TRUE,
+    privacy_profile VARCHAR(20) DEFAULT 'public', -- 'public', 'registered', 'private'
+    privacy_activity VARCHAR(20) DEFAULT 'public',
+    privacy_stats VARCHAR(20) DEFAULT 'public',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create user follows table for social features
+CREATE TABLE IF NOT EXISTS public.user_follows (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    follower_id UUID NOT NULL,
+    following_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(follower_id, following_id)
+);
+
+-- Create user badges earned table
+CREATE TABLE IF NOT EXISTS public.user_earned_badges (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL,
+    badge_id UUID NOT NULL REFERENCES public.badges(id) ON DELETE CASCADE,
+    earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    reason TEXT,
+    is_displayed BOOLEAN DEFAULT TRUE,
+    UNIQUE(user_id, badge_id)
+);
+
+-- ============================================================================
+-- INDEXES FOR USER PROFILES SYSTEM
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS user_activities_user_created_idx ON public.user_activities(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS user_activities_type_idx ON public.user_activities(activity_type);
+CREATE INDEX IF NOT EXISTS user_activities_reference_idx ON public.user_activities(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS user_activities_public_idx ON public.user_activities(is_public, created_at DESC) WHERE is_public = TRUE;
+
+CREATE INDEX IF NOT EXISTS user_settings_user_idx ON public.user_settings(user_id);
+
+CREATE INDEX IF NOT EXISTS user_follows_follower_idx ON public.user_follows(follower_id);
+CREATE INDEX IF NOT EXISTS user_follows_following_idx ON public.user_follows(following_id);
+
+CREATE INDEX IF NOT EXISTS user_earned_badges_user_idx ON public.user_earned_badges(user_id, earned_at DESC);
+CREATE INDEX IF NOT EXISTS user_earned_badges_displayed_idx ON public.user_earned_badges(user_id, is_displayed) WHERE is_displayed = TRUE;
+
+-- ============================================================================
+-- ROW LEVEL SECURITY FOR USER PROFILES
+-- ============================================================================
+
+ALTER TABLE public.user_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_follows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_earned_badges ENABLE ROW LEVEL SECURITY;
+
+-- User activities policies
+CREATE POLICY "user_activities_select" ON public.user_activities FOR SELECT USING (
+    is_public = TRUE OR user_id = auth.uid()
+);
+CREATE POLICY "user_activities_insert" ON public.user_activities FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com' OR user_id = auth.uid()
+);
+
+-- User settings policies  
+CREATE POLICY "user_settings_select" ON public.user_settings FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY "user_settings_insert" ON public.user_settings FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "user_settings_update" ON public.user_settings FOR UPDATE USING (user_id = auth.uid());
+
+-- User follows policies
+CREATE POLICY "user_follows_select" ON public.user_follows FOR SELECT USING (TRUE);
+CREATE POLICY "user_follows_insert" ON public.user_follows FOR INSERT WITH CHECK (follower_id = auth.uid());
+CREATE POLICY "user_follows_delete" ON public.user_follows FOR DELETE USING (follower_id = auth.uid());
+
+-- User earned badges policies
+CREATE POLICY "user_earned_badges_select" ON public.user_earned_badges FOR SELECT USING (TRUE);
+CREATE POLICY "user_earned_badges_insert" ON public.user_earned_badges FOR INSERT WITH CHECK (
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+CREATE POLICY "user_earned_badges_update" ON public.user_earned_badges FOR UPDATE USING (user_id = auth.uid());

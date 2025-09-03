@@ -5,6 +5,31 @@ export interface User {
   name?: string
   avatar_url?: string
   created_at: string
+  // Extended profile fields
+  bio?: string
+  location?: string
+  phone?: string
+  website?: string
+  birth_date?: string
+  experience_years?: number
+  specialties?: string[]
+  social_links?: Record<string, string>
+  cover_image_url?: string
+  is_profile_public?: boolean
+  show_email?: boolean
+  show_phone?: boolean
+  show_location?: boolean
+  allow_messages?: boolean
+  email_notifications?: boolean
+  last_seen?: string
+  reputation_score?: number
+  level?: UserLevel
+  // Calculated fields
+  followers_count?: number
+  following_count?: number
+  activities_count?: number
+  badges_count?: number
+  is_following?: boolean
 }
 
 export interface Horse {
@@ -207,14 +232,7 @@ export interface UserBadge {
   earned_at: string
 }
 
-export interface UserLevel {
-  level: number
-  name: string
-  min_points: number
-  max_points?: number
-  color: string
-  benefits: string[]
-}
+
 
 export interface LeaderboardEntry {
   user_id: string
@@ -386,4 +404,115 @@ export interface SearchResult {
   created_at: string
   thumbnail?: string
   metadata?: Record<string, any>
+}
+
+// User Profiles System Types
+export interface UserActivity {
+  id: string
+  user_id: string
+  activity_type: 'thread_created' | 'reply_posted' | 'horse_added' | 'ad_published' | 'media_uploaded' | 'vote_cast' | 'comment_added' | 'badge_earned' | 'level_up'
+  title: string
+  description?: string
+  reference_id?: string
+  reference_type?: 'thread' | 'horse' | 'ad' | 'media' | 'badge' | 'level'
+  reference_url?: string
+  metadata?: Record<string, any>
+  points_earned?: number
+  is_public: boolean
+  created_at: string
+}
+
+export interface UserSettings {
+  id: string
+  user_id: string
+  theme: 'light' | 'dark' | 'auto'
+  language: 'es' | 'en'
+  timezone: string
+  notifications_email: boolean
+  notifications_push: boolean
+  notifications_forum: boolean
+  notifications_marketplace: boolean
+  notifications_hall: boolean
+  privacy_profile: 'public' | 'registered' | 'private'
+  privacy_activity: 'public' | 'registered' | 'private'
+  privacy_stats: 'public' | 'registered' | 'private'
+  created_at: string
+  updated_at: string
+}
+
+export interface UserFollow {
+  id: string
+  follower_id: string
+  following_id: string
+  created_at: string
+  follower?: User
+  following?: User
+}
+
+export interface UserEarnedBadge {
+  id: string
+  user_id: string
+  badge_id: string
+  earned_at: string
+  reason?: string
+  is_displayed: boolean
+  badge?: Badge
+}
+
+export interface UserLevel {
+  id: string
+  name: string
+  min_reputation: number
+  color: string
+  benefits?: string[]
+}
+
+export interface Badge {
+  id: string
+  name: string
+  slug: string
+  description: string
+  icon: string
+  color: string
+  criteria: Record<string, any>
+  points: number
+  is_active: boolean
+}
+
+// Profile form types
+export interface ProfileFormData {
+  name: string
+  bio?: string
+  location?: string
+  phone?: string
+  website?: string
+  birth_date?: string
+  experience_years?: number
+  specialties: string[]
+  social_links: Record<string, string>
+  is_profile_public: boolean
+  show_email: boolean
+  show_phone: boolean
+  show_location: boolean
+  allow_messages: boolean
+  email_notifications: boolean
+}
+
+export interface PrivacySettings {
+  privacy_profile: 'public' | 'registered' | 'private'
+  privacy_activity: 'public' | 'registered' | 'private'
+  privacy_stats: 'public' | 'registered' | 'private'
+  show_email: boolean
+  show_phone: boolean
+  show_location: boolean
+  allow_messages: boolean
+}
+
+export interface NotificationSettings {
+  notifications_email: boolean
+  notifications_push: boolean
+  notifications_forum: boolean
+  notifications_marketplace: boolean
+  notifications_hall: boolean
+  email_notifications: boolean
 }
