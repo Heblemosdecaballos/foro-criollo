@@ -112,6 +112,24 @@ export function Sidebar({ stats, userStats }: SidebarProps) {
               📊 Rankings
             </Link>
             <Link
+              href="/galeria"
+              className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              📸 Galería multimedia
+            </Link>
+            <Link
+              href="/buscar"
+              className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              🔍 Búsqueda avanzada
+            </Link>
+            <Link
+              href="/ayuda"
+              className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ❓ Ayuda y FAQ
+            </Link>
+            <Link
               href="/forums/razas-y-cria"
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
             >

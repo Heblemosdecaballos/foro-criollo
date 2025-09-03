@@ -28,6 +28,7 @@ import {
   Trophy,
   MessageSquare,
   ShoppingCart,
+  Image as ImageIcon,
   Moon,
   Sun
 } from 'lucide-react'
@@ -46,8 +47,7 @@ export function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      // TODO: Implement search functionality
-      console.log('Searching for:', searchQuery)
+      window.location.href = `/buscar?q=${encodeURIComponent(searchQuery.trim())}`
     }
   }
 
@@ -56,6 +56,7 @@ export function Header() {
     { href: '/forums', label: 'Foros', icon: MessageSquare },
     { href: '/hall', label: 'Hall of Fame', icon: Trophy },
     { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
+    { href: '/galeria', label: 'Galería', icon: ImageIcon },
   ]
 
   return (

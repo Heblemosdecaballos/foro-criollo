@@ -328,3 +328,244 @@ CREATE POLICY "user_badges_insert" ON public.user_badges FOR INSERT WITH CHECK (
 CREATE POLICY "notifications_select" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "notifications_insert" ON public.notifications FOR INSERT WITH CHECK (auth.email() = 'admin@hablandodecaballos.com');
 CREATE POLICY "notifications_update" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- GALLERY TABLES (PHASE 3)
+-- ============================================================================
+
+-- Create media albums table
+CREATE TABLE IF NOT EXISTS public.media_albums (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    slug VARCHAR(250) NOT NULL,
+    description TEXT,
+    created_by UUID NOT NULL,
+    is_public BOOLEAN DEFAULT TRUE,
+    cover_image_id UUID,
+    media_count INTEGER DEFAULT 0,
+    views_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create media items table
+CREATE TABLE IF NOT EXISTS public.media_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    album_id UUID REFERENCES public.media_albums(id) ON DELETE SET NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    storage_path VARCHAR(500) NOT NULL,
+    public_url VARCHAR(500) NOT NULL,
+    file_type VARCHAR(10) CHECK (file_type IN ('image', 'video')),
+    file_size INTEGER NOT NULL,
+    dimensions VARCHAR(20),
+    created_by UUID NOT NULL,
+    views_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create media ratings table
+CREATE TABLE IF NOT EXISTS public.media_ratings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    media_id UUID NOT NULL REFERENCES public.media_items(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create media comments table
+CREATE TABLE IF NOT EXISTS public.media_comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    media_id UUID NOT NULL REFERENCES public.media_items(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================================================
+-- POLLS TABLES (PHASE 3)
+-- ============================================================================
+
+-- Create thread polls table
+CREATE TABLE IF NOT EXISTS public.thread_polls (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    thread_id UUID NOT NULL REFERENCES public.forum_threads(id) ON DELETE CASCADE,
+    question VARCHAR(200) NOT NULL,
+    max_choices INTEGER DEFAULT 1,
+    allow_multiple BOOLEAN DEFAULT FALSE,
+    allow_change_vote BOOLEAN DEFAULT TRUE,
+    show_results_without_vote BOOLEAN DEFAULT TRUE,
+    close_date TIMESTAMP WITH TIME ZONE,
+    is_closed BOOLEAN DEFAULT FALSE,
+    total_votes INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create poll options table
+CREATE TABLE IF NOT EXISTS public.poll_options (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id UUID NOT NULL REFERENCES public.thread_polls(id) ON DELETE CASCADE,
+    option_text VARCHAR(100) NOT NULL,
+    vote_count INTEGER DEFAULT 0,
+    order_index INTEGER DEFAULT 0
+);
+
+-- Create poll votes table
+CREATE TABLE IF NOT EXISTS public.poll_votes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    poll_id UUID NOT NULL REFERENCES public.thread_polls(id) ON DELETE CASCADE,
+    option_id UUID NOT NULL REFERENCES public.poll_options(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================================================
+-- FAQ TABLES (PHASE 3)
+-- ============================================================================
+
+-- Create FAQ categories table
+CREATE TABLE IF NOT EXISTS public.faq_categories (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    slug VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT NOT NULL,
+    icon VARCHAR(50) NOT NULL DEFAULT 'HelpCircle',
+    order_index INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create FAQ items table
+CREATE TABLE IF NOT EXISTS public.faq_items (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    category_id UUID NOT NULL REFERENCES public.faq_categories(id) ON DELETE CASCADE,
+    question VARCHAR(300) NOT NULL,
+    answer TEXT NOT NULL,
+    slug VARCHAR(350) NOT NULL,
+    is_featured BOOLEAN DEFAULT FALSE,
+    helpful_votes INTEGER DEFAULT 0,
+    not_helpful_votes INTEGER DEFAULT 0,
+    order_index INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create FAQ votes table
+CREATE TABLE IF NOT EXISTS public.faq_votes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    faq_id UUID NOT NULL REFERENCES public.faq_items(id) ON DELETE CASCADE,
+    created_by UUID NOT NULL,
+    is_helpful BOOLEAN NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================================================
+-- PHASE 3 INDEXES
+-- ============================================================================
+
+-- Gallery indexes
+CREATE UNIQUE INDEX IF NOT EXISTS media_albums_slug_idx ON public.media_albums(slug) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS media_albums_created_by_idx ON public.media_albums(created_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS media_items_album_created_idx ON public.media_items(album_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS media_ratings_user_media_idx ON public.media_ratings(created_by, media_id);
+CREATE INDEX IF NOT EXISTS media_comments_media_created_idx ON public.media_comments(media_id, created_at DESC);
+
+-- Polls indexes
+CREATE UNIQUE INDEX IF NOT EXISTS thread_polls_thread_idx ON public.thread_polls(thread_id);
+CREATE INDEX IF NOT EXISTS poll_options_poll_order_idx ON public.poll_options(poll_id, order_index);
+CREATE UNIQUE INDEX IF NOT EXISTS poll_votes_user_poll_idx ON public.poll_votes(created_by, poll_id);
+CREATE INDEX IF NOT EXISTS poll_votes_option_idx ON public.poll_votes(option_id);
+
+-- FAQ indexes
+CREATE UNIQUE INDEX IF NOT EXISTS faq_categories_slug_idx ON public.faq_categories(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS faq_items_category_slug_idx ON public.faq_items(category_id, slug);
+CREATE INDEX IF NOT EXISTS faq_items_featured_idx ON public.faq_items(is_featured, order_index) WHERE is_featured = TRUE;
+CREATE UNIQUE INDEX IF NOT EXISTS faq_votes_user_faq_idx ON public.faq_votes(created_by, faq_id);
+
+-- ============================================================================
+-- PHASE 3 DEFAULT DATA
+-- ============================================================================
+
+-- Insert FAQ categories
+INSERT INTO public.faq_categories (slug, name, description, icon, order_index) VALUES
+    ('primeros-pasos', 'Primeros pasos', 'Todo lo que necesitas saber para comenzar en la comunidad', 'Play', 1),
+    ('foros-y-discusiones', 'Foros y discusiones', 'Cómo participar en los foros y crear discusiones', 'MessageSquare', 2),
+    ('hall-of-fame', 'Hall of Fame', 'Guía para agregar y gestionar ejemplares', 'Trophy', 3),
+    ('marketplace', 'Marketplace', 'Cómo comprar y vender en el mercado ecuestre', 'ShoppingCart', 4),
+    ('galeria-multimedia', 'Galería multimedia', 'Subir imágenes, videos y crear álbumes', 'Image', 5),
+    ('gamificacion', 'Sistema de puntos', 'Niveles, badges y rankings de la comunidad', 'Award', 6),
+    ('cuenta-y-perfil', 'Cuenta y perfil', 'Gestión de tu cuenta y configuración', 'User', 7),
+    ('soporte-tecnico', 'Soporte técnico', 'Problemas técnicos y soluciones', 'Settings', 8)
+ON CONFLICT (slug) DO UPDATE SET 
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    icon = EXCLUDED.icon,
+    order_index = EXCLUDED.order_index;
+
+-- ============================================================================
+-- PHASE 3 ROW LEVEL SECURITY
+-- ============================================================================
+
+-- Enable RLS on new tables
+ALTER TABLE public.media_albums ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.thread_polls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.poll_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faq_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faq_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.faq_votes ENABLE ROW LEVEL SECURITY;
+
+-- Gallery policies
+CREATE POLICY "media_albums_select" ON public.media_albums FOR SELECT USING (is_public = TRUE OR created_by = auth.uid());
+CREATE POLICY "media_albums_insert" ON public.media_albums FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "media_albums_update" ON public.media_albums FOR UPDATE USING (auth.uid() = created_by);
+CREATE POLICY "media_albums_delete" ON public.media_albums FOR DELETE USING (auth.uid() = created_by);
+
+CREATE POLICY "media_items_select" ON public.media_items FOR SELECT USING (
+    album_id IS NULL OR 
+    EXISTS (SELECT 1 FROM public.media_albums WHERE id = album_id AND (is_public = TRUE OR created_by = auth.uid()))
+);
+CREATE POLICY "media_items_insert" ON public.media_items FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "media_items_update" ON public.media_items FOR UPDATE USING (auth.uid() = created_by);
+CREATE POLICY "media_items_delete" ON public.media_items FOR DELETE USING (auth.uid() = created_by);
+
+CREATE POLICY "media_ratings_select" ON public.media_ratings FOR SELECT USING (TRUE);
+CREATE POLICY "media_ratings_insert" ON public.media_ratings FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "media_ratings_update" ON public.media_ratings FOR UPDATE USING (auth.uid() = created_by);
+
+CREATE POLICY "media_comments_select" ON public.media_comments FOR SELECT USING (TRUE);
+CREATE POLICY "media_comments_insert" ON public.media_comments FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "media_comments_update" ON public.media_comments FOR UPDATE USING (auth.uid() = created_by);
+
+-- Polls policies
+CREATE POLICY "thread_polls_select" ON public.thread_polls FOR SELECT USING (TRUE);
+CREATE POLICY "thread_polls_insert" ON public.thread_polls FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM public.forum_threads WHERE id = thread_id AND created_by = auth.uid())
+);
+
+CREATE POLICY "poll_options_select" ON public.poll_options FOR SELECT USING (TRUE);
+CREATE POLICY "poll_options_insert" ON public.poll_options FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.thread_polls tp 
+        JOIN public.forum_threads ft ON tp.thread_id = ft.id 
+        WHERE tp.id = poll_id AND ft.created_by = auth.uid()
+    )
+);
+
+CREATE POLICY "poll_votes_select" ON public.poll_votes FOR SELECT USING (TRUE);
+CREATE POLICY "poll_votes_insert" ON public.poll_votes FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "poll_votes_delete" ON public.poll_votes FOR DELETE USING (auth.uid() = created_by);
+
+-- FAQ policies
+CREATE POLICY "faq_categories_select" ON public.faq_categories FOR SELECT USING (is_active = TRUE);
+
+CREATE POLICY "faq_items_select" ON public.faq_items FOR SELECT USING (TRUE);
+CREATE POLICY "faq_items_insert" ON public.faq_items FOR INSERT WITH CHECK (auth.email() = 'admin@hablandodecaballos.com');
+CREATE POLICY "faq_items_update" ON public.faq_items FOR UPDATE USING (auth.email() = 'admin@hablandodecaballos.com');
+
+CREATE POLICY "faq_votes_select" ON public.faq_votes FOR SELECT USING (TRUE);
+CREATE POLICY "faq_votes_insert" ON public.faq_votes FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "faq_votes_update" ON public.faq_votes FOR UPDATE USING (auth.uid() = created_by);

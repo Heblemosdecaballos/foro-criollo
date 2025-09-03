@@ -236,3 +236,154 @@ export interface Notification {
   read_at?: string
   created_at: string
 }
+
+// Gallery types
+export interface MediaAlbum {
+  id: string
+  title: string
+  slug: string
+  description?: string
+  created_by: string
+  is_public: boolean
+  cover_image_id?: string
+  media_count: number
+  views_count: number
+  created_at: string
+  updated_at: string
+  author?: User
+  cover_image?: MediaItem
+}
+
+export interface MediaItem {
+  id: string
+  album_id?: string
+  title: string
+  description?: string
+  storage_path: string
+  public_url: string
+  file_type: 'image' | 'video'
+  file_size: number
+  dimensions?: string
+  created_by: string
+  created_at: string
+  author?: User
+  ratings?: MediaRating[]
+  comments?: MediaComment[]
+  average_rating?: number
+  total_ratings?: number
+  views_count: number
+}
+
+export interface MediaRating {
+  id: string
+  media_id: string
+  created_by: string
+  rating: number
+  created_at: string
+}
+
+export interface MediaComment {
+  id: string
+  media_id: string
+  content: string
+  created_by: string
+  created_at: string
+  author?: User
+}
+
+// Poll types
+export interface ThreadPoll {
+  id: string
+  thread_id: string
+  question: string
+  options: PollOption[]
+  max_choices: number
+  allow_multiple: boolean
+  allow_change_vote: boolean
+  show_results_without_vote: boolean
+  close_date?: string
+  is_closed: boolean
+  total_votes: number
+  created_at: string
+}
+
+export interface PollOption {
+  id: string
+  poll_id: string
+  option_text: string
+  vote_count: number
+  order_index: number
+}
+
+export interface PollVote {
+  id: string
+  poll_id: string
+  option_id: string
+  created_by: string
+  created_at: string
+}
+
+// FAQ types
+export interface FAQCategory {
+  id: string
+  name: string
+  slug: string
+  description: string
+  icon: string
+  order_index: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface FAQItem {
+  id: string
+  category_id: string
+  question: string
+  answer: string
+  slug: string
+  is_featured: boolean
+  helpful_votes: number
+  not_helpful_votes: number
+  order_index: number
+  created_at: string
+  updated_at: string
+  category?: FAQCategory
+}
+
+export interface FAQVote {
+  id: string
+  faq_id: string
+  created_by: string
+  is_helpful: boolean
+  created_at: string
+}
+
+// Advanced search types
+export interface SearchFilters {
+  query?: string
+  type?: 'all' | 'threads' | 'replies' | 'horses' | 'ads' | 'media'
+  category?: string
+  author?: string
+  date_from?: string
+  date_to?: string
+  min_replies?: number
+  min_rating?: number
+  location?: string
+  price_min?: number
+  price_max?: number
+  sort_by?: 'relevance' | 'date' | 'popularity' | 'rating'
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface SearchResult {
+  id: string
+  type: 'thread' | 'reply' | 'horse' | 'ad' | 'media'
+  title: string
+  content: string
+  url: string
+  author?: User
+  category?: string
+  created_at: string
+  thumbnail?: string
+  metadata?: Record<string, any>
+}

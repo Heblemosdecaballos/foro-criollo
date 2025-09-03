@@ -141,6 +141,12 @@ export default async function HomePage() {
                   Marketplace
                 </Button>
               </Link>
+              <Link href="/galeria">
+                <Button size="lg" className="btn-equestrian">
+                  <Users className="mr-2 h-5 w-5" />
+                  Galería
+                </Button>
+              </Link>
               <Link href="/hall">
                 <Button size="lg" variant="outline" className="btn-equestrian-outline">
                   <Trophy className="mr-2 h-5 w-5" />

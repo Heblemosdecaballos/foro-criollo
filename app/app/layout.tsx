@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { SupabaseProvider } from "@/components/providers"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -35,6 +36,7 @@ export default function RootLayout({
             <main className="pb-8">
               {children}
             </main>
+            <Footer />
             <Toaster />
           </div>
         </SupabaseProvider>
