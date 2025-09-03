@@ -942,3 +942,254 @@ CREATE POLICY "admin_notifications_insert" ON public.admin_notifications FOR INS
 CREATE POLICY "admin_notifications_update" ON public.admin_notifications FOR UPDATE USING (
     admin_id = auth.uid()
 );
+
+-- ============================================================================
+-- FILE UPLOAD SYSTEM (IMPLEMENTATION PHASE 3)
+-- ============================================================================
+
+-- Create media files table for file management
+CREATE TABLE IF NOT EXISTS public.media_files (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_size INTEGER NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    cloud_storage_path VARCHAR(500) NOT NULL, -- S3 key/path
+    thumbnail_path VARCHAR(500), -- S3 key for thumbnail
+    width INTEGER,
+    height INTEGER,
+    duration INTEGER, -- for videos, in seconds
+    alt_text TEXT,
+    description TEXT,
+    uploaded_by UUID NOT NULL,
+    upload_status VARCHAR(20) DEFAULT 'processing', -- 'processing', 'completed', 'failed'
+    is_public BOOLEAN DEFAULT TRUE,
+    tags TEXT[],
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    FOREIGN KEY (uploaded_by) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Create albums table for organizing media
+CREATE TABLE IF NOT EXISTS public.media_albums (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    cover_image_id UUID,
+    created_by UUID NOT NULL,
+    is_public BOOLEAN DEFAULT TRUE,
+    view_count INTEGER DEFAULT 0,
+    tags TEXT[],
+    category VARCHAR(50), -- 'hall_of_fame', 'gallery', 'events', 'training'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE,
+    FOREIGN KEY (cover_image_id) REFERENCES public.media_files(id) ON DELETE SET NULL
+);
+
+-- Create album_media junction table
+CREATE TABLE IF NOT EXISTS public.album_media (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    album_id UUID NOT NULL,
+    media_id UUID NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    caption TEXT,
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    FOREIGN KEY (album_id) REFERENCES public.media_albums(id) ON DELETE CASCADE,
+    FOREIGN KEY (media_id) REFERENCES public.media_files(id) ON DELETE CASCADE,
+    UNIQUE(album_id, media_id)
+);
+
+-- Update horses table to include media fields
+ALTER TABLE public.horses 
+ADD COLUMN IF NOT EXISTS profile_image_id UUID,
+ADD COLUMN IF NOT EXISTS gallery_album_id UUID,
+ADD COLUMN IF NOT EXISTS video_url VARCHAR(500),
+ADD COLUMN IF NOT EXISTS awards_images UUID[];
+
+-- Add foreign keys for horses media
+ALTER TABLE public.horses 
+ADD CONSTRAINT fk_horses_profile_image 
+FOREIGN KEY (profile_image_id) REFERENCES public.media_files(id) ON DELETE SET NULL;
+
+ALTER TABLE public.horses 
+ADD CONSTRAINT fk_horses_gallery_album 
+FOREIGN KEY (gallery_album_id) REFERENCES public.media_albums(id) ON DELETE SET NULL;
+
+-- Update forum_threads to include media
+ALTER TABLE public.forum_threads 
+ADD COLUMN IF NOT EXISTS attachments UUID[];
+
+-- Update forum_replies to include media  
+ALTER TABLE public.forum_replies 
+ADD COLUMN IF NOT EXISTS attachments UUID[];
+
+-- Update marketplace ads to include media
+ALTER TABLE public.marketplace_ads 
+ADD COLUMN IF NOT EXISTS images UUID[],
+ADD COLUMN IF NOT EXISTS video_id UUID;
+
+-- Add foreign key for marketplace video
+ALTER TABLE public.marketplace_ads 
+ADD CONSTRAINT fk_marketplace_video 
+FOREIGN KEY (video_id) REFERENCES public.media_files(id) ON DELETE SET NULL;
+
+-- Update user profiles to include avatar media
+ALTER TABLE public.user_profiles 
+ADD COLUMN IF NOT EXISTS avatar_media_id UUID;
+
+ALTER TABLE public.user_profiles 
+ADD CONSTRAINT fk_user_avatar_media 
+FOREIGN KEY (avatar_media_id) REFERENCES public.media_files(id) ON DELETE SET NULL;
+
+-- Create media comments table
+CREATE TABLE IF NOT EXISTS public.media_comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    media_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    parent_id UUID, -- for threaded comments
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    FOREIGN KEY (media_id) REFERENCES public.media_files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES public.media_comments(id) ON DELETE CASCADE
+);
+
+-- Create media likes table
+CREATE TABLE IF NOT EXISTS public.media_likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    media_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    FOREIGN KEY (media_id) REFERENCES public.media_files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+    UNIQUE(media_id, user_id)
+);
+
+-- ============================================================================
+-- INDEXES FOR MEDIA SYSTEM
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS media_files_uploaded_by_idx ON public.media_files(uploaded_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS media_files_status_idx ON public.media_files(upload_status);
+CREATE INDEX IF NOT EXISTS media_files_type_idx ON public.media_files(mime_type);
+CREATE INDEX IF NOT EXISTS media_files_public_idx ON public.media_files(is_public, created_at DESC) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS media_files_tags_idx ON public.media_files USING GIN(tags);
+
+CREATE INDEX IF NOT EXISTS media_albums_created_by_idx ON public.media_albums(created_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS media_albums_category_idx ON public.media_albums(category, is_public);
+CREATE INDEX IF NOT EXISTS media_albums_public_idx ON public.media_albums(is_public, created_at DESC) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS media_albums_tags_idx ON public.media_albums USING GIN(tags);
+
+CREATE INDEX IF NOT EXISTS album_media_album_idx ON public.album_media(album_id, order_index);
+CREATE INDEX IF NOT EXISTS album_media_media_idx ON public.album_media(media_id);
+
+CREATE INDEX IF NOT EXISTS media_comments_media_idx ON public.media_comments(media_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS media_comments_user_idx ON public.media_comments(user_id);
+CREATE INDEX IF NOT EXISTS media_comments_parent_idx ON public.media_comments(parent_id);
+
+CREATE INDEX IF NOT EXISTS media_likes_media_idx ON public.media_likes(media_id);
+CREATE INDEX IF NOT EXISTS media_likes_user_idx ON public.media_likes(user_id);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY FOR MEDIA SYSTEM
+-- ============================================================================
+
+ALTER TABLE public.media_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_albums ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.album_media ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.media_likes ENABLE ROW LEVEL SECURITY;
+
+-- Media files policies
+CREATE POLICY "media_files_select" ON public.media_files FOR SELECT USING (
+    is_public = TRUE OR 
+    uploaded_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "media_files_insert" ON public.media_files FOR INSERT WITH CHECK (
+    uploaded_by = auth.uid()
+);
+CREATE POLICY "media_files_update" ON public.media_files FOR UPDATE USING (
+    uploaded_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "media_files_delete" ON public.media_files FOR DELETE USING (
+    uploaded_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- Media albums policies
+CREATE POLICY "media_albums_select" ON public.media_albums FOR SELECT USING (
+    is_public = TRUE OR 
+    created_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "media_albums_insert" ON public.media_albums FOR INSERT WITH CHECK (
+    created_by = auth.uid()
+);
+CREATE POLICY "media_albums_update" ON public.media_albums FOR UPDATE USING (
+    created_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "media_albums_delete" ON public.media_albums FOR DELETE USING (
+    created_by = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- Album media policies
+CREATE POLICY "album_media_select" ON public.album_media FOR SELECT USING (TRUE);
+CREATE POLICY "album_media_insert" ON public.album_media FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.media_albums 
+        WHERE id = album_id AND (created_by = auth.uid() OR auth.email() = 'admin@hablandodecaballos.com')
+    )
+);
+CREATE POLICY "album_media_update" ON public.album_media FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM public.media_albums 
+        WHERE id = album_id AND (created_by = auth.uid() OR auth.email() = 'admin@hablandodecaballos.com')
+    )
+);
+CREATE POLICY "album_media_delete" ON public.album_media FOR DELETE USING (
+    EXISTS (
+        SELECT 1 FROM public.media_albums 
+        WHERE id = album_id AND (created_by = auth.uid() OR auth.email() = 'admin@hablandodecaballos.com')
+    )
+);
+
+-- Media comments policies
+CREATE POLICY "media_comments_select" ON public.media_comments FOR SELECT USING (NOT is_deleted);
+CREATE POLICY "media_comments_insert" ON public.media_comments FOR INSERT WITH CHECK (
+    user_id = auth.uid()
+);
+CREATE POLICY "media_comments_update" ON public.media_comments FOR UPDATE USING (
+    user_id = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com' OR 
+    auth.email() = 'moderator@hablandodecaballos.com'
+);
+CREATE POLICY "media_comments_delete" ON public.media_comments FOR DELETE USING (
+    user_id = auth.uid() OR
+    auth.email() = 'admin@hablandodecaballos.com'
+);
+
+-- Media likes policies
+CREATE POLICY "media_likes_select" ON public.media_likes FOR SELECT USING (TRUE);
+CREATE POLICY "media_likes_insert" ON public.media_likes FOR INSERT WITH CHECK (
+    user_id = auth.uid()
+);
+CREATE POLICY "media_likes_delete" ON public.media_likes FOR DELETE USING (
+    user_id = auth.uid()
+);

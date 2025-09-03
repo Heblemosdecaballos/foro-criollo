@@ -269,7 +269,7 @@ export interface MediaAlbum {
   created_at: string
   updated_at: string
   author?: User
-  cover_image?: MediaItem
+  cover_image?: MediaFile
 }
 
 export interface MediaItem {
@@ -680,4 +680,138 @@ export interface ReportFilters {
   date_to?: string
   sort_by?: 'created_at' | 'priority' | 'status'
   sort_order?: 'asc' | 'desc'
+}
+
+// Media and File Upload System Types
+export interface MediaFile {
+  id: string
+  filename: string
+  original_filename: string
+  file_size: number
+  mime_type: string
+  cloud_storage_path: string
+  thumbnail_path?: string
+  width?: number
+  height?: number
+  duration?: number
+  alt_text?: string
+  description?: string
+  uploaded_by: string
+  upload_status: 'processing' | 'completed' | 'failed'
+  is_public: boolean
+  tags: string[]
+  metadata: Record<string, any>
+  created_at: string
+  updated_at: string
+  uploader?: User
+  url?: string // Generated signed URL
+  thumbnail_url?: string // Generated signed URL for thumbnail
+}
+
+export interface MediaAlbum {
+  id: string
+  title: string
+  description?: string
+  cover_image_id?: string
+  created_by: string
+  is_public: boolean
+  view_count: number
+  tags: string[]
+  category?: 'hall_of_fame' | 'gallery' | 'events' | 'training'
+  created_at: string
+  updated_at: string
+  creator?: User
+  cover_image?: MediaFile
+  media_count: number
+  media_files?: MediaFile[]
+}
+
+export interface AlbumMedia {
+  id: string
+  album_id: string
+  media_id: string
+  order_index: number
+  caption?: string
+  added_at: string
+  media?: MediaFile
+  album?: MediaAlbum
+}
+
+export interface MediaComment {
+  id: string
+  media_id: string
+  user_id: string
+  content: string
+  parent_id?: string
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+  user?: User
+  replies?: MediaComment[]
+  reply_count?: number
+}
+
+export interface MediaLike {
+  id: string
+  media_id: string
+  user_id: string
+  created_at: string
+  user?: User
+}
+
+// File upload types
+export interface FileUploadProgress {
+  filename: string
+  progress: number
+  status: 'uploading' | 'processing' | 'completed' | 'failed'
+  error?: string
+  file_id?: string
+  url?: string
+}
+
+export interface UploadOptions {
+  maxFiles?: number
+  maxSize?: number // in bytes
+  acceptedTypes?: string[]
+  generateThumbnail?: boolean
+  resize?: {
+    width?: number
+    height?: number
+    quality?: number
+  }
+  category?: string
+  isPublic?: boolean
+  tags?: string[]
+}
+
+// Extended Horse type with media
+export interface HorseWithMedia extends Horse {
+  profile_image_id?: string
+  gallery_album_id?: string
+  video_url?: string
+  awards_images?: string[]
+  profile_image?: MediaFile
+  gallery_album?: MediaAlbum
+}
+
+// Extended User type with media
+export interface UserWithMedia extends User {
+  avatar_media_id?: string
+  avatar_media?: MediaFile
+}
+
+// Media gallery filters
+export interface MediaFilters {
+  category?: 'hall_of_fame' | 'gallery' | 'events' | 'training' | 'all'
+  media_type?: 'image' | 'video' | 'all'
+  uploaded_by?: string
+  tags?: string[]
+  date_from?: string
+  date_to?: string
+  is_public?: boolean
+  search?: string
+  sort_by?: 'created_at' | 'title' | 'view_count' | 'file_size'
+  sort_order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
 }
