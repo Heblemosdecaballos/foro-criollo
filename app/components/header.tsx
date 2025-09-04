@@ -68,12 +68,12 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full">
+            <div className="relative h-14 w-14 overflow-hidden rounded-full bg-white p-1 shadow-md">
               <Image
                 src="/logo-hablando-caballos.png"
                 alt="Hablando de Caballos"
                 fill
-                className="object-cover"
+                className="object-contain p-1"
               />
             </div>
           </Link>

@@ -104,12 +104,12 @@ export default async function HomePage() {
 
             
             <div className="flex justify-center">
-              <div className="relative w-48 h-48 md:w-64 md:h-64">
+              <div className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-full p-4 shadow-xl">
                 <Image
                   src="/logo-hablando-caballos.png"
                   alt="Hablando de Caballos"
                   fill
-                  className="object-contain"
+                  className="object-contain p-4"
                 />
               </div>
             </div>

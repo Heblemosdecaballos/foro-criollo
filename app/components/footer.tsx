@@ -28,21 +28,13 @@ export function Footer() {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="relative h-10 w-10 overflow-hidden rounded-full bg-amber-600 flex items-center justify-center">
-                <Trophy className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-amber-600 flex items-center">
-                  Hablando de Caballos
-                  <Image 
-                    src="/paso-fino-colombiano.png" 
-                    alt="Paso Fino Colombiano" 
-                    width={20} 
-                    height={20} 
-                    className="ml-2"
-                  />
-                </h3>
-                <p className="text-xs text-muted-foreground">Comunidad Ecuestre</p>
+              <div className="relative h-12 w-12 overflow-hidden rounded-full bg-white p-1 shadow-md">
+                <Image
+                  src="/logo-hablando-caballos.png"
+                  alt="Hablando de Caballos"
+                  fill
+                  className="object-contain p-1"
+                />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
