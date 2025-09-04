@@ -22,35 +22,38 @@ export default function SetupAdminPage() {
     try {
       console.log('Creando usuario administrador...')
       
-      const { data, error } = await supabase.auth.signUp({
-        email: 'admin@hablandodecaballos.com',
-        password: 'admin123456',
-        options: {
-          data: {
-            name: 'Administrador',
-            role: 'admin'
-          }
-        }
+      const response = await fetch('/api/create-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'admin@hablandodecaballos.com',
+          password: 'admin123456',
+          name: 'Administrador',
+          role: 'admin'
+        })
       })
 
-      if (error) {
-        console.error('Error creando admin:', error)
-        if (error.message.includes('already registered')) {
+      const result = await response.json()
+
+      if (!result.success) {
+        console.error('Error creando admin:', result.error)
+        if (result.error.includes('already registered') || result.error.includes('User already registered')) {
           setMessage('El usuario admin@hablandodecaballos.com ya existe. Puedes usar la contraseña: admin123456')
           setIsSuccess(true)
         } else {
-          setMessage(`Error: ${error.message}`)
+          setMessage(`Error: ${result.error}`)
         }
         return
       }
 
-      if (data.user) {
-        setMessage('¡Usuario administrador creado exitosamente!\n\nCredenciales:\nEmail: admin@hablandodecaballos.com\nContraseña: admin123456\n\n¡Ya puedes iniciar sesión!')
-        setIsSuccess(true)
-      }
-    } catch (err) {
+      setMessage('¡Usuario administrador creado exitosamente!\n\nCredenciales:\nEmail: admin@hablandodecaballos.com\nContraseña: admin123456\n\n¡Ya puedes iniciar sesión!')
+      setIsSuccess(true)
+      
+    } catch (err: any) {
       console.error('Error inesperado:', err)
-      setMessage('Error inesperado. Intenta de nuevo.')
+      setMessage(`Error inesperado: ${err.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -64,35 +67,38 @@ export default function SetupAdminPage() {
     try {
       console.log('Creando usuario moderador...')
       
-      const { data, error } = await supabase.auth.signUp({
-        email: 'moderator@hablandodecaballos.com',
-        password: 'moderator123456',
-        options: {
-          data: {
-            name: 'Moderador',
-            role: 'moderator'
-          }
-        }
+      const response = await fetch('/api/create-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: 'moderator@hablandodecaballos.com',
+          password: 'moderator123456',
+          name: 'Moderador',
+          role: 'moderator'
+        })
       })
 
-      if (error) {
-        console.error('Error creando moderador:', error)
-        if (error.message.includes('already registered')) {
+      const result = await response.json()
+
+      if (!result.success) {
+        console.error('Error creando moderador:', result.error)
+        if (result.error.includes('already registered') || result.error.includes('User already registered')) {
           setMessage('El usuario moderator@hablandodecaballos.com ya existe. Puedes usar la contraseña: moderator123456')
           setIsSuccess(true)
         } else {
-          setMessage(`Error: ${error.message}`)
+          setMessage(`Error: ${result.error}`)
         }
         return
       }
 
-      if (data.user) {
-        setMessage('¡Usuario moderador creado exitosamente!\n\nCredenciales:\nEmail: moderator@hablandodecaballos.com\nContraseña: moderator123456\n\n¡Ya puedes iniciar sesión!')
-        setIsSuccess(true)
-      }
-    } catch (err) {
+      setMessage('¡Usuario moderador creado exitosamente!\n\nCredenciales:\nEmail: moderator@hablandodecaballos.com\nContraseña: moderator123456\n\n¡Ya puedes iniciar sesión!')
+      setIsSuccess(true)
+      
+    } catch (err: any) {
       console.error('Error inesperado:', err)
-      setMessage('Error inesperado. Intenta de nuevo.')
+      setMessage(`Error inesperado: ${err.message}`)
     } finally {
       setIsLoading(false)
     }
