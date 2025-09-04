@@ -105,7 +105,7 @@ export default async function HomePage() {
             <div className="flex justify-center">
               <div className="logo-container main-logo bg-gradient-to-br from-white to-gray-50">
                 <Image
-                  src="/logo-final-limpio.png"
+                  src="/logo-limpio-final.png"
                   alt="Hablando de Caballos"
                   fill
                   className="logo-image"
