@@ -119,9 +119,7 @@ export default async function HomePage() {
               <h1 className="text-4xl md:text-5xl font-bold text-[#4B2E2E] dark:text-white">
                 Hablando de Caballos
               </h1>
-              <h2 className="text-xl md:text-2xl text-[#8B4513] dark:text-amber-200 font-medium">
-                Comunidad Ecuestre Colombiana
-              </h2>
+
               <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 La plataforma más completa para amantes de los caballos criollos. 
                 Descubre ejemplares excepcionales, participa en discusiones especializadas 

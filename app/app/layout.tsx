@@ -10,12 +10,12 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Hablando de Caballos - Comunidad Ecuestre",
+  title: "Hablando de Caballos",
   description: "La comunidad ecuestre más grande de habla hispana. Hall of Fame, foros de discusión y más.",
   keywords: ["caballos", "ecuestre", "foro", "hall of fame", "criollo", "paso fino"],
   authors: [{ name: "Hablando de Caballos" }],
   openGraph: {
-    title: "Hablando de Caballos - Comunidad Ecuestre",
+    title: "Hablando de Caballos",
     description: "La comunidad ecuestre más grande de habla hispana",
     type: "website",
     locale: "es_ES",
