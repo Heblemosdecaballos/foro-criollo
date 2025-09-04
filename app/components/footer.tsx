@@ -30,7 +30,7 @@ export function Footer() {
             <div className="flex justify-center md:justify-start">
               <div className="logo-container footer-logo">
                 <Image
-                  src="/logo-limpio-final.png"
+                  src="/logo-usuario-original.png"
                   alt="Hablando de Caballos"
                   fill
                   className="logo-image"
