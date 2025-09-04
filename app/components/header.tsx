@@ -57,7 +57,7 @@ export function Header() {
   const navItems = [
     { href: '/', label: 'Inicio', icon: Home },
     { href: '/forums', label: 'Foros', icon: MessageSquare },
-    { href: '/hall', label: 'Hall of Fame', icon: Trophy },
+    { href: '/hall', label: 'Hall of Fame', icon: ImageIcon },
     { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
     { href: '/galeria', label: 'Galería', icon: ImageIcon },
   ]
@@ -68,21 +68,13 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative h-10 w-10 overflow-hidden rounded-full bg-amber-600 flex items-center justify-center">
-              <Trophy className="h-6 w-6 text-white" />
-            </div>
-            <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-amber-600 flex items-center">
-                Hablando de Caballos
-                <Image 
-                  src="/paso-fino-colombiano.png" 
-                  alt="Paso Fino Colombiano" 
-                  width={24} 
-                  height={24} 
-                  className="ml-2"
-                />
-              </h1>
-              <p className="text-xs text-muted-foreground">El punto de encuentro del caballo criollo colombiano</p>
+            <div className="relative h-12 w-12 overflow-hidden rounded-full">
+              <Image
+                src="/logo-hablando-caballos.png"
+                alt="Hablando de Caballos"
+                fill
+                className="object-cover"
+              />
             </div>
           </Link>
 
@@ -160,7 +152,7 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/rankings">
-                      <Trophy className="mr-2 h-4 w-4" />
+                      <Settings className="mr-2 h-4 w-4" />
                       Rankings
                     </Link>
                   </DropdownMenuItem>

@@ -6,7 +6,7 @@
 @layer base {
   :root {
     /* Paleta de colores Hablando de Caballos */
-    --background: 35 58% 93%; /* Beige claro #F5E9DA */
+    --background: 35 41% 85%; /* Beige claro #ebddcb */
     --foreground: 11 28% 29%; /* Café corporativo #4B2E2E */
 
     --card: 0 0% 100%; /* Blanco puro */

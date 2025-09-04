@@ -95,32 +95,24 @@ export default async function HomePage() {
   const featuredHorses = mockFeaturedHorses
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5E9DA] via-white to-[#EBDDCB] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
+    <div className="min-h-screen bg-gradient-to-br from-[#ebddcb] via-[#ebddcb] to-[#ebddcb] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 dark:from-amber-900/40 dark:to-orange-900/40" />
         <div className="container mx-auto max-w-7xl px-4 relative z-10">
           <div className="text-center space-y-6">
-            <div className="inline-flex items-center space-x-2 bg-amber-100 dark:bg-amber-900/30 px-4 py-2 rounded-full">
-              <Trophy className="h-5 w-5 text-amber-600" />
-              <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                El punto de encuentro del caballo criollo colombiano
-              </span>
-            </div>
+
             
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white flex items-center justify-center flex-wrap">
-              Hablando de{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
-                Caballos
-              </span>
-              <Image 
-                src="/paso-fino-colombiano.png" 
-                alt="Paso Fino Colombiano" 
-                width={60} 
-                height={60} 
-                className="ml-4"
-              />
-            </h1>
+            <div className="flex justify-center">
+              <div className="relative w-48 h-48 md:w-64 md:h-64">
+                <Image
+                  src="/logo-hablando-caballos.png"
+                  alt="Hablando de Caballos"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
             
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               La plataforma más completa para amantes de los caballos criollos. 
@@ -149,7 +141,7 @@ export default async function HomePage() {
               </Link>
               <Link href="/hall">
                 <Button size="lg" variant="outline" className="btn-equestrian-outline">
-                  <Trophy className="mr-2 h-5 w-5" />
+                  <Eye className="mr-2 h-5 w-5" />
                   Hall of Fame
                 </Button>
               </Link>
@@ -250,7 +242,7 @@ export default async function HomePage() {
                   ))}
                   <div className="text-center py-4">
                     <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground bg-amber-50 dark:bg-amber-950 px-3 py-2 rounded-md">
-                      <Trophy className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
                       <span>Datos de demostración - Configura Supabase para contenido real</span>
                     </div>
                   </div>
@@ -263,7 +255,7 @@ export default async function HomePage() {
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-2xl flex items-center">
-                    <Trophy className="mr-2 h-6 w-6 text-amber-600" />
+                    <Heart className="mr-2 h-6 w-6 text-amber-600" />
                     Ejemplares destacados
                   </CardTitle>
                   <Link href="/hall">
@@ -297,7 +289,7 @@ export default async function HomePage() {
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 to-orange-900 flex items-center justify-center">
-                                <Trophy className="h-12 w-12 text-amber-600" />
+                                <Heart className="h-12 w-12 text-amber-600" />
                               </div>
                             )}
                             <div className="absolute top-3 right-3">
