@@ -60,6 +60,7 @@ export function Header() {
     { href: '/hall', label: 'Hall of Fame', icon: ImageIcon },
     { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
     { href: '/galeria', label: 'Galería', icon: ImageIcon },
+    { href: '/historias', label: 'Historias', icon: ImageIcon },
   ]
 
   return (

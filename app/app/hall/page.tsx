@@ -39,20 +39,25 @@ export default async function HallOfFamePage() {
         {/* Header */}
         <div className="text-center space-y-6 mb-12">
           <div className="inline-flex items-center space-x-2 bg-amber-100 dark:bg-amber-900/30 px-4 py-2 rounded-full">
-            <Trophy className="h-5 w-5 text-amber-600" />
+            <Image 
+              src="/paso-fino-colombiano.png" 
+              alt="Caballo Criollo" 
+              width={20} 
+              height={20}
+            />
             <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
               Hall of Fame Ecuestre
             </span>
           </div>
           
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white flex items-center justify-center flex-wrap">
-            Ejemplares{' '}
+            Hall{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
-              Excepcionales
+              de la Fama
             </span>
             <Image 
               src="/paso-fino-colombiano.png" 
-              alt="Paso Fino Colombiano" 
+              alt="Caballo Criollo" 
               width={50} 
               height={50} 
               className="ml-4"
@@ -60,12 +65,11 @@ export default async function HallOfFamePage() {
           </h1>
           
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Conoce los caballos criollos más destacados de nuestra comunidad. 
-            Cada ejemplar representa la excelencia en su andar y linaje.
+            Conoce los ejemplares que han hecho grande los cuatro andares de El Caballo Criollo Colombiano.
           </p>
           
           <div className="flex flex-wrap justify-center gap-4">
-            {user && (
+            {(user?.email === 'admin@hablandodecaballos.com') && (
               <Link href="/hall/nueva">
                 <Button size="lg" className="btn-equestrian">
                   <Plus className="mr-2 h-5 w-5" />
@@ -86,8 +90,14 @@ export default async function HallOfFamePage() {
         <Card className="horse-shadow mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Trophy className="mr-2 h-5 w-5 text-amber-600" />
-              Explorar por andar
+              <Image 
+                src="/paso-fino-colombiano.png" 
+                alt="Caballo Criollo" 
+                width={20} 
+                height={20} 
+                className="mr-2"
+              />
+              Andares
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -163,7 +173,12 @@ export default async function HallOfFamePage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 to-orange-900 flex items-center justify-center">
-                          <Trophy className="h-16 w-16 text-amber-600" />
+                          <Image 
+                            src="/paso-fino-colombiano.png" 
+                            alt="Caballo Criollo" 
+                            width={64} 
+                            height={64}
+                          />
                         </div>
                       )}
                       <div className="absolute top-3 right-3 flex space-x-2">
@@ -217,26 +232,24 @@ export default async function HallOfFamePage() {
         ) : (
           <Card className="horse-shadow">
             <CardContent className="text-center py-12">
-              <Trophy className="mx-auto h-16 w-16 text-amber-600 mb-4" />
-              <h3 className="text-2xl font-bold mb-4">¡El Hall of Fame te está esperando!</h3>
+              <Image 
+                src="/paso-fino-colombiano.png" 
+                alt="Caballo Criollo" 
+                width={64} 
+                height={64}
+                className="mx-auto mb-4"
+              />
+              <h3 className="text-2xl font-bold mb-4">¡El Hall de la Fama te está esperando!</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Sé el primero en compartir un ejemplar excepcional de caballo criollo 
-                y comenzar esta prestigiosa galería.
+                Explora los ejemplares excepcionales de caballo criollo colombiano 
+                y disfruta de esta prestigiosa galería.
               </p>
-              {user ? (
-                <Link href="/hall/nueva">
-                  <Button className="btn-equestrian">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Agregar primer ejemplar
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/login">
-                  <Button className="btn-equestrian">
-                    Inicia sesión para agregar ejemplares
-                  </Button>
-                </Link>
-              )}
+              <Link href="/forums">
+                <Button className="btn-equestrian">
+                  <Heart className="mr-2 h-4 w-4" />
+                  Visitar los foros
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         )}

@@ -319,6 +319,105 @@ export default async function HomePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Historias Section */}
+            <Card className="horse-shadow">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl flex items-center">
+                    <Image 
+                      src="/paso-fino-colombiano.png" 
+                      alt="Caballo Criollo" 
+                      width={24} 
+                      height={24} 
+                      className="mr-2"
+                    />
+                    Historias
+                  </CardTitle>
+                  <Link href="/historias">
+                    <Button variant="outline" size="sm">
+                      Ver todas
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Historia destacada 1 */}
+                  <div className="group block">
+                    <Card className="card-hover border-0 shadow-md group-hover:shadow-xl transition-all duration-300">
+                      <div className="relative aspect-video overflow-hidden rounded-t-lg">
+                        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 to-orange-900 flex items-center justify-center">
+                          <Image 
+                            src="/paso-fino-colombiano.png" 
+                            alt="Caballo Criollo" 
+                            width={48} 
+                            height={48}
+                          />
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-bold text-lg mb-2 group-hover:text-amber-600 transition-colors">
+                          Tradición y excelencia ecuestre
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          Descubre las historias fascinantes detrás de los mejores ejemplares del caballo criollo colombiano...
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Historia destacada 2 */}
+                  <div className="group block">
+                    <Card className="card-hover border-0 shadow-md group-hover:shadow-xl transition-all duration-300">
+                      <div className="relative aspect-video overflow-hidden rounded-t-lg">
+                        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 to-orange-900 flex items-center justify-center">
+                          <Image 
+                            src="/paso-fino-colombiano.png" 
+                            alt="Caballo Criollo" 
+                            width={48} 
+                            height={48}
+                          />
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-bold text-lg mb-2 group-hover:text-amber-600 transition-colors">
+                          Los cuatro andares únicos
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          Una mirada profunda a los distintivos andares del caballo criollo: paso fino, trocha, trocha y galope...
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Historia destacada 3 */}
+                  <div className="group block">
+                    <Card className="card-hover border-0 shadow-md group-hover:shadow-xl transition-all duration-300">
+                      <div className="relative aspect-video overflow-hidden rounded-t-lg">
+                        <div className="w-full h-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 to-orange-900 flex items-center justify-center">
+                          <Image 
+                            src="/paso-fino-colombiano.png" 
+                            alt="Caballo Criollo" 
+                            width={48} 
+                            height={48}
+                          />
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <h3 className="font-bold text-lg mb-2 group-hover:text-amber-600 transition-colors">
+                          Criadores legendarios
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          Conoce a los criadores que han dedicado su vida a preservar y mejorar la raza del caballo criollo...
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}

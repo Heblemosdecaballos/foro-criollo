@@ -138,20 +138,25 @@ export function MediaGallery({
         {/* Header */}
         <div className="text-center space-y-6 mb-12">
           <div className="inline-flex items-center space-x-2 bg-amber-100 dark:bg-amber-900/30 px-4 py-2 rounded-full">
-            <ImageIcon className="h-5 w-5 text-amber-600" />
+            <Image 
+              src="/paso-fino-colombiano.png" 
+              alt="Caballo Criollo" 
+              width={20} 
+              height={20}
+            />
             <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              Galería Multimedia Ecuestre
+              Galería Equina
             </span>
           </div>
           
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white flex items-center justify-center flex-wrap">
             Galería{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
-              Multimedia
+              Equina
             </span>
             <Image 
               src="/paso-fino-colombiano.png" 
-              alt="Paso Fino Colombiano" 
+              alt="Caballo Criollo" 
               width={50} 
               height={50} 
               className="ml-4"

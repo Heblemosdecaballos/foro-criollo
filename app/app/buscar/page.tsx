@@ -20,7 +20,7 @@ import {
   DollarSign,
   Star,
   MessageSquare,
-  Trophy,
+  Heart,
   ShoppingCart,
   Image as ImageIcon,
   Eye,
@@ -99,7 +99,7 @@ export default function BuscarPage() {
   const getResultIcon = (type: string) => {
     switch (type) {
       case 'thread': return MessageSquare
-      case 'horse': return Trophy
+      case 'horse': return ImageIcon
       case 'ad': return ShoppingCart
       case 'media': return ImageIcon
       default: return Search
@@ -432,7 +432,7 @@ export default function BuscarPage() {
                               {result.type === 'horse' && result.metadata && (
                                 <>
                                   <div className="flex items-center">
-                                    <Trophy className="mr-1 h-3 w-3" />
+                                    <Heart className="mr-1 h-3 w-3" />
                                     {result.metadata.votes}
                                   </div>
                                   <div className="flex items-center">

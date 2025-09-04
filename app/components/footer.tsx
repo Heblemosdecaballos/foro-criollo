@@ -27,8 +27,8 @@ export function Footer() {
         <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-8">
           {/* Logo and Description */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="relative h-12 w-12 overflow-hidden rounded-full bg-white p-1 shadow-md">
+            <div className="flex justify-center md:justify-start">
+              <div className="relative h-16 w-16 overflow-hidden rounded-full bg-white p-1 shadow-md">
                 <Image
                   src="/logo-hablando-caballos.png"
                   alt="Hablando de Caballos"
@@ -56,7 +56,13 @@ export function Footer() {
                 Foros de discusión
               </Link>
               <Link href="/hall" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Trophy className="mr-2 h-4 w-4" />
+                <Image 
+                  src="/paso-fino-colombiano.png" 
+                  alt="Hall of Fame" 
+                  width={16} 
+                  height={16} 
+                  className="mr-2"
+                />
                 Hall of Fame
               </Link>
               <Link href="/marketplace" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -66,6 +72,16 @@ export function Footer() {
               <Link href="/galeria" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <ImageIcon className="mr-2 h-4 w-4" />
                 Galería multimedia
+              </Link>
+              <Link href="/historias" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <Image 
+                  src="/paso-fino-colombiano.png" 
+                  alt="Historias" 
+                  width={16} 
+                  height={16} 
+                  className="mr-2"
+                />
+                Historias
               </Link>
               <Link href="/rankings" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Award className="mr-2 h-4 w-4" />
@@ -171,8 +187,15 @@ export function Footer() {
           </div>
           
           <div className="mt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              Plataforma desarrollada con 🐎 para la comunidad ecuestre colombiana
+            <p className="text-xs text-muted-foreground flex items-center justify-center">
+              Plataforma desarrollada para el Gremio Equino Colombiano
+              <Image 
+                src="/paso-fino-colombiano.png" 
+                alt="Caballo Criollo" 
+                width={16} 
+                height={16} 
+                className="ml-2"
+              />
             </p>
           </div>
         </div>
