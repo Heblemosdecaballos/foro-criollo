@@ -97,7 +97,7 @@ export function Sidebar({ stats, userStats }: SidebarProps) {
               href="/hall"
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              🏆 Hall of Fame
+              🐎 Hall de la Fama
             </Link>
             <Link
               href="/marketplace"

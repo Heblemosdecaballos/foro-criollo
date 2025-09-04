@@ -57,7 +57,7 @@ export function Header() {
   const navItems = [
     { href: '/', label: 'Inicio', icon: Home },
     { href: '/forums', label: 'Foros', icon: MessageSquare },
-    { href: '/hall', label: 'Hall of Fame', icon: ImageIcon },
+    { href: '/hall', label: 'Hall de la Fama', icon: ImageIcon },
     { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
     { href: '/galeria', label: 'Galería', icon: ImageIcon },
     { href: '/historias', label: 'Historias', icon: ImageIcon },
@@ -71,7 +71,7 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
             <div className="logo-container header-logo">
               <Image
-                src="/logo-hablando-caballos.png"
+                src="/logo-limpio.png"
                 alt="Hablando de Caballos"
                 fill
                 className="logo-image"

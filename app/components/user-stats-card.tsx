@@ -144,7 +144,7 @@ export function UserStatsCard({ userStats, showLeaderboard = true }: UserStatsCa
             <div className="flex items-center space-x-2 p-2 rounded-md bg-accent/50">
               <Award className="h-4 w-4 text-amber-600" />
               <div>
-                <p className="text-sm font-medium">Hall of Fame</p>
+                <p className="text-sm font-medium">Hall de la Fama</p>
                 <p className="text-xs text-muted-foreground">Agregaste tu primer caballo</p>
               </div>
             </div>

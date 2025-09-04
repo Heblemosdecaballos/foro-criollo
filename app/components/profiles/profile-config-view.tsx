@@ -602,7 +602,7 @@ export function ProfileConfigView({ user, settings }: ProfileConfigViewProps) {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notifications_hall">Notificaciones del Hall of Fame</Label>
+                        <Label htmlFor="notifications_hall">Notificaciones del Hall de la Fama</Label>
                         <p className="text-sm text-muted-foreground">Votos y comentarios en tus caballos</p>
                       </div>
                       <Switch

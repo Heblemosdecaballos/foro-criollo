@@ -392,7 +392,7 @@ export function FileUpload({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hall_of_fame">Hall of Fame</SelectItem>
+                <SelectItem value="hall_of_fame">Hall de la Fama</SelectItem>
                 <SelectItem value="gallery">Galería</SelectItem>
                 <SelectItem value="events">Eventos</SelectItem>
                 <SelectItem value="training">Entrenamiento</SelectItem>

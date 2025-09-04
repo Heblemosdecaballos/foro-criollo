@@ -84,7 +84,7 @@ export function AlbumCard({ album, currentUser, onUpdate }: AlbumCardProps) {
 
   const getCategoryLabel = (category?: string) => {
     switch (category) {
-      case 'hall_of_fame': return 'Hall of Fame'
+      case 'hall_of_fame': return 'Hall de la Fama'
       case 'gallery': return 'Galería'
       case 'events': return 'Eventos'
       case 'training': return 'Entrenamiento'

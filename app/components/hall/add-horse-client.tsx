@@ -147,7 +147,7 @@ export function AddHorseClient() {
             <Trophy className="mx-auto h-16 w-16 text-amber-600 mb-4" />
             <h3 className="text-2xl font-bold mb-4">Iniciar sesión requerido</h3>
             <p className="text-muted-foreground mb-6">
-              Debes iniciar sesión para agregar caballos al Hall of Fame.
+              Debes iniciar sesión para agregar caballos al Hall de la Fama.
             </p>
             <Link href="/auth/login">
               <Button className="btn-equestrian">
@@ -167,7 +167,7 @@ export function AddHorseClient() {
         <Link href="/hall">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al Hall of Fame
+            Volver al Hall de la Fama
           </Button>
         </Link>
         
@@ -182,7 +182,7 @@ export function AddHorseClient() {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             Nuevo caballo al{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-600">
-              Hall of Fame
+              Hall de la Fama
             </span>
           </h1>
           
@@ -422,7 +422,7 @@ export function AddHorseClient() {
             ) : (
               <>
                 <Plus className="mr-2 h-4 w-4" />
-                Agregar al Hall of Fame
+                Agregar al Hall de la Fama
               </>
             )}
           </Button>

@@ -46,7 +46,7 @@ export default async function HallOfFamePage() {
               height={20}
             />
             <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              Hall of Fame Ecuestre
+              Hall de la Fama Ecuestre
             </span>
           </div>
           

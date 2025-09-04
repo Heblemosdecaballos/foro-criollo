@@ -30,7 +30,7 @@ export function Footer() {
             <div className="flex justify-center md:justify-start">
               <div className="logo-container footer-logo">
                 <Image
-                  src="/logo-hablando-caballos.png"
+                  src="/logo-principal.png"
                   alt="Hablando de Caballos"
                   fill
                   className="logo-image"
@@ -61,12 +61,12 @@ export function Footer() {
               <Link href="/hall" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Image 
                   src="/paso-fino-colombiano.png" 
-                  alt="Hall of Fame" 
+                  alt="Hall de la Fama" 
                   width={16} 
                   height={16} 
                   className="mr-2"
                 />
-                Hall of Fame
+                Hall de la Fama
               </Link>
               <Link href="/marketplace" className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <ShoppingCart className="mr-2 h-4 w-4" />
