@@ -69,18 +69,20 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
-            <div className="logo-container header-logo">
-              <Image
-                src="/logo-usuario-original.png"
-                alt="Hablando de Caballos"
-                fill
-                className="logo-image"
-                priority
-              />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-foreground">Hablando de Caballos</h1>
-              <p className="text-xs text-muted-foreground">Comunidad Ecuestre</p>
+            <div className="flex items-center space-x-2">
+              <div className="relative w-10 h-10">
+                <Image
+                  src="/paso-fino-colombiano.png"
+                  alt="Caballo Criollo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold text-foreground">Hablando de Caballos</h1>
+                <p className="text-xs text-muted-foreground">Comunidad Ecuestre</p>
+              </div>
             </div>
           </Link>
 

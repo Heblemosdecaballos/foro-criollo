@@ -27,22 +27,21 @@ export function Footer() {
         <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-8">
           {/* Logo and Description */}
           <div className="space-y-4">
-            <div className="flex justify-center md:justify-start">
-              <div className="logo-container footer-logo">
+            <div className="flex flex-col items-center md:items-start space-y-2">
+              <div className="relative w-12 h-12">
                 <Image
-                  src="/logo-usuario-original.png"
-                  alt="Hablando de Caballos"
+                  src="/paso-fino-colombiano.png"
+                  alt="Caballo Criollo"
                   fill
-                  className="logo-image"
+                  className="object-contain"
                 />
               </div>
+              <p className="text-sm text-muted-foreground font-medium">
+                Hablando de Caballos
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground font-medium">
-              Hablando de Caballos
-            </p>
             <p className="text-xs text-muted-foreground">
-              El punto de encuentro del caballo criollo colombiano. 
-              Conectamos criadores, jinetes y amantes de los caballos.
+              Plataforma desarrollada para el Gremio Equino Colombiano
             </p>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />

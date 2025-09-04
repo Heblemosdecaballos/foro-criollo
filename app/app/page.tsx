@@ -101,14 +101,14 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 dark:from-amber-900/40 dark:to-orange-900/40" />
         <div className="container mx-auto max-w-7xl px-4 relative z-10">
           <div className="text-center space-y-8">
-            {/* Logo Principal Limpio */}
-            <div className="flex justify-center">
-              <div className="logo-container main-logo bg-gradient-to-br from-white to-gray-50">
+            {/* Caballo y Nombre */}
+            <div className="flex justify-center flex-col items-center space-y-4">
+              <div className="relative w-24 h-24 md:w-32 md:h-32">
                 <Image
-                  src="/logo-usuario-original.png"
-                  alt="Hablando de Caballos"
+                  src="/paso-fino-colombiano.png"
+                  alt="Caballo Criollo"
                   fill
-                  className="logo-image"
+                  className="object-contain"
                   priority
                 />
               </div>
