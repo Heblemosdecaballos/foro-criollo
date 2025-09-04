@@ -68,14 +68,19 @@ export function Header() {
       <div className="container mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="relative h-14 w-14 overflow-hidden rounded-full bg-white p-1 shadow-md">
+          <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+            <div className="logo-container header-logo">
               <Image
                 src="/logo-hablando-caballos.png"
                 alt="Hablando de Caballos"
                 fill
-                className="object-contain p-1"
+                className="logo-image"
+                priority
               />
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-bold text-foreground">Hablando de Caballos</h1>
+              <p className="text-xs text-muted-foreground">Comunidad Ecuestre</p>
             </div>
           </Link>
 

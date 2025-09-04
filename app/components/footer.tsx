@@ -28,16 +28,19 @@ export function Footer() {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex justify-center md:justify-start">
-              <div className="relative h-16 w-16 overflow-hidden rounded-full bg-white p-1 shadow-md">
+              <div className="logo-container footer-logo">
                 <Image
                   src="/logo-hablando-caballos.png"
                   alt="Hablando de Caballos"
                   fill
-                  className="object-contain p-1"
+                  className="logo-image"
                 />
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground font-medium">
+              Hablando de Caballos
+            </p>
+            <p className="text-xs text-muted-foreground">
               El punto de encuentro del caballo criollo colombiano. 
               Conectamos criadores, jinetes y amantes de los caballos.
             </p>

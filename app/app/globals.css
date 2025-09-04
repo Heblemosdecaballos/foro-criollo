@@ -177,6 +177,46 @@
   }
 }
 
+/* Logo styles */
+.logo-container {
+  @apply relative overflow-hidden rounded-full bg-white shadow-lg border-2 border-amber-200;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  transition: all 0.3s ease;
+}
+
+.logo-container:hover {
+  @apply shadow-xl border-amber-300;
+  transform: scale(1.05);
+}
+
+.logo-image {
+  @apply object-contain;
+  filter: brightness(1.1) contrast(1.1);
+}
+
+/* Header logo specific styles */
+.header-logo {
+  @apply h-12 w-12 p-1;
+}
+
+.header-logo .logo-image {
+  @apply p-0.5;
+}
+
+/* Main page logo specific styles */
+.main-logo {
+  @apply w-64 h-64 md:w-80 md:h-80 p-4;
+}
+
+.main-logo .logo-image {
+  @apply p-2;
+}
+
+/* Footer logo specific styles */
+.footer-logo {
+  @apply h-20 w-20 p-2;
+}
+
 /* Loading states */
 .skeleton {
   @apply animate-pulse bg-muted rounded;

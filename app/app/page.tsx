@@ -100,25 +100,46 @@ export default async function HomePage() {
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 dark:from-amber-900/40 dark:to-orange-900/40" />
         <div className="container mx-auto max-w-7xl px-4 relative z-10">
-          <div className="text-center space-y-6">
-
-            
+          <div className="text-center space-y-8">
+            {/* Logo Principal Limpio */}
             <div className="flex justify-center">
-              <div className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-full p-4 shadow-xl">
+              <div className="logo-container main-logo bg-gradient-to-br from-white to-gray-50">
                 <Image
                   src="/logo-hablando-caballos.png"
                   alt="Hablando de Caballos"
                   fill
-                  className="object-contain p-4"
+                  className="logo-image"
+                  priority
                 />
               </div>
             </div>
             
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              La plataforma más completa para amantes de los caballos criollos. 
-              Descubre ejemplares excepcionales, participa en discusiones especializadas 
-              y conecta con la comunidad ecuestre más apasionada.
-            </p>
+            {/* Título y Descripción */}
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-[#4B2E2E] dark:text-white">
+                Hablando de Caballos
+              </h1>
+              <h2 className="text-xl md:text-2xl text-[#8B4513] dark:text-amber-200 font-medium">
+                Comunidad Ecuestre Colombiana
+              </h2>
+              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                La plataforma más completa para amantes de los caballos criollos. 
+                Descubre ejemplares excepcionales, participa en discusiones especializadas 
+                y conecta con la comunidad ecuestre más apasionada.
+              </p>
+            </div>
+            
+            {/* Imagen del Caballo Criollo como decoración */}
+            <div className="flex justify-center mt-8">
+              <div className="relative w-32 h-48 md:w-40 md:h-60">
+                <Image
+                  src="/paso-fino-colombiano.png"
+                  alt="Caballo Paso Fino Colombiano"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
             
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/forums">
