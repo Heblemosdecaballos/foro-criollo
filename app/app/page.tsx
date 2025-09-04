@@ -95,7 +95,7 @@ export default async function HomePage() {
   const featuredHorses = mockFeaturedHorses
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#ebddcb] via-[#ebddcb] to-[#ebddcb] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
+    <div className="min-h-screen bg-gradient-to-br from-[#f5e9da] via-[#f5e9da] to-[#f5e9da] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 to-orange-600/20 dark:from-amber-900/40 dark:to-orange-900/40" />
@@ -105,7 +105,7 @@ export default async function HomePage() {
             <div className="flex justify-center">
               <div className="logo-container main-logo bg-gradient-to-br from-white to-gray-50">
                 <Image
-                  src="/logo-limpio.png"
+                  src="/logo-final-limpio.png"
                   alt="Hablando de Caballos"
                   fill
                   className="logo-image"

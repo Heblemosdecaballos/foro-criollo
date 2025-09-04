@@ -90,7 +90,7 @@ export default async function HorseDetailPage({ params }: Props) {
   const sortedMedia = horse.horse_media?.sort((a: any, b: any) => a.order_index - b.order_index) || []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#ebddcb] via-[#ebddcb] to-[#ebddcb] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
+    <div className="min-h-screen bg-gradient-to-br from-[#f5e9da] via-[#f5e9da] to-[#f5e9da] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
       <div className="container mx-auto max-w-6xl px-4 py-8">
         {/* Navigation */}
         <div className="flex items-center justify-between mb-8">

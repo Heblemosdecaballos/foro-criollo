@@ -41,7 +41,7 @@ export default async function UsuarioPage({ params }: UsuarioPageProps) {
 
   if (!canView) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#ebddcb] via-[#ebddcb] to-[#ebddcb] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#f5e9da] via-[#f5e9da] to-[#f5e9da] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B] flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-2xl font-bold">Perfil Privado</h1>
           <p className="text-muted-foreground">Este perfil no está disponible públicamente.</p>

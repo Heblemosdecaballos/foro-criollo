@@ -71,7 +71,7 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
             <div className="logo-container header-logo">
               <Image
-                src="/logo-limpio.png"
+                src="/logo-final-limpio.png"
                 alt="Hablando de Caballos"
                 fill
                 className="logo-image"
