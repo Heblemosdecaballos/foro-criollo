@@ -46,23 +46,42 @@ export function LoginForm() {
     setError('')
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      console.log('Intentando iniciar sesión con:', formData.email)
+      
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
 
       if (signInError) {
+        console.error('Error de login:', signInError)
         if (signInError.message.includes('Invalid login credentials')) {
           setError('Email o contraseña incorrectos')
         } else {
-          setError('Error al iniciar sesión. Inténtalo de nuevo.')
+          setError(`Error al iniciar sesión: ${signInError.message}`)
         }
         return
       }
 
-      router.push('/')
-      router.refresh()
+      if (data?.session) {
+        console.log('Sesión creada exitosamente:', data.session.user.email)
+        
+        // Guardar en localStorage como respaldo
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('supabase-session', JSON.stringify(data.session))
+        }
+        
+        // Obtener la URL de redireccionamiento si existe
+        const urlParams = new URLSearchParams(window.location.search)
+        const redirectUrl = urlParams.get('redirect') || '/'
+        
+        // Esperar un poco para que la sesión se propague
+        setTimeout(() => {
+          window.location.href = redirectUrl
+        }, 500)
+      }
     } catch (err) {
+      console.error('Error inesperado en login:', err)
       setError('Error inesperado. Inténtalo de nuevo.')
     } finally {
       setIsLoading(false)

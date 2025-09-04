@@ -25,21 +25,43 @@ export function useSupabase() {
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createBrowserSupabaseClient())
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Obtener la sesión inicial
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Error obteniendo sesión inicial:', error)
+        } else {
+          console.log('Sesión inicial:', session?.user ? 'Usuario logueado' : 'No hay usuario')
+          setUser(session?.user ?? null)
+        }
+      } catch (error) {
+        console.error('Error al obtener sesión:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    getInitialSession()
+
+    // Escuchar cambios de estado de autenticación
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
+      console.log('Cambio de estado de auth:', event, session?.user ? 'Usuario logueado' : 'No hay usuario')
       setUser(session?.user ?? null)
+      setIsLoading(false)
+      
+      // Refrescar la página en login/logout para actualizar datos
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        window.location.reload()
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      setUser(session?.user ?? null)
-    })
   }, [supabase])
 
   return (
