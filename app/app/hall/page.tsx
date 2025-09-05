@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { formatRelativeDate, pluralize } from '@/lib/utils'
 import { ANDARES } from '@/lib/constants'
+import { HallMainActions } from '@/components/hall/hall-main-actions'
 
 export default async function HallOfFamePage() {
   const supabase = createServerSupabaseClient()
@@ -31,7 +32,7 @@ export default async function HallOfFamePage() {
     .eq('is_deleted', false)
     .order('created_at', { ascending: false })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Removed server-side user check - using client component instead
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5e9da] via-[#f5e9da] to-[#f5e9da] dark:from-[#4B2E2E] dark:via-[#3A2323] dark:to-[#2D1B1B]">
@@ -68,22 +69,7 @@ export default async function HallOfFamePage() {
             Conoce los ejemplares que han hecho grande los cuatro andares de El Caballo Criollo Colombiano.
           </p>
           
-          <div className="flex flex-wrap justify-center gap-4">
-            {(user?.email === 'admin@hablandodecaballos.com') && (
-              <Link href="/hall/nueva">
-                <Button size="lg" className="btn-equestrian">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Agregar ejemplar
-                </Button>
-              </Link>
-            )}
-            <Link href="/forums">
-              <Button size="lg" variant="outline" className="btn-equestrian-outline">
-                <Heart className="mr-2 h-5 w-5" />
-                Ir a los foros
-              </Button>
-            </Link>
-          </div>
+          <HallMainActions />
         </div>
 
         {/* Andares Navigation */}

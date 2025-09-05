@@ -9,6 +9,8 @@ import { Trophy, Plus, Heart, Eye, Calendar, ArrowLeft } from 'lucide-react'
 import { formatRelativeDate, pluralize } from '@/lib/utils'
 import { ANDARES } from '@/lib/constants'
 import { notFound } from 'next/navigation'
+import { HallActions } from '@/components/hall/hall-actions'
+import { EmptyState } from '@/components/hall/empty-state'
 
 interface Props {
   params: { andar: string }
@@ -60,7 +62,7 @@ export default async function AndarPage({ params }: Props) {
     .eq('is_deleted', false)
     .order('created_at', { ascending: false })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Removed server-side user check - using client components instead
 
   // Get andar details
   const { data: andarDetails } = await supabase
@@ -116,22 +118,7 @@ export default async function AndarPage({ params }: Props) {
             </div>
           </div>
           
-          <div className="flex flex-wrap justify-center gap-4">
-            {user && (
-              <Link href="/hall/nueva">
-                <Button size="lg" className="btn-equestrian">
-                  <Plus className="mr-2 h-5 w-5" />
-                  Agregar ejemplar
-                </Button>
-              </Link>
-            )}
-            <Link href="/hall">
-              <Button size="lg" variant="outline" className="btn-equestrian-outline">
-                <Trophy className="mr-2 h-5 w-5" />
-                Ver todos los andares
-              </Button>
-            </Link>
-          </div>
+          <HallActions andarName={andarInfo.name} />
         </div>
 
         {/* Horses Grid */}
@@ -212,32 +199,7 @@ export default async function AndarPage({ params }: Props) {
             })}
           </div>
         ) : (
-          <Card className="horse-shadow">
-            <CardContent className="text-center py-12">
-              <Trophy className="mx-auto h-16 w-16 text-amber-600 mb-4" />
-              <h3 className="text-2xl font-bold mb-4">
-                No hay ejemplares de {andarInfo.name} aún
-              </h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Sé el primero en compartir un ejemplar excepcional de {andarInfo.name.toLowerCase()} 
-                en nuestro Hall of Fame.
-              </p>
-              {user ? (
-                <Link href="/hall/nueva">
-                  <Button className="btn-equestrian">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Agregar primer ejemplar
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/login">
-                  <Button className="btn-equestrian">
-                    Inicia sesión para agregar ejemplares
-                  </Button>
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+          <EmptyState andarName={andarInfo.name} />
         )}
       </div>
     </div>
