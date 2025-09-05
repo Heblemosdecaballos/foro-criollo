@@ -10,6 +10,7 @@ import type { Session } from '@supabase/supabase-js'
 type SupabaseContext = {
   supabase: ReturnType<typeof createBrowserSupabaseClient>
   user: User | null
+  isLoading: boolean
 }
 
 const Context = createContext<SupabaseContext | undefined>(undefined)
@@ -67,7 +68,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   return (
-    <Context.Provider value={{ supabase, user }}>
+    <Context.Provider value={{ supabase, user, isLoading }}>
       <ThemeProvider
         attribute="class"
         defaultTheme="light"

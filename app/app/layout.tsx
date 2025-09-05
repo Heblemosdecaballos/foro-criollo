@@ -6,6 +6,7 @@ import { SupabaseProvider } from "@/components/providers"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
+import { SessionSync } from "@/components/auth/session-sync"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <SupabaseProvider>
+          <SessionSync />
           <div className="relative min-h-screen bg-background">
             <Header />
             <main className="pb-8">

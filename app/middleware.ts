@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   
+  console.log(`[Middleware] Procesando ruta: ${req.nextUrl.pathname}`)
+  
   // Crear cliente de Supabase para el middleware
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,18 +15,26 @@ export async function middleware(req: NextRequest) {
       auth: {
         storage: {
           getItem: (key: string) => {
-            return req.cookies.get(key)?.value ?? null
+            const value = req.cookies.get(key)?.value ?? null
+            console.log(`[Middleware] Getting cookie ${key}:`, value ? 'EXISTS' : 'MISSING')
+            return value
           },
           setItem: (key: string, value: string) => {
+            console.log(`[Middleware] Setting cookie ${key}`)
             res.cookies.set(key, value, {
               httpOnly: false,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
-              maxAge: 60 * 60 * 24 * 7
+              maxAge: 60 * 60 * 24 * 7,
+              path: '/'
             })
           },
           removeItem: (key: string) => {
-            res.cookies.set(key, '', { maxAge: 0 })
+            console.log(`[Middleware] Removing cookie ${key}`)
+            res.cookies.set(key, '', { 
+              maxAge: 0,
+              path: '/' 
+            })
           }
         }
       }
@@ -33,7 +43,12 @@ export async function middleware(req: NextRequest) {
 
   // Verificar sesión desde las cookies
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session }, error } = await supabase.auth.getSession()
+    console.log(`[Middleware] Session check:`, {
+      hasSession: !!session,
+      user: session?.user?.email || 'none',
+      error: error?.message || 'none'
+    })
     
     const pathname = req.nextUrl.pathname
     
@@ -44,7 +59,15 @@ export async function middleware(req: NextRequest) {
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
     const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route))
 
+    console.log(`[Middleware] Route analysis:`, {
+      pathname,
+      isProtectedRoute,
+      isAdminRoute,
+      hasSession: !!session
+    })
+
     if (isProtectedRoute && !session) {
+      console.log(`[Middleware] Redirecting to login - no session for protected route`)
       const loginUrl = new URL('/auth/login', req.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
@@ -54,14 +77,22 @@ export async function middleware(req: NextRequest) {
       const isAdmin = session.user.email === 'admin@hablandodecaballos.com' || 
                      session.user.email === 'moderator@hablandodecaballos.com'
       
+      console.log(`[Middleware] Admin check:`, {
+        email: session.user.email,
+        isAdmin
+      })
+      
       if (!isAdmin) {
+        console.log(`[Middleware] Redirecting to home - not admin`)
         return NextResponse.redirect(new URL('/', req.url))
       }
     }
   } catch (error) {
-    console.error('Error en middleware:', error)
+    console.error('[Middleware] Error:', error)
+    // En caso de error, permitir continuar pero logear
   }
 
+  console.log(`[Middleware] Allowing request to continue`)
   return res
 }
 
