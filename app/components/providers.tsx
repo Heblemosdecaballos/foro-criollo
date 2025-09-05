@@ -55,9 +55,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null)
       setIsLoading(false)
       
-      // Refrescar la página en login/logout para actualizar datos
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        window.location.reload()
+      // Solo recargar en logout para limpiar completamente el estado
+      if (event === 'SIGNED_OUT') {
+        setTimeout(() => {
+          window.location.href = '/'
+        }, 100)
       }
     })
 

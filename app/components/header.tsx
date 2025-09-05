@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSupabase } from './providers'
@@ -42,6 +42,17 @@ export function Header() {
   const { user, supabase } = useSupabase()
   const { theme, setTheme } = useTheme()
   const [searchQuery, setSearchQuery] = useState('')
+  const [isUserLoading, setIsUserLoading] = useState(true)
+  
+  // Detectar cuando el estado de usuario se estabiliza
+  React.useEffect(() => {
+    // Dar un pequeño delay para que el estado se estabilice
+    const timer = setTimeout(() => {
+      setIsUserLoading(false)
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, [user])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -136,62 +147,76 @@ export function Header() {
               </Link>
             )}
 
-            {/* User Menu */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative">
-                    <User className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem asChild>
-                    <Link href="/perfil">
-                      <User className="mr-2 h-4 w-4" />
-                      Mi Perfil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/perfil/configuracion">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Configuración
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/rankings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Rankings
-                    </Link>
-                  </DropdownMenuItem>
-                  {(user?.email === 'admin@hablandodecaballos.com' || user?.email === 'moderator@hablandodecaballos.com') && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <Shield className="mr-2 h-4 w-4" />
-                        Panel Admin
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Cerrar sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm">
-                    Iniciar sesión
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button size="sm">
-                    Registrarse
-                  </Button>
-                </Link>
-              </div>
-            )}
+            {/* User Menu - Con transición suave */}
+            <div className="flex items-center min-w-[140px] justify-end">
+              {isUserLoading ? (
+                // Skeleton loading state para evitar saltos
+                <div className="flex items-center space-x-2">
+                  <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              ) : user ? (
+                <div className="flex items-center space-x-2">
+                  {/* Mostrar email del usuario para debugging */}
+                  <span className="text-xs text-green-600 hidden lg:block">
+                    {user.email?.split('@')[0]}
+                  </span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="relative">
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem asChild>
+                        <Link href="/perfil">
+                          <User className="mr-2 h-4 w-4" />
+                          Mi Perfil ({user.email?.split('@')[0]})
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/perfil/configuracion">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Configuración
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/rankings">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Rankings
+                        </Link>
+                      </DropdownMenuItem>
+                      {(user?.email === 'admin@hablandodecaballos.com' || user?.email === 'moderator@hablandodecaballos.com') && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin">
+                            <Shield className="mr-2 h-4 w-4" />
+                            Panel Admin
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Cerrar sesión
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Link href="/auth/login">
+                    <Button variant="ghost" size="sm">
+                      Iniciar sesión
+                    </Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button size="sm">
+                      Registrarse
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Mobile Menu */}
             <Sheet>

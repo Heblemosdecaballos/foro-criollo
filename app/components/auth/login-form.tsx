@@ -56,9 +56,11 @@ export function LoginForm() {
       if (signInError) {
         console.error('Error de login:', signInError)
         if (signInError.message.includes('Invalid login credentials')) {
-          setError('Email o contraseña incorrectos')
+          setError('❌ Email o contraseña incorrectos.\n\n💡 Verifica:\n• Email: admin@hablandodecaballos.com\n• Contraseña: admin123456\n\n🔧 Si sigues teniendo problemas, ve a /verificar-login')
+        } else if (signInError.message.includes('Email not confirmed')) {
+          setError('❌ Email no confirmado.\n\n💡 El usuario existe pero necesita confirmación de email. Ve a /setup-admin para más información.')
         } else {
-          setError(`Error al iniciar sesión: ${signInError.message}`)
+          setError(`❌ Error al iniciar sesión: ${signInError.message}\n\n🔧 Si sigues teniendo problemas, ve a /verificar-login`)
         }
         return
       }

@@ -35,7 +35,7 @@ export default function SetupAdminPage() {
         if (error.message.includes('already registered') || error.message.includes('User already registered')) {
           return {
             success: true,
-            message: `El usuario ${email} ya existe. Puedes usar la contraseña: ${password}`
+            message: `✅ El usuario ${email} YA EXISTE y está listo para usar.\n\nPuedes hacer login ahora con:\nEmail: ${email}\nContraseña: ${password}`
           }
         }
         return { success: false, error: error.message }
@@ -82,7 +82,7 @@ export default function SetupAdminPage() {
           }
           
           if (result.error && (result.error.includes('already registered') || result.error.includes('User already registered'))) {
-            setMessage('El usuario admin@hablandodecaballos.com ya existe. Puedes usar la contraseña: admin123456')
+            setMessage('✅ ¡PERFECTO! El usuario admin@hablandodecaballos.com YA EXISTE.\n\n🔑 Credenciales listas para usar:\nEmail: admin@hablandodecaballos.com\nContraseña: admin123456\n\n👉 ¡Ya puedes hacer login!')
             setIsSuccess(true)
             return
           }
@@ -142,7 +142,7 @@ export default function SetupAdminPage() {
           }
           
           if (result.error && (result.error.includes('already registered') || result.error.includes('User already registered'))) {
-            setMessage('El usuario moderator@hablandodecaballos.com ya existe. Puedes usar la contraseña: moderator123456')
+            setMessage('✅ ¡PERFECTO! El usuario moderator@hablandodecaballos.com YA EXISTE.\n\n🔑 Credenciales listas para usar:\nEmail: moderator@hablandodecaballos.com\nContraseña: moderator123456\n\n👉 ¡Ya puedes hacer login!')
             setIsSuccess(true)
             return
           }
