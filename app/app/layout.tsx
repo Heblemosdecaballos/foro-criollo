@@ -6,7 +6,6 @@ import { SupabaseProvider } from "@/components/providers"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Toaster } from "@/components/ui/toaster"
-import { SessionSync } from "@/components/auth/session-sync"
 
 const inter = Inter({ subsets: ["latin"] })
 
