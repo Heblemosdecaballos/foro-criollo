@@ -202,3 +202,5 @@ Para soporte técnico o consultas sobre el proyecto:
 ---
 
 **Hablando de Caballos** - La comunidad ecuestre más completa de habla hispana 🐎
+
+<!-- Build updated: Sept 8, 2025 - ESLint conflicts resolved -->
