@@ -4,6 +4,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSupabase } from './providers'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import {
@@ -39,36 +40,28 @@ import { cn } from '@/lib/utils'
 
 export function Header() {
   const [mounted, setMounted] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [supabase, setSupabase] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [isUserLoading, setIsUserLoading] = useState(true)
   
-  // Solo inicializar en el cliente para evitar hydration issues
+  // 🔧 FIX: Usar el contexto real de Supabase
+  const { user, supabase, isLoading: isUserLoading } = useSupabase()
+  
   React.useEffect(() => {
     setMounted(true)
-    // Por ahora, solo mostramos el estado de "no usuario" para evitar hydration issues
-    // En el futuro se puede integrar con el estado real del usuario
   }, [])
 
   const { theme, setTheme } = useTheme()
-  
-  // Detectar cuando el estado de usuario se estabiliza
-  React.useEffect(() => {
-    if (!mounted) return
-    // Dar un pequeño delay para que el estado se estabilice
-    const timer = setTimeout(() => {
-      setIsUserLoading(false)
-    }, 100)
-    
-    return () => clearTimeout(timer)
-  }, [mounted])
 
   const handleSignOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut()
-    } else {
-      window.location.href = '/auth/login'
+    try {
+      console.log('🔓 Cerrando sesión...')
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Error cerrando sesión:', error)
+      }
+      // El onAuthStateChange en providers.tsx manejará la redirección
+    } catch (err) {
+      console.error('Error inesperado cerrando sesión:', err)
+      window.location.href = '/'
     }
   }
 
@@ -172,8 +165,8 @@ export function Header() {
               ) : user ? (
                 <div className="flex items-center space-x-2">
                   {/* Mostrar email del usuario para debugging */}
-                  <span className="text-xs text-green-600 hidden lg:block">
-                    {user.email?.split('@')[0]}
+                  <span className="text-xs text-green-600 hidden lg:block bg-green-50 px-2 py-1 rounded">
+                    ✅ {user.email?.split('@')[0]}
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
