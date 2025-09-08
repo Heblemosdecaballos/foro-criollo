@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSupabase } from '@/components/providers'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +21,7 @@ import Link from 'next/link'
 
 export function AddHorseClient() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, supabase, isLoading: isAuthLoading } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
   const [isMounted, setIsMounted] = useState(false)
@@ -77,7 +77,7 @@ export function AddHorseClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!session?.user) {
+    if (!user) {
       toast.error('Debes iniciar sesión para agregar un caballo')
       return
     }
@@ -121,8 +121,8 @@ export function AddHorseClient() {
     }
   }
 
-  // Show loading state while mounting or session loading
-  if (!isMounted || status === 'loading') {
+  // Show loading state while mounting or auth loading
+  if (!isMounted || isAuthLoading) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8">
         <Card className="horse-shadow">
@@ -138,8 +138,8 @@ export function AddHorseClient() {
     )
   }
 
-  // Show login required if no session
-  if (status === 'unauthenticated' || !session?.user) {
+  // Show login required if no user
+  if (!user) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8">
         <Card className="horse-shadow">

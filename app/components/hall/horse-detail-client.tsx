@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSupabase } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { HorseVoting } from './horse-voting'
@@ -15,21 +15,21 @@ interface HorseDetailClientProps {
 }
 
 export function HorseDetailClient({ horseId, createdBy, editUrl }: HorseDetailClientProps) {
-  const { data: session, status } = useSession()
+  const { user, supabase, isLoading: isAuthLoading } = useSupabase()
   const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
-  // Don't render anything until mounted and session loaded
-  if (!isMounted || status === 'loading') {
+  // Don't render anything until mounted and auth loaded
+  if (!isMounted || isAuthLoading) {
     return null
   }
 
   // Only show edit button if user owns the horse
-  const canEdit = session?.user && session.user.email && createdBy === (session.user as any).id
-  const isAdmin = session?.user?.email === 'admin@hablandodecaballos.com'
+  const canEdit = user && user.email && createdBy === user.id
+  const isAdmin = user?.email === 'admin@hablandodecaballos.com'
 
   if (canEdit || isAdmin) {
     return (

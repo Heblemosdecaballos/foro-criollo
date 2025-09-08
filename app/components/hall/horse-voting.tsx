@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSupabase } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,7 +22,7 @@ export function HorseVoting({
   totalVotes, 
   averageRating 
 }: HorseVotingProps) {
-  const { data: session, status } = useSession()
+  const { user, supabase, isLoading: isAuthLoading } = useSupabase()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vote, setVote] = useState(currentVote)
   const [hoveredStar, setHoveredStar] = useState(0)
@@ -33,7 +33,7 @@ export function HorseVoting({
   }, [])
 
   const handleVote = async (rating: number) => {
-    if (!session?.user) {
+    if (!user) {
       toast.error('Debes iniciar sesión para votar')
       return
     }

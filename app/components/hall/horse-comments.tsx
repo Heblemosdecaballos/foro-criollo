@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSupabase } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
@@ -31,7 +31,7 @@ interface HorseCommentsProps {
 }
 
 export function HorseComments({ horseId }: HorseCommentsProps) {
-  const { data: session, status } = useSession()
+  const { user, supabase, isLoading: isAuthLoading } = useSupabase()
   const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -62,7 +62,7 @@ export function HorseComments({ horseId }: HorseCommentsProps) {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!session?.user) {
+    if (!user) {
       toast.error('Debes iniciar sesión para comentar')
       return
     }
@@ -99,7 +99,7 @@ export function HorseComments({ horseId }: HorseCommentsProps) {
   }
 
   const handleSubmitReply = async (parentId: string) => {
-    if (!session?.user) {
+    if (!user) {
       toast.error('Debes iniciar sesión para responder')
       return
     }
@@ -161,7 +161,7 @@ export function HorseComments({ horseId }: HorseCommentsProps) {
   return (
     <div className="space-y-6">
       {/* Comment Form */}
-      {session?.user ? (
+      {user ? (
         <form onSubmit={handleSubmitComment} className="space-y-4">
           <Textarea
             value={newComment}
@@ -235,7 +235,7 @@ export function HorseComments({ horseId }: HorseCommentsProps) {
                     </p>
                     
                     {/* Reply Button */}
-                    {session?.user && (
+                    {user && (
                       <Button
                         variant="ghost"
                         size="sm"
