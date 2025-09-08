@@ -3,23 +3,12 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { SupabaseProvider } from "@/components/providers"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Hablando de Caballos",
-  description: "La comunidad ecuestre más grande de habla hispana. Hall of Fame, foros de discusión y más.",
-  keywords: ["caballos", "ecuestre", "foro", "hall of fame", "criollo", "paso fino"],
-  authors: [{ name: "Hablando de Caballos" }],
-  openGraph: {
-    title: "Hablando de Caballos",
-    description: "La comunidad ecuestre más grande de habla hispana",
-    type: "website",
-    locale: "es_ES",
-  },
+  description: "La comunidad ecuestre más grande de habla hispana",
 }
 
 export default function RootLayout({
@@ -28,17 +17,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={inter.className} suppressHydrationWarning>
+    <html lang="es">
+      <body className={inter.className} style={{ backgroundColor: '#f5e9da', minHeight: '100vh' }}>
         <SupabaseProvider>
-          <div className="relative min-h-screen bg-background">
-            <Header />
-            <main className="pb-8">
-              {children}
-            </main>
-            <Footer />
-            <Toaster />
-          </div>
+          {children}
         </SupabaseProvider>
       </body>
     </html>
