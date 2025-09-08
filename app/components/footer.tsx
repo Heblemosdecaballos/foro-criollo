@@ -1,4 +1,7 @@
 
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -19,7 +22,11 @@ import {
 } from 'lucide-react'
 
 export function Footer() {
-  const currentYear = new Date().getFullYear()
+  const [currentYear, setCurrentYear] = useState(2025) // Fallback year
+  
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear())
+  }, [])
 
   return (
     <footer className="bg-background border-t mt-16">

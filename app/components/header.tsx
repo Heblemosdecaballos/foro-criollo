@@ -4,7 +4,6 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useSupabase } from './providers'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import {
@@ -39,23 +38,38 @@ import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 
 export function Header() {
-  const { user, supabase } = useSupabase()
-  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [supabase, setSupabase] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isUserLoading, setIsUserLoading] = useState(true)
   
+  // Solo inicializar en el cliente para evitar hydration issues
+  React.useEffect(() => {
+    setMounted(true)
+    // Por ahora, solo mostramos el estado de "no usuario" para evitar hydration issues
+    // En el futuro se puede integrar con el estado real del usuario
+  }, [])
+
+  const { theme, setTheme } = useTheme()
+  
   // Detectar cuando el estado de usuario se estabiliza
   React.useEffect(() => {
+    if (!mounted) return
     // Dar un pequeño delay para que el estado se estabilice
     const timer = setTimeout(() => {
       setIsUserLoading(false)
     }, 100)
     
     return () => clearTimeout(timer)
-  }, [user])
+  }, [mounted])
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    } else {
+      window.location.href = '/auth/login'
+    }
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -138,7 +152,7 @@ export function Header() {
             </Button>
 
             {/* Create Thread Button */}
-            {user && (
+            {mounted && user && (
               <Link href="/forums/create">
                 <Button size="sm" className="hidden md:flex items-center space-x-2">
                   <Plus className="h-4 w-4" />
@@ -149,7 +163,7 @@ export function Header() {
 
             {/* User Menu - Con transición suave */}
             <div className="flex items-center min-w-[140px] justify-end">
-              {isUserLoading ? (
+              {(!mounted || isUserLoading) ? (
                 // Skeleton loading state para evitar saltos
                 <div className="flex items-center space-x-2">
                   <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
