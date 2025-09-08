@@ -15,7 +15,7 @@ export function HallActions({ andarName }: HallActionsProps) {
 
   return (
     <div className="flex flex-wrap justify-center gap-4">
-      {user ? (
+      {user?.email === 'admin@hablandodecaballos.com' ? (
         <Link href="/hall/nueva">
           <Button size="lg" className="btn-equestrian">
             <Plus className="mr-2 h-5 w-5" />
@@ -26,7 +26,7 @@ export function HallActions({ andarName }: HallActionsProps) {
         <Link href="/auth/login">
           <Button size="lg" className="btn-equestrian">
             <Plus className="mr-2 h-5 w-5" />
-            Inicia sesión para agregar
+            Inicia sesión como admin
           </Button>
         </Link>
       )}

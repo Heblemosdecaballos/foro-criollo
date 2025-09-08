@@ -22,18 +22,10 @@ export function EmptyState({ andarName }: EmptyStateProps) {
           No hay ejemplares de {andarName} aún
         </h3>
         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-          Sé el primero en compartir un ejemplar excepcional de {andarName.toLowerCase()} 
-          en nuestro Hall of Fame.
+          Los ejemplares de {andarName.toLowerCase()} serán agregados por el administrador.
         </p>
         
-        {/* Debug info - temporal */}
-        {user && (
-          <div className="mb-4 p-2 bg-green-100 rounded text-sm text-green-800">
-            ✅ Sesión detectada: {user.email}
-          </div>
-        )}
-        
-        {user ? (
+        {user?.email === 'admin@hablandodecaballos.com' ? (
           <Link href="/hall/nueva">
             <Button className="btn-equestrian">
               <Plus className="mr-2 h-4 w-4" />
@@ -41,16 +33,8 @@ export function EmptyState({ andarName }: EmptyStateProps) {
             </Button>
           </Link>
         ) : (
-          <div className="space-y-3">
-            <div className="p-2 bg-yellow-100 rounded text-sm text-yellow-800">
-              ⚠️ No se detectó sesión. Revisa el login.
-            </div>
-            <Link href="/auth/login">
-              <Button className="btn-equestrian">
-                <Plus className="mr-2 h-4 w-4" />
-                Inicia sesión para agregar ejemplares
-              </Button>
-            </Link>
+          <div className="text-sm text-gray-600">
+            Solo el administrador puede agregar ejemplares al Hall de la Fama.
           </div>
         )}
       </CardContent>

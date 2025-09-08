@@ -31,7 +31,6 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <SupabaseProvider>
-          <SessionSync />
           <div className="relative min-h-screen bg-background">
             <Header />
             <main className="pb-8">
