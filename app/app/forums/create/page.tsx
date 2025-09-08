@@ -1,18 +1,18 @@
 
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClientWithCookies } from '@/lib/supabase'
 import { CreateThreadForm } from '@/components/forums/create-thread-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageSquare } from 'lucide-react'
 import { FORUM_CATEGORIES } from '@/lib/constants'
 
 export default async function CreateThreadPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClientWithCookies()
   
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
   
-  if (!user) {
-    redirect('/auth/login')
+  if (!user || error) {
+    redirect('/auth/login?redirect=/forums/create')
   }
 
   return (
