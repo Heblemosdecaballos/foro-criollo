@@ -63,7 +63,7 @@ export function HorseVoting({
   }
 
   const handleRemoveVote = async () => {
-    if (!session?.user || !vote) return
+    if (!user || !vote) return
 
     setIsSubmitting(true)
 
@@ -87,7 +87,7 @@ export function HorseVoting({
     }
   }
 
-  if (!isMounted || status === 'loading') {
+  if (!isMounted || isAuthLoading) {
     return (
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-1 mb-4">
@@ -106,7 +106,7 @@ export function HorseVoting({
     )
   }
 
-  if (!session?.user) {
+  if (!user) {
     return (
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-1 mb-4">
