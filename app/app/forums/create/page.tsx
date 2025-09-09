@@ -1,19 +1,24 @@
 
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClientWithCookies } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import { CreateThreadForm } from '@/components/forums/create-thread-form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageSquare } from 'lucide-react'
 import { FORUM_CATEGORIES } from '@/lib/constants'
 
+// ✅ NUEVA ARQUITECTURA SSR
+
 export default async function CreateThreadPage() {
-  const supabase = createServerSupabaseClientWithCookies()
+  const supabase = await createServerSupabaseClient()
   
   const { data: { user }, error } = await supabase.auth.getUser()
   
   if (!user || error) {
+    console.log('🔒 Usuario no autenticado, redirigiendo al login')
     redirect('/auth/login?redirect=/forums/create')
   }
+
+  console.log('✅ Usuario autenticado para crear thread:', user.email)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-amber-950">

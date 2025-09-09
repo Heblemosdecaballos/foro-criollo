@@ -42,8 +42,8 @@ export function Header() {
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   
-  // 🔧 FIX: Usar el contexto real de Supabase
-  const { user, supabase, isLoading: isUserLoading } = useSupabase()
+  // ✅ NUEVA ARQUITECTURA CENTRALIZADA
+  const { user, session, isLoading: isUserLoading, signOut } = useSupabase()
   
   React.useEffect(() => {
     setMounted(true)
@@ -53,14 +53,16 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
-      console.log('🔓 Cerrando sesión...')
-      const { error } = await supabase.auth.signOut()
+      console.log('🚪 Cerrando sesión...')
+      const { error } = await signOut()
       if (error) {
-        console.error('Error cerrando sesión:', error)
+        console.error('❌ Error cerrando sesión:', error)
+      } else {
+        console.log('✅ Sesión cerrada exitosamente')
       }
-      // El onAuthStateChange en providers.tsx manejará la redirección
+      // El contexto manejará la redirección automáticamente
     } catch (err) {
-      console.error('Error inesperado cerrando sesión:', err)
+      console.error('❌ Error inesperado cerrando sesión:', err)
       window.location.href = '/'
     }
   }

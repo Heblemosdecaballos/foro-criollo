@@ -11,9 +11,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
 import { isValidEmail } from '@/lib/utils'
 
+// ✅ NUEVO LOGINFORM CON ARQUITECTURA MEJORADA
+
 export function LoginForm() {
   const router = useRouter()
-  const { supabase } = useSupabase()
+  const { signIn } = useSupabase()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -46,44 +48,38 @@ export function LoginForm() {
     setError('')
 
     try {
-      console.log('Intentando iniciar sesión con:', formData.email)
+      console.log('🔐 Iniciando sesión con:', formData.email)
       
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      })
+      // ✅ Usar función centralizada del contexto
+      const { error: signInError } = await signIn(formData.email, formData.password)
 
       if (signInError) {
-        console.error('Error de login:', signInError)
+        console.error('❌ Error de login:', signInError)
+        
         if (signInError.message.includes('Invalid login credentials')) {
-          setError('❌ Email o contraseña incorrectos.\n\n💡 Verifica:\n• Email: admin@hablandodecaballos.com\n• Contraseña: admin123456\n\n🔧 Si sigues teniendo problemas, ve a /verificar-login')
+          setError('❌ Email o contraseña incorrectos.\n\n💡 Credenciales válidas:\n• Email: admin@hablandodecaballos.com\n• Contraseña: admin123456\n\n🔧 Si sigues teniendo problemas, ve a /setup-admin')
         } else if (signInError.message.includes('Email not confirmed')) {
-          setError('❌ Email no confirmado.\n\n💡 El usuario existe pero necesita confirmación de email. Ve a /setup-admin para más información.')
+          setError('❌ Email no confirmado.\n\n💡 El usuario existe pero necesita confirmación. Ve a /setup-admin para crear usuarios confirmados.')
         } else {
-          setError(`❌ Error al iniciar sesión: ${signInError.message}\n\n🔧 Si sigues teniendo problemas, ve a /verificar-login`)
+          setError(`❌ Error al iniciar sesión: ${signInError.message}\n\n🔧 Intenta ir a /setup-admin para verificar usuarios`)
         }
         return
       }
 
-      if (data?.session) {
-        console.log('Sesión creada exitosamente:', data.session.user.email)
-        
-        // Guardar en localStorage como respaldo
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('supabase-session', JSON.stringify(data.session))
-        }
-        
-        // Obtener la URL de redireccionamiento si existe
-        const urlParams = new URLSearchParams(window.location.search)
-        const redirectUrl = urlParams.get('redirect') || '/'
-        
-        // Esperar un poco para que la sesión se propague
-        setTimeout(() => {
-          window.location.href = redirectUrl
-        }, 500)
-      }
+      // ✅ Éxito - el contexto manejará la redirección automáticamente
+      console.log('✅ Inicio de sesión exitoso')
+      
+      // Obtener la URL de redireccionamiento si existe
+      const urlParams = new URLSearchParams(window.location.search)
+      const redirectUrl = urlParams.get('redirect') || '/'
+      
+      // Dar tiempo para que el estado se propague
+      setTimeout(() => {
+        router.push(redirectUrl)
+      }, 300)
+      
     } catch (err) {
-      console.error('Error inesperado en login:', err)
+      console.error('❌ Error inesperado en login:', err)
       setError('Error inesperado. Inténtalo de nuevo.')
     } finally {
       setIsLoading(false)

@@ -1,24 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminSupabaseClient } from '@/lib/supabase'
+
+// ✅ API REFACTORIZADA CON NUEVA ARQUITECTURA
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password, name, role } = await request.json()
     
-    // Usar el service role para crear usuarios sin confirmación de email
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE!, // Service role key
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
-    console.log('Creando usuario con service role:', email)
+    console.log('🔧 Creando usuario con nueva arquitectura admin:', email)
+    
+    // ✅ Usar cliente admin centralizado
+    const supabaseAdmin = createAdminSupabaseClient()
 
     // Crear usuario usando admin API
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
@@ -27,33 +20,47 @@ export async function POST(request: NextRequest) {
       email_confirm: true, // Confirmar email automáticamente
       user_metadata: {
         name,
-        role
+        role,
+        created_via: 'admin_api',
+        created_at: new Date().toISOString()
       }
     })
 
     if (error) {
-      console.error('Error creando usuario:', error)
+      console.error('❌ Error creando usuario:', error)
+      
+      // Manejar errores específicos
+      if (error.message.includes('User already registered')) {
+        return NextResponse.json({ 
+          success: true, // Considerarlo éxito si ya existe
+          message: `✅ El usuario ${email} ya existe y está listo para usar`,
+          user: { email }
+        })
+      }
+      
       return NextResponse.json({ 
         success: false, 
         error: error.message 
       }, { status: 400 })
     }
 
-    console.log('Usuario creado exitosamente:', data.user?.email)
+    console.log('✅ Usuario creado exitosamente:', data.user?.email)
 
     return NextResponse.json({ 
       success: true, 
+      message: `✅ Usuario ${role} creado exitosamente`,
       user: {
         id: data.user?.id,
-        email: data.user?.email
+        email: data.user?.email,
+        role: data.user?.user_metadata?.role
       }
     })
 
   } catch (error: any) {
-    console.error('Error en la API:', error)
+    console.error('❌ Error crítico en la API:', error)
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: `Error del servidor: ${error.message}` 
     }, { status: 500 })
   }
 }

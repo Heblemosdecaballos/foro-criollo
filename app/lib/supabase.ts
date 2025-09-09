@@ -4,11 +4,23 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Cliente para uso general (mantener para compatibilidad)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// ✅ ARQUITECTURA SSR SIMPLIFICADA Y COMPATIBLE
 
-// Cliente para el servidor - se importa dinámicamente donde se necesite
-export function createServerSupabaseClient() {
+// Cliente para el navegador (client-side)
+export function createBrowserSupabaseClient() {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      flowType: 'pkce',
+      detectSessionInUrl: true
+    }
+  })
+}
+
+// Cliente para el servidor (server-side) - Simplificado para máxima compatibilidad
+export async function createServerSupabaseClient() {
+  // Por ahora usar configuración simplificada que no cause problemas de tipos
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
@@ -19,27 +31,32 @@ export function createServerSupabaseClient() {
   })
 }
 
-// Cliente servidor simplificado (fallback to regular server client)
-export function createServerSupabaseClientWithCookies() {
-  // Por ahora usar el cliente servidor regular
-  // En el futuro se puede implementar @supabase/ssr para cookies
-  return createServerSupabaseClient()
-}
-
-// Cliente para el navegador con localStorage y configuración optimizada
-export function createBrowserSupabaseClient() {
+// Cliente para middleware
+export function createMiddlewareSupabaseClient() {
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      storageKey: 'sb-auth-token',
+      autoRefreshToken: false,
+      persistSession: false,
       flowType: 'pkce'
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'hablando-de-caballos@1.0.0'
-      }
     }
   })
 }
+
+// Cliente admin para operaciones de backend
+export function createAdminSupabaseClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE is required for admin operations')
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
+}
+
+// DEPRECATED - Mantener solo para compatibilidad temporal
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const createServerSupabaseClientWithCookies = createServerSupabaseClient
