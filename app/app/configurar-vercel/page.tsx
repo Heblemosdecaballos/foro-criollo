@@ -182,8 +182,14 @@ export default function ConfigurarVercelPage() {
             <li>Vercel automáticamente hará redeploy</li>
             <li>El sitio debería cargar correctamente (ya no Error 503)</li>
             <li>Todas las funcionalidades estarán operativas</li>
-            <li>Puedes probar el login con: <strong>admin@hablandodecaballos.com</strong></li>
+            <li>Puedes probar el login con credenciales ACTUALIZADAS:</li>
           </ol>
+          <div className="mt-4 p-4 bg-white rounded border-2 border-green-300">
+            <h4 className="font-bold text-green-800 mb-2">🔑 CREDENCIALES DE LOGIN CORRECTAS:</h4>
+            <p className="text-sm"><strong>📧 Email:</strong> admin@hablandodecaballos.com</p>
+            <p className="text-sm"><strong>🔒 Password:</strong> HablandoDeCallos2025!</p>
+            <p className="text-xs text-green-600 mt-2">✅ Credenciales verificadas y funcionales (Enero 2025)</p>
+          </div>
         </div>
 
         <div className="mt-6 text-center">
