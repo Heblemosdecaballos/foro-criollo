@@ -7,7 +7,7 @@ import { MessageSquare } from 'lucide-react'
 import { FORUM_CATEGORIES } from '@/lib/constants'
 
 export default async function CreateThreadPage() {
-  const supabase = await createServerSupabaseClientWithCookies()
+  const supabase = createServerSupabaseClientWithCookies()
   
   const { data: { user }, error } = await supabase.auth.getUser()
   

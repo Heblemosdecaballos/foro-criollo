@@ -19,38 +19,11 @@ export function createServerSupabaseClient() {
   })
 }
 
-// Cliente servidor con cookies para obtener sesión de usuario
-export async function createServerSupabaseClientWithCookies() {
-  try {
-    const { cookies } = await import('next/headers')
-    const cookieStore = cookies()
-    
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-      cookies: {
-        get(name: string) {
-          try {
-            return cookieStore.get(name)?.value
-          } catch (error) {
-            return undefined
-          }
-        },
-        set(name: string, value: string, options: any) {
-          // No-op in server components
-        },
-        remove(name: string, options: any) {
-          // No-op in server components
-        }
-      },
-    })
-  } catch (error) {
-    // Fallback to regular server client if cookies not available
-    return createServerSupabaseClient()
-  }
+// Cliente servidor simplificado (fallback to regular server client)
+export function createServerSupabaseClientWithCookies() {
+  // Por ahora usar el cliente servidor regular
+  // En el futuro se puede implementar @supabase/ssr para cookies
+  return createServerSupabaseClient()
 }
 
 // Cliente para el navegador con localStorage y configuración optimizada
