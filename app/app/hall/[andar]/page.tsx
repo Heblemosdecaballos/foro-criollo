@@ -29,7 +29,7 @@ export default async function AndarPage({ params }: Props) {
     notFound()
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get horses for this andar
   const { data: horses } = await supabase

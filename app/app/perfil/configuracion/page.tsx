@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { ProfileConfigView } from '@/components/profiles/profile-config-view'
 
 export default async function ConfiguracionPerfilPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {

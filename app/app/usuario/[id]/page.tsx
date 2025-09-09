@@ -10,7 +10,7 @@ interface UsuarioPageProps {
 }
 
 export default async function UsuarioPage({ params }: UsuarioPageProps) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user: currentUser } } = await supabase.auth.getUser()
 
   // Get target user profile

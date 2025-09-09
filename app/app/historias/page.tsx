@@ -53,7 +53,7 @@ const mockStories = [
 ]
 
 export default async function HistoriasPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // In a real app, we would fetch stories from the database

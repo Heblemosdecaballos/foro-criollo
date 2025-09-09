@@ -39,7 +39,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     notFound()
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get category from database
   const { data: dbCategory } = await supabase

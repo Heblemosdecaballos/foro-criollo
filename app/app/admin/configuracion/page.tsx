@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { SiteConfiguration } from '@/components/admin/site-configuration'
 
 export default async function ConfigurationPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Check if user is admin

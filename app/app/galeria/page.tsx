@@ -8,7 +8,7 @@ interface GaleriaPageProps {
 }
 
 export default async function GaleriaPage({ searchParams }: GaleriaPageProps) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Build media query

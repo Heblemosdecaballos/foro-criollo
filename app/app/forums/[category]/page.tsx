@@ -50,7 +50,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound()
   }
 
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get forum statistics
   const [threadsData, repliesData, usersData] = await Promise.all([

@@ -8,7 +8,7 @@ interface Params {
 
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
 
     const { data: comments, error } = await supabase
       .from('hall_comments')
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {

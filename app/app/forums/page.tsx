@@ -33,7 +33,7 @@ const iconMap = {
 }
 
 export default async function ForumsPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get forum statistics
   const [threadsData, repliesData, usersData] = await Promise.all([

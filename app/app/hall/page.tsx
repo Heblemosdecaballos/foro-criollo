@@ -17,7 +17,7 @@ import { ANDARES } from '@/lib/constants'
 import { HallMainActions } from '@/components/hall/hall-main-actions'
 
 export default async function HallOfFamePage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get horses with their media, votes, and comments
   const { data: horses } = await supabase

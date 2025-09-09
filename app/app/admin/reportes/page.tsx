@@ -9,7 +9,7 @@ interface ReportManagementPageProps {
 }
 
 export default async function ReportManagementPage({ searchParams }: ReportManagementPageProps) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Check if user is admin or moderator

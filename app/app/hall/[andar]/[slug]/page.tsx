@@ -33,7 +33,7 @@ interface Props {
 export const dynamic = 'force-dynamic'
 
 export default async function HorseDetailPage({ params }: Props) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   const { data: horse, error } = await supabase
     .from('horses')

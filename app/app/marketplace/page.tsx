@@ -20,7 +20,7 @@ import { formatRelativeDate, formatPrice } from '@/lib/utils'
 import { MARKETPLACE_CATEGORIES } from '@/lib/constants'
 
 export default async function MarketplacePage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   
   // Get recent ads with their images and stats
   const { data: ads } = await supabase

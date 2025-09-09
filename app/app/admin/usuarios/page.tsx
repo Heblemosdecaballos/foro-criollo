@@ -9,7 +9,7 @@ interface UserManagementPageProps {
 }
 
 export default async function UserManagementPage({ searchParams }: UserManagementPageProps) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Check if user is admin or moderator

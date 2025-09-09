@@ -15,7 +15,7 @@ interface LogsPageProps {
 }
 
 export default async function LogsPage({ searchParams }: LogsPageProps) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Check if user is admin or moderator
