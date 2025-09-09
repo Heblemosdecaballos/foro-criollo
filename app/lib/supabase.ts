@@ -1,10 +1,24 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// ✅ CONFIGURACIÓN ROBUSTA DE VARIABLES DE ENTORNO
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// ✅ ARQUITECTURA SSR SIMPLIFICADA Y COMPATIBLE
+// Verificación de variables críticas
+if (!supabaseUrl) {
+  console.error('❌ FALTA: NEXT_PUBLIC_SUPABASE_URL no configurada')
+  throw new Error('NEXT_PUBLIC_SUPABASE_URL is required. Please configure it in Vercel Environment Variables.')
+}
+
+if (!supabaseAnonKey) {
+  console.error('❌ FALTA: NEXT_PUBLIC_SUPABASE_ANON_KEY no configurada')
+  throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required. Please configure it in Vercel Environment Variables.')
+}
+
+console.log('✅ Supabase configurado correctamente:', supabaseUrl)
+
+// ✅ ARQUITECTURA SSR ROBUSTA Y ERROR-RESISTANT
 
 // Cliente para el navegador (client-side)
 export function createBrowserSupabaseClient() {
@@ -46,7 +60,8 @@ export function createMiddlewareSupabaseClient() {
 export function createAdminSupabaseClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE
   if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE is required for admin operations')
+    console.error('❌ FALTA: SUPABASE_SERVICE_ROLE no configurada para operaciones admin')
+    throw new Error('SUPABASE_SERVICE_ROLE is required for admin operations. Please configure it in Vercel Environment Variables.')
   }
   
   return createClient(supabaseUrl, serviceRoleKey, {
