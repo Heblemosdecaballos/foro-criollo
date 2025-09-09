@@ -54,7 +54,7 @@ HorseDetailClient.Voting = function VotingWrapper({
   totalVotes: number
   averageRating: number
 }) {
-  const { data: session, status } = useSession()
+  const { user, supabase, isLoading: isAuthLoading } = useSupabase()
   const [userVote, setUserVote] = useState<number | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -63,15 +63,15 @@ HorseDetailClient.Voting = function VotingWrapper({
     setIsMounted(true)
     
     // Fetch user's vote if logged in
-    if (session?.user) {
+    if (user) {
       fetchUserVote()
     } else {
       setIsLoading(false)
     }
-  }, [session, horseId])
+  }, [user, horseId])
 
   const fetchUserVote = async () => {
-    if (!session?.user) return
+    if (!user) return
     
     try {
       const response = await fetch(`/api/horses/${horseId}`)
@@ -86,7 +86,7 @@ HorseDetailClient.Voting = function VotingWrapper({
     }
   }
 
-  if (!isMounted || status === 'loading' || isLoading) {
+  if (!isMounted || isAuthLoading || isLoading) {
     return (
       <div className="text-center space-y-4">
         <div className="animate-pulse">
