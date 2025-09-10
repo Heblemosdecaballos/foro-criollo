@@ -1,22 +1,25 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// ✅ FUNCIÓN HELPER PARA OBTENER VARIABLES CON VERIFICACIÓN
+// ✅ VERSIÓN DE EMERGENCIA - GRACEFUL FALLBACK PARA TESTING  
 function getEnvVars() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
-  if (!supabaseUrl) {
-    console.error('❌ FALTA: NEXT_PUBLIC_SUPABASE_URL no configurada')
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required. Please configure it in Vercel Environment Variables.')
-  }
-
-  if (!supabaseAnonKey) {
-    console.error('❌ FALTA: NEXT_PUBLIC_SUPABASE_ANON_KEY no configurada')
-    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required. Please configure it in Vercel Environment Variables.')
-  }
+  // EMERGENCY FALLBACK: Use dummy values to test if app loads without crashing
+  const finalUrl = supabaseUrl || 'https://dummy-project.supabase.co'
+  const finalKey = supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy-key-for-testing.emergency'
   
-  return { supabaseUrl, supabaseAnonKey }
+  console.log('🔧 EMERGENCY MODE - Checking env vars:')
+  console.log('  - NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ SET' : '❌ MISSING')
+  console.log('  - NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ SET' : '❌ MISSING')
+  console.log('  - Using URL:', finalUrl)
+  console.log('  - Using Key:', finalKey.substring(0, 30) + '...')
+  
+  return { 
+    supabaseUrl: finalUrl, 
+    supabaseAnonKey: finalKey 
+  }
 }
 
 // ✅ ARQUITECTURA SSR ROBUSTA Y ERROR-RESISTANT
